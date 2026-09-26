@@ -41,14 +41,14 @@ export function MainNavbar() {
   const currentTitle = routeTitles[pathname] ?? "Dashboard"
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/95 px-4 sm:px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
       {/* Left: Sidebar Toggle Button & Current Page Title */}
       <div className="flex items-center gap-3 sm:gap-4">
         <button
           type="button"
           onClick={toggle}
           aria-label="Toggle navigation sidebar"
-          className="grid size-9 place-items-center rounded-lg border border-border bg-card text-foreground shadow-xs transition-colors hover:bg-muted hover:text-foreground cursor-pointer focus-visible:outline-ring"
+          className="grid size-9 place-items-center border border-border bg-background text-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer focus-visible:outline-ring"
         >
           <Menu className="size-4" />
         </button>
@@ -78,7 +78,7 @@ export function MainNavbar() {
           type="button"
           onClick={toggleTheme}
           aria-label="Toggle color theme"
-          className="grid size-8 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+          className="grid size-8 place-items-center border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
         >
           {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
         </button>
