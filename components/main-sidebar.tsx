@@ -4,69 +4,51 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import {
-  BarChart3,
-  ChefHat,
   ChevronRight,
-  CreditCard,
-  History,
+  Globe2,
   LayoutDashboard,
   LogOut,
-  Package2,
-  Settings,
+  Moon,
   ShoppingCart,
   Store,
-  Users,
+  Sun,
   X,
 } from "lucide-react"
 
-import { useEffect } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 
 import { useMainSidebar } from "@/components/main-sidebar-context"
 import { Separator } from "@/components/ui/separator"
 import { UserAvatar } from "@/components/user-avatar"
+import { useTranslation, type TranslationKey } from "@/lib/i18n"
+import {
+  getServerThemeSnapshot,
+  getThemeSnapshot,
+  subscribePreferences,
+  toggleLanguage,
+  toggleTheme,
+} from "@/lib/preferences"
 import { cn } from "@/lib/utils"
 
 export interface NavItem {
-  title: string
+  titleKey: TranslationKey
   href: string
   icon: React.ComponentType<{ className?: string }>
-  badge?: string
+  badgeKey?: TranslationKey
 }
 
 export interface NavGroup {
-  label: string
+  labelKey: TranslationKey
   items: NavItem[]
 }
 
 const navGroups: NavGroup[] = [
   {
-    label: "Apps",
+    labelKey: "nav.group.apps",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { title: "POS System", href: "/pos", icon: ShoppingCart, badge: "Live" },
-      { title: "Quick Store", href: "/quickstore", icon: Store },
-    ],
-  },
-  {
-    label: "Main",
-    items: [
-      { title: "Kitchen (KDS)", href: "/dashboard/kitchen", icon: ChefHat, badge: "3" },
-    ],
-  },
-  {
-    label: "Store Operations",
-    items: [
-      { title: "Inventory & Stock", href: "/dashboard/inventory", icon: Package2 },
-      { title: "Orders & Sales", href: "/dashboard/orders", icon: History },
-      { title: "Payment Methods", href: "/dashboard/payments", icon: CreditCard },
-      { title: "Customers", href: "/dashboard/customers", icon: Users },
-    ],
-  },
-  {
-    label: "Settings & Analytics",
-    items: [
-      { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-      { title: "Settings", href: "/dashboard/settings", icon: Settings },
+      { titleKey: "nav.dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { titleKey: "nav.pos", href: "/pos", icon: ShoppingCart, badgeKey: "nav.badge.live" },
+      { titleKey: "nav.quickstore", href: "/quickstore", icon: Store },
     ],
   },
 ]
@@ -75,6 +57,13 @@ export function MainSidebar() {
   const { open, setOpen } = useMainSidebar()
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { lang, t } = useTranslation()
+
+  const isDark = useSyncExternalStore(
+    subscribePreferences,
+    getThemeSnapshot,
+    getServerThemeSnapshot
+  )
 
   // Close the drawer with the Escape key for keyboard users.
   useEffect(() => {
@@ -126,7 +115,7 @@ export function MainSidebar() {
                 crosscart<span className="text-primary">.</span>
               </span>
               <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                Admin Console
+                {t("brand.adminConsole")}
               </span>
             </div>
           </Link>
@@ -134,18 +123,18 @@ export function MainSidebar() {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close sidebar"
+            aria-label={t("nav.closeSidebar")}
             className="grid size-8 place-items-center rounded border border-border bg-background text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto p-4">
+        <nav aria-label={t("nav.sidebarNav")} className="flex-1 space-y-6 overflow-y-auto p-4">
           {navGroups.map((group) => (
-            <div key={group.label} className="space-y-1">
+            <div key={group.labelKey} className="space-y-1">
               <p className="px-3 text-[10px] font-bold tracking-[0.16em] uppercase text-muted-foreground/80">
-                {group.label}
+                {t(group.labelKey)}
               </p>
               <div className="mt-2 space-y-1">
                 {group.items.map((item) => {
@@ -175,10 +164,10 @@ export function MainSidebar() {
                               : "text-muted-foreground group-hover:text-foreground"
                           )}
                         />
-                        <span className="truncate">{item.title}</span>
+                        <span className="truncate">{t(item.titleKey)}</span>
                       </div>
 
-                      {item.badge ? (
+                      {item.badgeKey ? (
                         <span
                           className={cn(
                             "rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
@@ -187,7 +176,7 @@ export function MainSidebar() {
                               : "bg-muted text-muted-foreground"
                           )}
                         >
-                          {item.badge}
+                          {t(item.badgeKey)}
                         </span>
                       ) : (
                         <ChevronRight
@@ -224,13 +213,36 @@ export function MainSidebar() {
 
           <Separator className="my-2 opacity-50" />
 
+          {/* Theme + language switches */}
+          <div className="mb-1 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={t("nav.toggleTheme")}
+              className="flex items-center justify-center gap-2 border border-border bg-background px-2 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            >
+              {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+              <span>{isDark ? t("nav.theme.dark") : t("nav.theme.light")}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              aria-label={t("nav.toggleLanguage")}
+              className="flex items-center justify-center gap-2 border border-border bg-background px-2 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            >
+              <Globe2 className="size-3.5" />
+              <span>{lang === "ID" ? "ID" : "EN"}</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
             className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 cursor-pointer"
           >
             <LogOut className="size-4 shrink-0" />
-            <span>Sign out</span>
+            <span>{t("nav.signOut")}</span>
           </button>
         </div>
       </aside>

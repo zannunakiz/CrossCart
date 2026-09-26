@@ -1,8 +1,6 @@
 import Link from "next/link"
 import {
   ArrowUpRight,
-  BarChart3,
-  ChefHat,
   DollarSign,
   Package2,
   ShoppingBag,
@@ -11,61 +9,90 @@ import {
   Users,
 } from "lucide-react"
 
+import { T } from "@/components/t"
+import type { TranslationKey } from "@/lib/i18n"
+
 export const metadata = {
   title: "Dashboard — CrossCart",
   description: "Overview of your CrossCart store operations.",
 }
 
 export default function DashboardPage() {
-  const stats = [
+  const stats: {
+    titleKey: TranslationKey
+    value?: string
+    valueKey?: TranslationKey
+    changeKey: TranslationKey
+    icon: React.ComponentType<{ className?: string }>
+  }[] = [
     {
-      title: "Today's Gross Sales",
+      titleKey: "dash.stats.grossSales",
       value: "Rp 3.420.000",
-      change: "+12.5% vs yesterday",
+      changeKey: "dash.stats.grossSalesChange",
       icon: DollarSign,
     },
     {
-      title: "Active Orders",
-      value: "18 Orders",
-      change: "4 waiting in kitchen",
+      titleKey: "dash.stats.activeOrders",
+      valueKey: "dash.stats.activeOrdersValue",
+      changeKey: "dash.stats.activeOrdersChange",
       icon: ShoppingBag,
     },
     {
-      title: "Low Stock Items",
-      value: "3 items",
-      change: "Oat Milk, Vanilla, Cups",
+      titleKey: "dash.stats.lowStock",
+      valueKey: "dash.stats.lowStockValue",
+      changeKey: "dash.stats.lowStockChange",
       icon: Package2,
     },
     {
-      title: "Staff on Duty",
-      value: "5 Members",
-      change: "Shift ends 16:00",
+      titleKey: "dash.stats.staff",
+      valueKey: "dash.stats.staffValue",
+      changeKey: "dash.stats.staffChange",
       icon: Users,
     },
   ]
 
-  const recentOrders = [
-    { id: "#ORD-1049", table: "Table 04", items: "2x Latte, 1x Croissant", total: "Rp 95.000", status: "Preparing" },
-    { id: "#ORD-1048", table: "Takeaway", items: "1x Americano Ice", total: "Rp 32.000", status: "Ready" },
-    { id: "#ORD-1047", table: "Table 09", items: "3x Matcha, 2x Muffin", total: "Rp 160.000", status: "Completed" },
+  const recentOrders: {
+    id: string
+    table: string
+    items: string
+    total: string
+    statusKey: TranslationKey
+  }[] = [
+    { id: "#ORD-1049", table: "Table 04", items: "2x Latte, 1x Croissant", total: "Rp 95.000", statusKey: "dash.status.preparing" },
+    { id: "#ORD-1048", table: "Takeaway", items: "1x Americano Ice", total: "Rp 32.000", statusKey: "dash.status.ready" },
+    { id: "#ORD-1047", table: "Table 09", items: "3x Matcha, 2x Muffin", total: "Rp 160.000", statusKey: "dash.status.completed" },
   ]
 
   /** Two primary navigation destinations */
-  const primaryNav = [
+  const primaryNav: {
+    titleKey: TranslationKey
+    subtitleKey: TranslationKey
+    href: string
+    icon: React.ComponentType<{ className?: string }>
+    badgeKey?: TranslationKey
+  }[] = [
     {
-      title: "POS System",
-      subtitle: "Point-of-sale cashier for in-store orders",
+      titleKey: "dash.app.pos.title",
+      subtitleKey: "dash.app.pos.subtitle",
       href: "/pos",
       icon: ShoppingCart,
-      badge: "Live",
+      badgeKey: "dash.badge.live",
     },
     {
-      title: "Quick Store",
-      subtitle: "Manage your online micro-store & inventory",
+      titleKey: "dash.app.quickstore.title",
+      subtitleKey: "dash.app.quickstore.subtitle",
       href: "/quickstore",
       icon: Store,
-      badge: null,
     },
+  ]
+
+  const shortcuts: {
+    titleKey: TranslationKey
+    href: string
+    icon: React.ComponentType<{ className?: string }>
+  }[] = [
+    { titleKey: "dash.app.pos.title", href: "/pos", icon: ShoppingBag },
+    { titleKey: "dash.app.quickstore.title", href: "/quickstore", icon: Store },
   ]
 
   return (
@@ -73,9 +100,11 @@ export default function DashboardPage() {
       {/* Welcome header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Overview Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            <T k="dash.title" />
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Live overview of store sales, orders, and kitchen operations.
+            <T k="dash.subtitle" />
           </p>
         </div>
       </div>
@@ -95,14 +124,18 @@ export default function DashboardPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">{nav.title}</span>
-                  {nav.badge && (
+                  <span className="font-medium text-foreground">
+                    <T k={nav.titleKey} />
+                  </span>
+                  {nav.badgeKey && (
                     <span className="bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-primary uppercase">
-                      {nav.badge}
+                      <T k={nav.badgeKey} />
                     </span>
                   )}
                 </div>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{nav.subtitle}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  <T k={nav.subtitleKey} />
+                </p>
               </div>
               <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </Link>
@@ -116,18 +149,22 @@ export default function DashboardPage() {
           const Icon = stat.icon
           return (
             <div
-              key={stat.title}
+              key={stat.titleKey}
               className="border border-border bg-card p-5"
             >
               <div className="flex items-center justify-between text-muted-foreground">
-                <span className="text-[10px] uppercase tracking-wider font-semibold">{stat.title}</span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold">
+                  <T k={stat.titleKey} />
+                </span>
                 <Icon className="size-4 text-muted-foreground" />
               </div>
               <div className="mt-4">
                 <div className="text-2xl font-medium tracking-tight text-foreground">
-                  {stat.value}
+                  {stat.valueKey ? <T k={stat.valueKey} /> : stat.value}
                 </div>
-                <div className="mt-2 text-[10px] text-muted-foreground">{stat.change}</div>
+                <div className="mt-2 text-[10px] text-muted-foreground">
+                  <T k={stat.changeKey} />
+                </div>
               </div>
             </div>
           )
@@ -139,14 +176,18 @@ export default function DashboardPage() {
         <div className="border border-border bg-card p-5 lg:col-span-2">
           <div className="flex items-center justify-between pb-4">
             <div>
-              <h3 className="text-base font-semibold">Recent Store Orders</h3>
-              <p className="text-xs text-muted-foreground">Real-time receipts from tables &amp; counter</p>
+              <h3 className="text-base font-semibold">
+                <T k="dash.recentOrders" />
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                <T k="dash.recentOrdersSub" />
+              </p>
             </div>
             <Link
-              href="/dashboard/orders"
+              href="/pos"
               className="text-xs font-medium text-primary hover:underline cursor-pointer"
             >
-              View all
+              <T k="dash.app.pos.title" />
             </Link>
           </div>
 
@@ -154,11 +195,21 @@ export default function DashboardPage() {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="pb-3 font-medium">Order ID</th>
-                  <th className="pb-3 font-medium">Type</th>
-                  <th className="pb-3 font-medium">Items</th>
-                  <th className="pb-3 font-medium">Total</th>
-                  <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">
+                    <T k="dash.col.orderId" />
+                  </th>
+                  <th className="pb-3 font-medium">
+                    <T k="dash.col.type" />
+                  </th>
+                  <th className="pb-3 font-medium">
+                    <T k="dash.col.items" />
+                  </th>
+                  <th className="pb-3 font-medium">
+                    <T k="dash.col.total" />
+                  </th>
+                  <th className="pb-3 font-medium">
+                    <T k="dash.col.status" />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -171,14 +222,14 @@ export default function DashboardPage() {
                     <td className="py-3">
                       <span
                         className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          order.status === "Preparing"
+                          order.statusKey === "dash.status.preparing"
                             ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                            : order.status === "Ready"
+                            : order.statusKey === "dash.status.ready"
                             ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
                             : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
                         }`}
                       >
-                        {order.status}
+                        <T k={order.statusKey} />
                       </span>
                     </td>
                   </tr>
@@ -190,21 +241,19 @@ export default function DashboardPage() {
 
         {/* Shortcuts */}
         <div className="space-y-4 border border-border bg-card p-5">
-          <h3 className="text-base font-semibold">Quick Shortcuts</h3>
-          <p className="text-xs text-muted-foreground">Fast navigation</p>
+          <h3 className="text-base font-semibold">
+            <T k="dash.shortcuts" />
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            <T k="dash.shortcutsSub" />
+          </p>
 
           <div className="space-y-2 pt-2">
-            {[
-              { title: "Point of Sale (POS)", href: "/pos", icon: ShoppingBag },
-              { title: "Quick Store", href: "/quickstore", icon: Store },
-              { title: "Kitchen Display (KDS)", href: "/dashboard/kitchen", icon: ChefHat },
-              { title: "Inventory Stocks", href: "/dashboard/inventory", icon: Package2 },
-              { title: "Sales Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-            ].map((shortcut) => {
+            {shortcuts.map((shortcut) => {
               const Icon = shortcut.icon
               return (
                 <Link
-                  key={shortcut.title}
+                  key={shortcut.href}
                   href={shortcut.href}
                   className="group flex items-center justify-between border-b border-border/50 py-3 last:border-0 transition-colors hover:border-foreground cursor-pointer"
                 >
@@ -213,7 +262,7 @@ export default function DashboardPage() {
                       <Icon className="size-3.5" />
                     </span>
                     <span className="text-xs font-medium text-foreground">
-                      {shortcut.title}
+                      <T k={shortcut.titleKey} />
                     </span>
                   </div>
                   <ArrowUpRight className="size-3.5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
