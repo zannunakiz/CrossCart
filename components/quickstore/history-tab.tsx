@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatCents, toCents, type Receipt } from "@/lib/quickstore/cashier"
+import { serverText, useTranslation } from "@/lib/i18n"
 
 interface Props {
   storeId: string
@@ -17,6 +18,7 @@ interface Props {
  * Each row expands into the exact receipt lines that were recorded.
  */
 export function HistoryTab({ storeId }: Props) {
+  const { lang, t } = useTranslation()
   const [sales, setSales] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,18 +30,19 @@ export function HistoryTab({ storeId }: Props) {
       const res = await fetch(`/api/quickstore/stores/${storeId}/history?limit=50`)
       if (!res.ok) {
         const payload = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(payload.error ?? "Failed to load history")
+        throw new Error(payload.error ?? t("Failed to load history"))
       }
       setSales((await res.json()) as Receipt[])
       setError(null)
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load history"
+      const message =
+        err instanceof Error ? serverText(lang, err.message) : t("Failed to load history")
       setError(message)
       toast.error(message)
     } finally {
       setLoading(false)
     }
-  }, [storeId])
+  }, [storeId, lang, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -59,7 +62,7 @@ export function HistoryTab({ storeId }: Props) {
       <div className="flex flex-col items-center justify-center border border-dashed border-destructive/40 bg-card py-12 text-center">
         <p className="font-semibold text-destructive">{error}</p>
         <Button variant="outline" size="sm" className="mt-4" onClick={() => void fetchHistory()}>
-          Try again
+          {t("Try again")}
         </Button>
       </div>
     )
@@ -69,9 +72,9 @@ export function HistoryTab({ storeId }: Props) {
     return (
       <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-16 text-center">
         <ReceiptIcon className="mb-3 size-10 text-muted-foreground/50" />
-        <p className="font-semibold">No sales yet</p>
+        <p className="font-semibold">{t("No sales yet")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Completed cashier checkouts appear here.
+          {t("Completed cashier checkouts appear here.")}
         </p>
       </div>
     )
@@ -80,7 +83,7 @@ export function HistoryTab({ storeId }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        {sales.length} recorded sale{sales.length === 1 ? "" : "s"} · newest first
+        {t("{count} recorded sales · newest first", { count: sales.length })}
       </p>
 
       <ul className="divide-y divide-border border border-border bg-card">
@@ -113,8 +116,11 @@ export function HistoryTab({ storeId }: Props) {
                     )}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                    {new Date(sale.paidAt).toLocaleString()} · {sale.cashierName ?? "Unknown cashier"}{" "}
-                    · {sale.itemCount} item{sale.itemCount === 1 ? "" : "s"}
+                    {new Date(sale.paidAt).toLocaleString(
+                      lang === "ID" ? "id-ID" : undefined
+                    )}{" "}
+                    · {sale.cashierName ?? t("Unknown cashier")}{" "}
+                    · {t(sale.itemCount === 1 ? "{count} item" : "{count} items", { count: sale.itemCount })}
                   </span>
                 </span>
 
@@ -146,12 +152,12 @@ export function HistoryTab({ storeId }: Props) {
 
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-xs">
                     <span className="text-muted-foreground">
-                      Subtotal {formatCents(toCents(sale.subtotal), sale.currency)}
+                      {t("Subtotal")} {formatCents(toCents(sale.subtotal), sale.currency)}
                       {toCents(sale.discountTotal) > 0 &&
-                        ` · Discounts −${formatCents(toCents(sale.discountTotal), sale.currency)}`}
+                        ` · ${t("Discounts")} −${formatCents(toCents(sale.discountTotal), sale.currency)}`}
                     </span>
                     <span className="font-semibold">
-                      Total {formatCents(toCents(sale.total), sale.currency)}
+                      {t("Total")} {formatCents(toCents(sale.total), sale.currency)}
                     </span>
                   </div>
                 </div>

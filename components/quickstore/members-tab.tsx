@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { UserAvatar } from "@/components/user-avatar"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { serverText, useTranslation } from "@/lib/i18n"
 import type { StoreRole } from "@/lib/db/schema"
 
 interface MemberUser {
@@ -50,6 +51,7 @@ interface Props {
 }
 
 export function MembersTab({ storeId, role }: Props) {
+  const { lang, t } = useTranslation()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -63,11 +65,11 @@ export function MembersTab({ storeId, role }: Props) {
       if (!res.ok) throw new Error()
       setMembers(await res.json())
     } catch {
-      toast.error("Failed to load members")
+      toast.error(t("Failed to load members"))
     } finally {
       setLoading(false)
     }
-  }, [storeId])
+  }, [storeId, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -76,7 +78,8 @@ export function MembersTab({ storeId, role }: Props) {
 
   const handleRemove = async (member: Member) => {
     if (removingId) return
-    const confirmed = window.confirm(`Remove ${member.user.name ?? member.user.email} from store?`)
+    const label = member.user.name ?? member.user.email ?? ""
+    const confirmed = window.confirm(t("Remove {name} from store?", { name: label }))
     if (!confirmed) return
 
     setRemovingId(member.id)
@@ -87,9 +90,9 @@ export function MembersTab({ storeId, role }: Props) {
       )
       if (!res.ok) throw new Error((await res.json()).error)
       setMembers((prev) => prev.filter((m) => m.id !== member.id))
-      toast.success("Member removed")
+      toast.success(t("Member removed"))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Remove failed")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Remove failed"))
     } finally {
       setRemovingId(null)
     }
@@ -108,7 +111,9 @@ export function MembersTab({ storeId, role }: Props) {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {members.length} member{members.length !== 1 ? "s" : ""}
+          {t(members.length === 1 ? "{count} member" : "{count} members", {
+            count: members.length,
+          })}
         </p>
         {canManage && (
           <Button
@@ -118,7 +123,7 @@ export function MembersTab({ storeId, role }: Props) {
             onClick={() => setInviteOpen(true)}
           >
             <UserPlus className="size-4" />
-            Invite Member
+            {t("Invite Member")}
           </Button>
         )}
       </div>
@@ -127,9 +132,9 @@ export function MembersTab({ storeId, role }: Props) {
       {members.length === 0 ? (
         <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-14 text-center">
           <Mail className="mb-3 size-8 text-muted-foreground/50" />
-          <p className="font-semibold">No other members</p>
+          <p className="font-semibold">{t("No other members")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Invite collaborators to help manage this store.
+            {t("Invite collaborators to help manage this store.")}
           </p>
         </div>
       ) : (
@@ -186,7 +191,12 @@ export function MembersTab({ storeId, role }: Props) {
         storeId={storeId}
         onInvited={(member) => {
           setMembers((prev) => [...prev, member])
-          toast.success(`${member.user.name ?? member.user.email} invited as ${member.role}`)
+          toast.success(
+            t("{name} invited as {role}", {
+              name: member.user.name ?? member.user.email ?? "",
+              role: member.role,
+            })
+          )
         }}
       />
     </div>
@@ -202,6 +212,7 @@ interface InviteProps {
 }
 
 function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
+  const { lang, t } = useTranslation()
   const [email, setEmail] = useState("")
   const [memberRole, setMemberRole] = useState<StoreRole>("admin")
   const [submitting, setSubmitting] = useState(false)
@@ -210,7 +221,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return toast.error("Email is required")
+    if (!email.trim()) return toast.error(t("Email is required"))
     if (submitting) return
     setSubmitting(true)
 
@@ -226,7 +237,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Invite failed")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Invite failed"))
     } finally {
       setSubmitting(false)
     }
@@ -236,15 +247,15 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
     <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Invite Member</DialogTitle>
+          <DialogTitle>{t("Invite Member")}</DialogTitle>
           <DialogDescription>
-            Invite a registered user to collaborate on this store.
+            {t("Invite a registered user to collaborate on this store.")}
           </DialogDescription>
         </DialogHeader>
 
         <form id="invite-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="invite-email">Email Address</Label>
+            <Label htmlFor="invite-email">{t("Email Address")}</Label>
             <Input
               id="invite-email"
               type="email"
@@ -255,7 +266,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="invite-role">Role</Label>
+            <Label htmlFor="invite-role">{t("Role")}</Label>
             <Select
               value={memberRole}
               onValueChange={(v) => setMemberRole(v as StoreRole)}
@@ -265,8 +276,8 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin — can manage items &amp; edit store</SelectItem>
-                <SelectItem value="master">Master — full control (including delete)</SelectItem>
+                <SelectItem value="admin">{t("Admin — can manage items & edit store")}</SelectItem>
+                <SelectItem value="master">{t("Master — full control (including delete)")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -279,7 +290,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
             onClick={() => { onOpenChange(false); reset() }}
             disabled={submitting}
           >
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             id="invite-submit"
@@ -288,7 +299,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
             disabled={submitting || !email.trim()}
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Send Invite
+            {t("Send Invite")}
           </Button>
         </DialogFooter>
       </DialogContent>

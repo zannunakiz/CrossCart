@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+  MAX_QTY_PER_LINE,
   availabilityLabel,
   checkAvailability,
   clampQuantity,
@@ -15,6 +16,7 @@ import {
   type CashierItem,
   type SaleLine,
 } from "@/lib/quickstore/cashier"
+import { availabilityMessage, availabilityText, useTranslation } from "@/lib/i18n"
 
 interface Props {
   lines: readonly SaleLine[]
@@ -40,6 +42,7 @@ export function SaleCart({
   disabled = false,
   emptyHint,
 }: Props) {
+  const { lang, t } = useTranslation()
   // Free-text drafts so a half-typed value ("") is not silently coerced.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
 
@@ -59,9 +62,9 @@ export function SaleCart({
         <span className="mb-3 grid size-12 place-items-center rounded-full bg-muted text-muted-foreground">
           <ShoppingCart className="size-6" />
         </span>
-        <p className="font-semibold">Cart is empty</p>
+        <p className="font-semibold">{t("Cart is empty")}</p>
         <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-          {emptyHint ?? "Search for a product above to start the sale."}
+          {emptyHint ?? t("Search for a product above to start the sale.")}
         </p>
       </div>
     )
@@ -71,8 +74,8 @@ export function SaleCart({
     <div className="border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
         <p className="text-xs font-medium text-muted-foreground">
-          {itemCount} item{itemCount === 1 ? "" : "s"} · {lines.length} line
-          {lines.length === 1 ? "" : "s"}
+          {t(itemCount === 1 ? "{count} item" : "{count} items", { count: itemCount })} ·{" "}
+          {t(lines.length === 1 ? "{count} line" : "{count} lines", { count: lines.length })}
         </p>
         <Button
           variant="ghost"
@@ -82,7 +85,7 @@ export function SaleCart({
           disabled={disabled}
         >
           <Trash2 className="size-3.5" />
-          Clear
+          {t("Clear")}
         </Button>
       </div>
 
@@ -115,13 +118,15 @@ export function SaleCart({
                     )}
                   </div>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {formatCents(line.unitPricePaidCents, line.currency)} each
+                    {t("{price} each", {
+                      price: formatCents(line.unitPricePaidCents, line.currency),
+                    })}
                     {line.discountPercent > 0 && (
                       <span className="ml-1 line-through opacity-60">
                         {formatCents(line.unitPriceCents, line.currency)}
                       </span>
                     )}
-                    {line.stocks != null && ` · ${line.stocks} in stock`}
+                    {line.stocks != null && ` · ${t("{count} in stock", { count: line.stocks })}`}
                   </p>
                 </div>
 
@@ -130,7 +135,7 @@ export function SaleCart({
                     <Button
                       variant="outline"
                       size="icon-sm"
-                      aria-label={`Decrease quantity of ${line.name}`}
+                      aria-label={t("Decrease quantity of {name}", { name: line.name })}
                       disabled={disabled}
                       onClick={() => {
                         clearDraft(line.itemId)
@@ -142,7 +147,7 @@ export function SaleCart({
                     </Button>
 
                     <Input
-                      aria-label={`Quantity of ${line.name}`}
+                      aria-label={t("Quantity of {name}", { name: line.name })}
                       inputMode="numeric"
                       className="h-7 w-14 text-center tabular-nums"
                       value={draft ?? String(line.quantity)}
@@ -160,7 +165,7 @@ export function SaleCart({
                     <Button
                       variant="outline"
                       size="icon-sm"
-                      aria-label={`Increase quantity of ${line.name}`}
+                      aria-label={t("Increase quantity of {name}", { name: line.name })}
                       disabled={disabled || capped || !availability.ok}
                       onClick={() => {
                         clearDraft(line.itemId)
@@ -181,7 +186,7 @@ export function SaleCart({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Remove ${line.name} from the sale`}
+                    aria-label={t("Remove {name} from the sale", { name: line.name })}
                     className="text-muted-foreground hover:text-destructive"
                     disabled={disabled}
                     onClick={() => onRemove(line.itemId)}
@@ -194,8 +199,17 @@ export function SaleCart({
               {(!availability.ok || draftInvalid) && (
                 <p className="mt-2 text-[11px] font-medium text-destructive">
                   {draftInvalid
-                    ? "Quantity must be a whole number of at least 1"
-                    : availability.message || availabilityLabel(availability.code)}
+                    ? t("Quantity must be a whole number of at least 1")
+                    : availabilityMessage(lang, availability.code, availability.message, {
+                        name: line.name,
+                        stocks: line.stocks ?? 0,
+                        max: MAX_QTY_PER_LINE,
+                      }) ||
+                      availabilityText(
+                        lang,
+                        availability.code,
+                        availabilityLabel(availability.code)
+                      )}
                 </p>
               )}
             </li>

@@ -13,6 +13,7 @@ import { ReceiptPanel } from "@/components/quickstore/cashier/receipt-panel"
 import { SaleCart } from "@/components/quickstore/cashier/sale-cart"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { checkoutErrorText, serverText, useTranslation } from "@/lib/i18n"
 import {
   addLine,
   computeTotals,
@@ -39,6 +40,7 @@ interface StoreWithRole {
 export default function CashierPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const router = useRouter()
+  const { lang, t } = useTranslation()
 
   const [store, setStore] = useState<StoreWithRole | null>(null)
   const [items, setItems] = useState<StoreItem[]>([])
@@ -82,11 +84,15 @@ export default function CashierPage() {
       setLines((prev) => reconcileLines(prev, catalog))
       setLoadError(null)
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Failed to load the cashier")
+      setLoadError(
+        error instanceof Error
+          ? serverText(lang, error.message)
+          : t("Failed to load the cashier")
+      )
     } finally {
       setLoading(false)
     }
-  }, [loadCatalog, router, storeId])
+  }, [loadCatalog, router, storeId, lang, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -101,11 +107,11 @@ export default function CashierPage() {
       setItems(catalog)
       setLines((prev) => reconcileLines(prev, catalog))
     } catch {
-      toast.error("Could not refresh stock")
+      toast.error(t("Could not refresh stock"))
     } finally {
       setRefreshing(false)
     }
-  }, [loadCatalog])
+  }, [loadCatalog, t])
 
   // ── Cart actions ───────────────────────────────────────────────────────────
   const resetSale = useCallback(() => {
@@ -156,7 +162,7 @@ export default function CashierPage() {
     }
 
     if (!res.ok || !payload.sale) {
-      const error = new Error(payload.error ?? "Checkout failed") as Error & {
+      const error = new Error(payload.error ?? t("Checkout failed")) as Error & {
         code?: string
         issues?: CheckoutIssue[]
       }
@@ -166,26 +172,30 @@ export default function CashierPage() {
     }
 
     return payload.sale
-  }, [lines, storeId])
+  }, [lines, storeId, t])
 
   const handleCompleted = useCallback(
     (receipt: Receipt) => {
-      toast.success(`Sale ${receipt.receiptNumber} recorded`)
+      toast.success(t("Sale {number} recorded", { number: receipt.receiptNumber }))
       // The sale is done — the next one gets a fresh idempotency key.
       requestIdRef.current = newClientRequestId()
       // Stock changed on the server: pull the new numbers in.
       void refreshCatalog()
     },
-    [refreshCatalog]
+    [refreshCatalog, t]
   )
 
   /** Stale stock / unavailable products: refresh and clamp the cart. */
   const handleIssues = useCallback(
     (issues: CheckoutIssue[]) => {
-      toast.error(issues.map((issue) => issue.message).join(", "))
+      toast.error(
+        issues
+          .map((issue) => checkoutErrorText(lang, issue.code, issue.message))
+          .join(", ")
+      )
       void refreshCatalog()
     },
-    [refreshCatalog]
+    [refreshCatalog, lang]
   )
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -201,14 +211,14 @@ export default function CashierPage() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <StoreIcon className="size-12 text-muted-foreground" />
-        <p className="font-semibold">{loadError ?? "Store not found"}</p>
+        <p className="font-semibold">{loadError ?? t("Store not found")}</p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => void fetchAll()}>
-            Try again
+            {t("Try again")}
           </Button>
           <Link href="/quickstore">
             <Button variant="ghost" size="sm">
-              Back to Quick Store
+              {t("Back to Quick Store")}
             </Button>
           </Link>
         </div>
@@ -221,14 +231,14 @@ export default function CashierPage() {
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <ShieldAlert className="size-12 text-muted-foreground" />
         <div>
-          <p className="font-semibold">You cannot ring up sales here</p>
+          <p className="font-semibold">{t("You cannot ring up sales here")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Your role in this store does not allow checking out.
+            {t("Your role in this store does not allow checking out.")}
           </p>
         </div>
         <Link href={`/quickstore/${storeId}`}>
           <Button variant="outline" size="sm">
-            Back to store
+            {t("Back to store")}
           </Button>
         </Link>
       </div>
@@ -241,7 +251,7 @@ export default function CashierPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <Link href={`/quickstore/${storeId}`} aria-label="Back to store">
+          <Link href={`/quickstore/${storeId}`} aria-label={t("Back to store")}>
             <Button variant="ghost" size="icon" className="mt-0.5 shrink-0">
               <ArrowLeft className="size-4" />
             </Button>
@@ -250,15 +260,15 @@ export default function CashierPage() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-xl font-bold tracking-tight">{store.name}</h1>
               <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
-                Cashier
+                {t("Cashier")}
               </Badge>
               <Badge variant={store.open ? "default" : "secondary"} className="gap-1 text-[10px]">
                 {store.open ? <ToggleRight className="size-3" /> : <ToggleLeft className="size-3" />}
-                {store.open ? "Open" : "Closed"}
+                {store.open ? t("Open") : t("Closed")}
               </Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter the customer&apos;s items, review the receipt, then confirm the payment.
+              {t("Enter the customer's items, review the receipt, then confirm the payment.")}
             </p>
           </div>
         </div>
@@ -275,7 +285,7 @@ export default function CashierPage() {
           ) : (
             <RefreshCw className="size-3.5" />
           )}
-          Refresh stock
+          {t("Refresh stock")}
         </Button>
       </div>
 
@@ -287,12 +297,12 @@ export default function CashierPage() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-14 text-center">
               <Package2 className="mb-3 size-10 text-muted-foreground/50" />
-              <p className="font-semibold">No products yet</p>
+              <p className="font-semibold">{t("No products yet")}</p>
               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                Add items to this store before you can ring up a sale.
+                {t("Add items to this store before you can ring up a sale.")}
               </p>
               <Link href={`/quickstore/${storeId}`} className="mt-4">
-                <Button size="sm">Add items</Button>
+                <Button size="sm">{t("Add items")}</Button>
               </Link>
             </div>
           ) : (
@@ -302,7 +312,7 @@ export default function CashierPage() {
               onQuantityChange={handleQuantityChange}
               onRemove={handleRemove}
               onClear={resetSale}
-              emptyHint="Search for a product above, or tap a suggestion to add it."
+              emptyHint={t("Search for a product above, or tap a suggestion to add it.")}
             />
           )}
 
@@ -312,9 +322,9 @@ export default function CashierPage() {
               href="#checkout-panel"
               className="flex items-center justify-between border border-border bg-card px-4 py-3 text-sm font-semibold lg:hidden"
             >
-              <span>Total</span>
+              <span>{t("Total")}</span>
               <span className="tabular-nums">
-                {formatCents(totals.totalCents, totals.currency)} · Review ↓
+                {formatCents(totals.totalCents, totals.currency)} · {t("Review")} ↓
               </span>
             </a>
           )}

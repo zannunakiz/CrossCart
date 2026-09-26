@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { serverText, useTranslation } from "@/lib/i18n"
 import type { Store } from "@/lib/db/schema"
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
+  const { lang, t } = useTranslation()
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [isOpen, setIsOpen] = useState(true)
@@ -50,7 +52,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return toast.error("Store name is required")
+    if (!name.trim()) return toast.error(t("Store name is required"))
     if (submitting) return
     setSubmitting(true)
 
@@ -63,7 +65,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
         const upRes = await fetch("/api/quickstore/upload", { method: "POST", body: fd })
         if (!upRes.ok) {
           const err = await upRes.json()
-          throw new Error(err.error ?? "Upload failed")
+          throw new Error(err.error ?? t("Upload failed"))
         }
         const { url } = await upRes.json()
         paymentQr = url
@@ -82,14 +84,14 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? "Failed to create store")
+        throw new Error(err.error ?? t("Failed to create store"))
       }
       const created = await res.json()
       onCreated(created)
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Something went wrong"))
     } finally {
       setSubmitting(false)
     }
@@ -99,9 +101,9 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
     <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create New Store</DialogTitle>
+          <DialogTitle>{t("Create New Store")}</DialogTitle>
           <DialogDescription>
-            Set up your micro-store in seconds.
+            {t("Set up your micro-store in seconds.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -109,11 +111,11 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
           {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="store-name">
-              Store Name <span className="text-destructive">*</span>
+              {t("Store Name")} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="store-name"
-              placeholder="e.g. Kopi Kevin"
+              placeholder={t("e.g. Kopi Kevin")}
               maxLength={20}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -126,10 +128,10 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="store-description">Description</Label>
+            <Label htmlFor="store-description">{t("Description")}</Label>
             <Textarea
               id="store-description"
-              placeholder="Short description of your store..."
+              placeholder={t("Short description of your store...")}
               maxLength={100}
               rows={2}
               value={description}
@@ -144,8 +146,8 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
           {/* Open toggle */}
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
-              <p className="text-sm font-medium">Open for orders</p>
-              <p className="text-xs text-muted-foreground">Customers can browse and buy</p>
+              <p className="text-sm font-medium">{t("Open for orders")}</p>
+              <p className="text-xs text-muted-foreground">{t("Customers can browse and buy")}</p>
             </div>
             <Switch
               id="store-open"
@@ -157,19 +159,19 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
 
           {/* QR Upload */}
           <div className="space-y-1.5">
-            <Label htmlFor="store-qr">Payment QR (optional)</Label>
+            <Label htmlFor="store-qr">{t("Payment QR (optional)")}</Label>
             <label
               htmlFor="store-qr"
               className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
             >
               {qrPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={qrPreview} alt="QR preview" className="h-24 w-24 object-contain rounded" />
+                <img src={qrPreview} alt={t("QR preview")} className="h-24 w-24 object-contain rounded" />
               ) : (
                 <>
                   <UploadCloud className="size-6 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">
-                    Click to upload (PNG, JPG, max 2 MB)
+                    {t("Click to upload (PNG, JPG, max 2 MB)")}
                   </span>
                 </>
               )}
@@ -192,7 +194,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
             onClick={() => { onOpenChange(false); reset() }}
             disabled={submitting}
           >
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             id="create-store-submit"
@@ -201,7 +203,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
             disabled={submitting || !name.trim()}
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            Create Store
+            {t("Create Store")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -82,7 +82,7 @@ export function MainSidebar() {
       <div
         role="button"
         tabIndex={0}
-        aria-label="Close sidebar"
+        aria-label={t("nav.closeSidebar")}
         onClick={() => setOpen(false)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") setOpen(false)
@@ -94,7 +94,7 @@ export function MainSidebar() {
       />
 
       <aside
-        aria-label="Sidebar navigation"
+        aria-label={t("nav.sidebarNav")}
         aria-hidden={!open}
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-72 sm:w-80 flex-col border-r border-border bg-background transition-transform duration-300 ease-in-out will-change-transform",

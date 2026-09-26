@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ItemDialog } from "@/components/quickstore/item-dialog"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { serverText, useTranslation } from "@/lib/i18n"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function ItemsTab({ storeId, role }: Props) {
+  const { lang, t } = useTranslation()
   const [items, setItems] = useState<StoreItem[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -30,11 +32,11 @@ export function ItemsTab({ storeId, role }: Props) {
       if (!res.ok) throw new Error()
       setItems(await res.json())
     } catch {
-      toast.error("Failed to load items")
+      toast.error(t("Failed to load items"))
     } finally {
       setLoading(false)
     }
-  }, [storeId])
+  }, [storeId, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -43,7 +45,7 @@ export function ItemsTab({ storeId, role }: Props) {
 
   const handleDelete = async (item: StoreItem) => {
     if (deletingId) return
-    const confirmed = window.confirm(`Delete "${item.name}"?`)
+    const confirmed = window.confirm(t('Delete "{name}"?', { name: item.name }))
     if (!confirmed) return
 
     setDeletingId(item.id)
@@ -53,9 +55,9 @@ export function ItemsTab({ storeId, role }: Props) {
       })
       if (!res.ok) throw new Error((await res.json()).error)
       setItems((prev) => prev.filter((i) => i.id !== item.id))
-      toast.success(`"${item.name}" deleted`)
+      toast.success(t('"{name}" deleted', { name: item.name }))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
     } finally {
       setDeletingId(null)
     }
@@ -79,7 +81,7 @@ export function ItemsTab({ storeId, role }: Props) {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {items.length} item{items.length !== 1 ? "s" : ""}
+          {t(items.length === 1 ? "{count} item" : "{count} items", { count: items.length })}
         </p>
         {canManage && (
           <Button
@@ -89,7 +91,7 @@ export function ItemsTab({ storeId, role }: Props) {
             onClick={() => { setEditingItem(null); setDialogOpen(true) }}
           >
             <Plus className="size-4" />
-            Add Item
+            {t("Add Item")}
           </Button>
         )}
       </div>
@@ -98,9 +100,11 @@ export function ItemsTab({ storeId, role }: Props) {
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-16 text-center">
           <Package2 className="mb-3 size-10 text-muted-foreground/50" />
-          <p className="font-semibold">No items yet</p>
+          <p className="font-semibold">{t("No items yet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {canManage ? "Add your first item to get started." : "No items have been added."}
+            {canManage
+              ? t("Add your first item to get started.")
+              : t("No items have been added.")}
           </p>
         </div>
       ) : (
@@ -140,13 +144,15 @@ export function ItemsTab({ storeId, role }: Props) {
                   variant={item.available ? "default" : "secondary"}
                   className="text-[10px]"
                 >
-                  {item.available ? "Available" : "Unavailable"}
+                  {item.available ? t("Available") : t("Unavailable")}
                 </Badge>
               </div>
 
               <div className="mt-2 text-[11px] text-muted-foreground">
-                {item.stocks != null ? `${item.stocks} in stock` : "Unlimited stock"} ·{" "}
-                {item.purchasedAmount} sold
+                {item.stocks != null
+                  ? t("{count} in stock", { count: item.stocks })
+                  : t("Unlimited stock")}{" "}
+                · {t("{count} sold", { count: item.purchasedAmount })}
               </div>
 
               {canManage && (
@@ -159,7 +165,7 @@ export function ItemsTab({ storeId, role }: Props) {
                     onClick={() => openEdit(item)}
                   >
                     <Pencil className="size-3" />
-                    Edit
+                    {t("Edit")}
                   </Button>
                   <Button
                     id={`delete-item-${item.id}`}
@@ -174,7 +180,7 @@ export function ItemsTab({ storeId, role }: Props) {
                     ) : (
                       <Trash2 className="size-3" />
                     )}
-                    Delete
+                    {t("Delete")}
                   </Button>
                 </div>
               )}
@@ -198,7 +204,11 @@ export function ItemsTab({ storeId, role }: Props) {
             }
             return [saved, ...prev]
           })
-          toast.success(editingItem ? "Item updated" : `"${saved.name}" added`)
+          toast.success(
+            editingItem
+              ? t("Item updated")
+              : t('"{name}" added', { name: saved.name })
+          )
         }}
       />
     </div>

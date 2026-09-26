@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { StoreItem } from "@/lib/db/schema"
+import { serverText, useTranslation } from "@/lib/i18n"
 
 interface Props {
   open: boolean
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props) {
+  const { lang, t } = useTranslation()
   const isEdit = !!item
 
   const [name, setName] = useState(item?.name ?? "")
@@ -72,7 +74,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return toast.error("Item name is required")
+    if (!name.trim()) return toast.error(t("Item name is required"))
     if (submitting) return
     setSubmitting(true)
 
@@ -96,13 +98,13 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? "Save failed")
+      if (!res.ok) throw new Error((await res.json()).error ?? t("Save failed"))
       const saved = await res.json()
       onSaved(saved)
       onOpenChange(false)
       if (!isEdit) reset()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Something went wrong"))
     } finally {
       setSubmitting(false)
     }
@@ -120,9 +122,9 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
     >
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Item" : "Add New Item"}</DialogTitle>
+          <DialogTitle>{isEdit ? t("Edit Item") : t("Add New Item")}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "Update item details." : "Add a new item to your store."}
+            {isEdit ? t("Update item details.") : t("Add a new item to your store.")}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,11 +132,11 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
           {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="item-name">
-              Name <span className="text-destructive">*</span>
+              {t("Name")} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="item-name"
-              placeholder="e.g. Kopi Susu"
+              placeholder={t("e.g. Kopi Susu")}
               maxLength={20}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -145,10 +147,10 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="item-desc">Description</Label>
+            <Label htmlFor="item-desc">{t("Description")}</Label>
             <Textarea
               id="item-desc"
-              placeholder="Short description..."
+              placeholder={t("Short description...")}
               maxLength={100}
               rows={2}
               value={description}
@@ -161,7 +163,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
           {/* Price + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="item-price">Price</Label>
+              <Label htmlFor="item-price">{t("Price")}</Label>
               <Input
                 id="item-price"
                 type="number"
@@ -173,7 +175,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="item-currency">Currency</Label>
+              <Label htmlFor="item-currency">{t("Currency")}</Label>
               <Select
                 value={currency}
                 onValueChange={(v) => setCurrency(v as "USD" | "IDR")}
@@ -183,8 +185,8 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="IDR">IDR (Rupiah)</SelectItem>
-                  <SelectItem value="USD">USD (Dollar)</SelectItem>
+                  <SelectItem value="IDR">{t("IDR (Rupiah)")}</SelectItem>
+                  <SelectItem value="USD">{t("USD (Dollar)")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -193,7 +195,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
           {/* Stocks + Discount */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="item-stocks">Stocks (leave blank = unlimited)</Label>
+              <Label htmlFor="item-stocks">{t("Stocks (leave blank = unlimited)")}</Label>
               <Input
                 id="item-stocks"
                 type="number"
@@ -205,7 +207,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="item-discount">Discount %</Label>
+              <Label htmlFor="item-discount">{t("Discount %")}</Label>
               <Input
                 id="item-discount"
                 type="number"
@@ -222,8 +224,8 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
-                <p className="text-xs font-medium">Available</p>
-                <p className="text-[11px] text-muted-foreground">Show to customers</p>
+                <p className="text-xs font-medium">{t("Available")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("Show to customers")}</p>
               </div>
               <Switch
                 id="item-available"
@@ -234,8 +236,8 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div>
-                <p className="text-xs font-medium">Highlight</p>
-                <p className="text-[11px] text-muted-foreground">Pin to top</p>
+                <p className="text-xs font-medium">{t("Highlight")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("Pin to top")}</p>
               </div>
               <Switch
                 id="item-highlight"
@@ -254,7 +256,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button
             id="item-submit"
@@ -263,7 +265,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             disabled={submitting || !name.trim()}
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {isEdit ? "Save Changes" : "Add Item"}
+            {isEdit ? t("Save Changes") : t("Add Item")}
           </Button>
         </DialogFooter>
       </DialogContent>
