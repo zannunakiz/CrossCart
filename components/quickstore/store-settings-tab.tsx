@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { serverText, useTranslation } from "@/lib/i18n"
 import type { Store } from "@/lib/db/schema"
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function StoreSettingsTab({ store, onUpdated }: Props) {
+  const { lang, t } = useTranslation()
   const [name, setName] = useState(store.name)
   const [description, setDescription] = useState(store.description ?? "")
   const [open, setOpen] = useState(store.open)
@@ -33,7 +35,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return toast.error("Store name is required")
+    if (!name.trim()) return toast.error(t("Store name is required"))
     if (submitting) return
     setSubmitting(true)
 
@@ -44,7 +46,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
         const fd = new FormData()
         fd.append("file", qrFile)
         const upRes = await fetch("/api/quickstore/upload", { method: "POST", body: fd })
-        if (!upRes.ok) throw new Error((await upRes.json()).error ?? "Upload failed")
+        if (!upRes.ok) throw new Error((await upRes.json()).error ?? t("Upload failed"))
         const { url } = await upRes.json()
         paymentQr = url
       }
@@ -59,13 +61,13 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
           paymentQr,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? "Update failed")
+      if (!res.ok) throw new Error((await res.json()).error ?? t("Update failed"))
       const updated = await res.json()
       onUpdated(updated)
       setQrFile(null)
-      toast.success("Store settings saved")
+      toast.success(t("Store settings saved"))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Save failed")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Save failed"))
     } finally {
       setSubmitting(false)
     }
@@ -76,7 +78,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1.5">
           <Label htmlFor="settings-name">
-            Store Name <span className="text-destructive">*</span>
+            {t("Store Name")} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="settings-name"
@@ -89,7 +91,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="settings-description">Description</Label>
+          <Label htmlFor="settings-description">{t("Description")}</Label>
           <Textarea
             id="settings-description"
             maxLength={100}
@@ -103,8 +105,8 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
 
         <div className="flex items-center justify-between rounded-lg border border-border p-4">
           <div>
-            <p className="text-sm font-medium">Open for Orders</p>
-            <p className="text-xs text-muted-foreground">Customers can browse and buy</p>
+            <p className="text-sm font-medium">{t("Open for Orders")}</p>
+            <p className="text-xs text-muted-foreground">{t("Customers can browse and buy")}</p>
           </div>
           <Switch
             id="settings-open"
@@ -115,7 +117,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="settings-qr">Payment QR Code</Label>
+          <Label htmlFor="settings-qr">{t("Payment QR Code")}</Label>
           <label
             htmlFor="settings-qr"
             className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-5 transition-colors hover:bg-muted/50"
@@ -123,14 +125,14 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
             {qrPreview ? (
               <div className="flex flex-col items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrPreview} alt="Payment QR" className="h-28 w-28 object-contain rounded-lg" />
-                <span className="text-xs text-muted-foreground">Click to change</span>
+                <img src={qrPreview} alt={t("Payment QR")} className="h-28 w-28 object-contain rounded-lg" />
+                <span className="text-xs text-muted-foreground">{t("Click to change")}</span>
               </div>
             ) : (
               <>
                 <UploadCloud className="size-7 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  Upload payment QR (PNG, JPG, max 2 MB)
+                  {t("Upload payment QR (PNG, JPG, max 2 MB)")}
                 </span>
               </>
             )}
@@ -152,7 +154,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
           className="w-full sm:w-auto"
         >
           {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-          Save Settings
+          {t("Save Settings")}
         </Button>
       </form>
     </div>

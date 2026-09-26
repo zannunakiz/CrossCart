@@ -8,9 +8,11 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CreateStoreDialog } from "@/components/quickstore/create-store-dialog"
+import { useTranslation } from "@/lib/i18n"
 import type { Store as StoreType } from "@/lib/db/schema"
 
 export default function QuickStorePage() {
+  const { lang, t } = useTranslation()
   const [stores, setStores] = useState<StoreType[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -22,11 +24,11 @@ export default function QuickStorePage() {
       const data = await res.json()
       setStores(data)
     } catch {
-      toast.error("Failed to load stores")
+      toast.error(t("qs.loadFailed"))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -38,10 +40,8 @@ export default function QuickStorePage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quick Store</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your micro-stores — items, members, and payments.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("qs.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("qs.subtitle")}</p>
         </div>
         <Button
           id="create-store-btn"
@@ -49,7 +49,7 @@ export default function QuickStorePage() {
           className="shrink-0 gap-2"
         >
           <Plus className="size-4" />
-          New Store
+          {t("qs.newStore")}
         </Button>
       </div>
 
@@ -68,17 +68,15 @@ export default function QuickStorePage() {
           <span className="mb-4 grid size-14 place-items-center bg-secondary text-primary">
             <Store className="size-7" />
           </span>
-          <p className="text-base font-semibold">No stores yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create your first store to start selling.
-          </p>
+          <p className="text-base font-semibold">{t("qs.empty.title")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("qs.empty.subtitle")}</p>
           <Button
             id="create-store-empty-btn"
             onClick={() => setDialogOpen(true)}
             className="mt-5 gap-2"
           >
             <Plus className="size-4" />
-            Create Store
+            {t("qs.empty.cta")}
           </Button>
         </div>
       ) : (
@@ -108,7 +106,7 @@ export default function QuickStorePage() {
                   ) : (
                     <ToggleLeft className="size-3" />
                   )}
-                  {store.open ? "Open" : "Closed"}
+                  {store.open ? t("qs.open") : t("qs.closed")}
                 </Badge>
               </div>
 
@@ -125,14 +123,17 @@ export default function QuickStorePage() {
 
               <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
                 <span>
-                  {new Date(store.createdAt).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {new Date(store.createdAt).toLocaleDateString(
+                    lang === "ID" ? "id-ID" : "en-GB",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }
+                  )}
                 </span>
                 <span className="font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                  Open →
+                  {t("qs.openLink")}
                 </span>
               </div>
             </Link>
@@ -145,7 +146,7 @@ export default function QuickStorePage() {
         onOpenChange={setDialogOpen}
         onCreated={(store) => {
           setStores((prev) => [store, ...prev])
-          toast.success(`Store "${store.name}" created!`)
+          toast.success(t("qs.created", { name: store.name }))
         }}
       />
     </div>

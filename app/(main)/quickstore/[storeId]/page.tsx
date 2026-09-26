@@ -24,6 +24,7 @@ import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
 import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { serverText, useTranslation } from "@/lib/i18n"
 import type { StoreRole } from "@/lib/db/schema"
 import type { Store as StoreType } from "@/lib/db/schema"
 
@@ -34,6 +35,7 @@ interface StoreWithRole extends StoreType {
 export default function StoreDetailPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const router = useRouter()
+  const { lang, t } = useTranslation()
 
   const [store, setStore] = useState<StoreWithRole | null>(null)
   const [loading, setLoading] = useState(true)
@@ -50,11 +52,11 @@ export default function StoreDetailPage() {
       const data = await res.json()
       setStore(data)
     } catch {
-      toast.error("Failed to load store")
+      toast.error(t("Failed to load store"))
     } finally {
       setLoading(false)
     }
-  }, [storeId, router])
+  }, [storeId, router, t])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -64,18 +66,18 @@ export default function StoreDetailPage() {
   const handleDelete = async () => {
     if (deleting) return
     const confirmed = window.confirm(
-      `Delete store "${store?.name}"? This cannot be undone.`
+      t('Delete store "{name}"? This cannot be undone.', { name: store?.name ?? "" })
     )
     if (!confirmed) return
 
     setDeleting(true)
     try {
       const res = await fetch(`/api/quickstore/stores/${storeId}`, { method: "DELETE" })
-      if (!res.ok) throw new Error((await res.json()).error ?? "Delete failed")
-      toast.success("Store deleted")
+      if (!res.ok) throw new Error((await res.json()).error ?? t("Delete failed"))
+      toast.success(t("Store deleted"))
       router.replace("/quickstore")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed")
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
       setDeleting(false)
     }
   }
@@ -92,9 +94,9 @@ export default function StoreDetailPage() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <Store className="size-12 text-muted-foreground" />
-        <p className="font-semibold">Store not found</p>
+        <p className="font-semibold">{t("Store not found")}</p>
         <Link href="/quickstore">
-          <Button variant="outline" size="sm">Back to Quick Store</Button>
+          <Button variant="outline" size="sm">{t("Back to Quick Store")}</Button>
         </Link>
       </div>
     )
@@ -107,7 +109,7 @@ export default function StoreDetailPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <Link href="/quickstore" aria-label="Back to Quick Store">
+          <Link href="/quickstore" aria-label={t("Back to Quick Store")}>
             <Button variant="ghost" size="icon" className="mt-0.5 shrink-0">
               <ArrowLeft className="size-4" />
             </Button>
@@ -124,7 +126,7 @@ export default function StoreDetailPage() {
                 ) : (
                   <ToggleLeft className="size-3" />
                 )}
-                {store.open ? "Open" : "Closed"}
+                {store.open ? t("Open") : t("Closed")}
               </Badge>
               <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
                 {store.role}
@@ -141,7 +143,7 @@ export default function StoreDetailPage() {
             <Link href={`/quickstore/${storeId}/cashier`}>
               <Button id="open-cashier-btn" size="sm" className="gap-2">
                 <ShoppingCart className="size-4" />
-                Cashier
+                {t("Cashier")}
               </Button>
             </Link>
           )}
@@ -160,7 +162,7 @@ export default function StoreDetailPage() {
               ) : (
                 <Trash2 className="size-4" />
               )}
-              Delete Store
+              {t("Delete Store")}
             </Button>
           )}
         </div>
@@ -169,16 +171,20 @@ export default function StoreDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="items">
         <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="items" className="flex-1 sm:flex-none">Items</TabsTrigger>
+          <TabsTrigger value="items" className="flex-1 sm:flex-none">
+            {t("Items")}
+          </TabsTrigger>
           <TabsTrigger value="history" className="flex-1 gap-1 sm:flex-none">
             <History className="size-3.5" />
-            History
+            {t("History")}
           </TabsTrigger>
-          <TabsTrigger value="members" className="flex-1 sm:flex-none">Members</TabsTrigger>
+          <TabsTrigger value="members" className="flex-1 sm:flex-none">
+            {t("Members")}
+          </TabsTrigger>
           {isMaster && (
             <TabsTrigger value="settings" className="flex-1 sm:flex-none gap-1">
               <Settings2 className="size-3.5" />
-              Settings
+              {t("Settings")}
             </TabsTrigger>
           )}
         </TabsList>

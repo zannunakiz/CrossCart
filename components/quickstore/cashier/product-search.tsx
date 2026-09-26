@@ -12,6 +12,7 @@ import {
   AutocompleteList,
 } from "@/components/ui/autocomplete"
 import { Badge } from "@/components/ui/badge"
+import { availabilityText, useTranslation } from "@/lib/i18n"
 import {
   MAX_SUGGESTIONS,
   availabilityLabel,
@@ -38,6 +39,7 @@ interface Props {
  * reason — but cannot be selected.
  */
 export function ProductSearch({ items, onSelect, disabled = false }: Props) {
+  const { lang, t } = useTranslation()
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -77,8 +79,8 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
         <AutocompleteInput
           ref={inputRef}
           id="product-search-input"
-          aria-label="Search products"
-          placeholder="Type a product name…"
+          aria-label={t("Search products")}
+          placeholder={t("Type a product name…")}
           className="h-10 pl-8"
           disabled={disabled}
           autoComplete="off"
@@ -88,8 +90,8 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
       <AutocompleteContent>
         <AutocompleteEmpty>
           {query.trim() === ""
-            ? "Start typing to search products"
-            : `No product matches “${query.trim()}”`}
+            ? t("Start typing to search products")
+            : t('No product matches "{query}"', { query: query.trim() })}
         </AutocompleteEmpty>
 
         <AutocompleteList data-testid="product-suggestions">
@@ -115,14 +117,14 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
                     <span className="truncate text-sm font-medium">{item.name}</span>
                     {item.stocks == null ? null : (
                       <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {item.stocks} left
+                        {t("{count} left", { count: item.stocks })}
                       </Badge>
                     )}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-muted-foreground">
                     {sellable
-                      ? item.description || "Tap to add to the sale"
-                      : availabilityLabel(availability.code)}
+                      ? item.description || t("Tap to add to the sale")
+                      : availabilityText(lang, availability.code, availabilityLabel(availability.code))}
                   </span>
                 </span>
 

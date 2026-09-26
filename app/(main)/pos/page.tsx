@@ -6,10 +6,5 @@ export const metadata = {
 }
 
 export default function POSPage() {
-  return (
-    <DummyModulePage
-      title="POS System"
-      description="Point-of-sale cashier interface for fast in-store checkout."
-    />
-  )
+  return <DummyModulePage titleKey="pos.title" descriptionKey="pos.description" />
 }

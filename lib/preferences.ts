@@ -2,6 +2,7 @@
 // It is read through useSyncExternalStore so React state stays in sync with the
 // browser storage without setState-in-effect workarounds; SSR uses the defaults
 // below and the blocking script in app/layout.tsx applies them before first paint.
+// Every write (and cross-tab storage event) re-applies them to the <html> element.
 
 export type Language = 'EN' | 'ID'
 
@@ -10,16 +11,37 @@ const LANG_KEY = 'crosscart-lang'
 
 const listeners = new Set<() => void>()
 
+// Mirror the stored preferences onto <html> (dark/light class + lang attribute).
+function applyToDocument() {
+  if (typeof document === 'undefined') return
+
+  const root = document.documentElement
+  const isDark = getThemeSnapshot()
+  const lang = getLanguageSnapshot()
+
+  root.classList.toggle('dark', isDark)
+  root.classList.toggle('light', !isDark)
+  root.style.colorScheme = isDark ? 'dark' : 'light'
+  root.lang = lang === 'ID' ? 'id' : 'en'
+}
+
 function emit() {
+  applyToDocument()
   listeners.forEach((listener) => listener())
 }
 
 export function subscribePreferences(listener: () => void) {
+  // Cross-tab changes arrive through the storage event; re-apply them to <html>.
+  const handleStorage = () => {
+    applyToDocument()
+    listener()
+  }
+
   listeners.add(listener)
-  window.addEventListener('storage', listener)
+  window.addEventListener('storage', handleStorage)
   return () => {
     listeners.delete(listener)
-    window.removeEventListener('storage', listener)
+    window.removeEventListener('storage', handleStorage)
   }
 }
 
@@ -51,4 +73,8 @@ export function toggleTheme() {
 export function setLanguage(next: Language) {
   window.localStorage.setItem(LANG_KEY, next)
   emit()
+}
+
+export function toggleLanguage() {
+  setLanguage(getLanguageSnapshot() === 'ID' ? 'EN' : 'ID')
 }

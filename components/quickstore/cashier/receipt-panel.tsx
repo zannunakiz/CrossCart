@@ -6,11 +6,13 @@ import { CheckCircle2, Loader2, QrCode, RefreshCw, Store, TriangleAlert } from "
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { checkoutErrorText, useTranslation } from "@/lib/i18n"
 import {
   checkoutReducer,
   formatCents,
   initialCheckoutState,
   toCents,
+  type CheckoutErrorCode,
   type CheckoutIssue,
   type Receipt,
   type SaleLine,
@@ -65,6 +67,7 @@ export function ReceiptPanel({
   onNewSale,
   disabled = false,
 }: Props) {
+  const { lang, t } = useTranslation()
   const [state, dispatch] = useReducer(checkoutReducer, undefined, initialCheckoutState)
   const [clock, setClock] = useState<string>("")
 
@@ -125,8 +128,8 @@ export function ReceiptPanel({
         if (issues?.length) handlersRef.current.onIssues?.(issues)
         dispatch({
           type: "SUBMIT_ERROR",
-          message: error instanceof Error ? error.message : "Checkout failed",
-          code: (error as { code?: never }).code,
+          message: error instanceof Error ? error.message : t("Checkout failed"),
+          code: (error as { code?: CheckoutErrorCode }).code,
         })
       }
     })()
@@ -134,6 +137,9 @@ export function ReceiptPanel({
     return () => {
       cancelled = true
     }
+    // `t` is intentionally omitted: the request must fire exactly once per
+    // `submitting` phase, even if the language changes mid-checkout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.phase])
 
 
@@ -176,7 +182,7 @@ export function ReceiptPanel({
     <section
       id="checkout-panel"
       data-testid="receipt-panel"
-      aria-label="Receipt and checkout"
+      aria-label={t("Receipt and checkout")}
       className="border border-border bg-card"
     >
       {/* Header */}
@@ -188,23 +194,27 @@ export function ReceiptPanel({
               <span className="truncate">{store.name}</span>
             </p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {completed ? "Receipt" : "Draft receipt"} ·{" "}
+              {completed ? t("Receipt") : t("Draft receipt")} ·{" "}
               {completed
-                ? new Date(completed.paidAt).toLocaleString()
+                ? new Date(completed.paidAt).toLocaleString(
+                    lang === "ID" ? "id-ID" : undefined
+                  )
                 : clock || "—"}
             </p>
             {cashierName && (
-              <p className="text-[11px] text-muted-foreground">Cashier: {cashierName}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {t("Cashier: {name}", { name: cashierName })}
+              </p>
             )}
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-1">
             <Badge variant="outline" className="font-mono text-[10px]">
-              {completed ? completed.receiptNumber : "NOT RECORDED"}
+              {completed ? completed.receiptNumber : t("NOT RECORDED")}
             </Badge>
             {!store.open && (
               <Badge variant="secondary" className="text-[10px]">
-                Store closed
+                {t("Store closed")}
               </Badge>
             )}
           </div>
@@ -215,7 +225,7 @@ export function ReceiptPanel({
       <div className="px-4 py-3">
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            Nothing to sell yet — add a product to build the receipt.
+            {t("Nothing to sell yet — add a product to build the receipt.")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -225,7 +235,10 @@ export function ReceiptPanel({
                   <p className="truncate font-medium">{row.name}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {row.quantity} × {formatCents(toCents(row.unitPricePaid), display.currency)}
-                    {row.discountPercent > 0 && ` (list ${formatCents(toCents(row.unitPrice), display.currency)})`}
+                    {row.discountPercent > 0 &&
+                      ` ${t("(list {price})", {
+                        price: formatCents(toCents(row.unitPrice), display.currency),
+                      })}`}
                   </p>
                 </div>
                 <span className="shrink-0 font-semibold tabular-nums">
@@ -242,26 +255,31 @@ export function ReceiptPanel({
       {/* Totals */}
       <div className="space-y-1.5 px-4 py-3 text-sm">
         <div className="flex items-center justify-between text-muted-foreground">
-          <span>Subtotal</span>
+          <span>{t("Subtotal")}</span>
           <span className="tabular-nums">{formatCents(display.subtotalCents, display.currency)}</span>
         </div>
         {display.discountTotalCents > 0 && (
           <div className="flex items-center justify-between text-muted-foreground">
-            <span>Discounts</span>
+            <span>{t("Discounts")}</span>
             <span className="tabular-nums">
               −{formatCents(display.discountTotalCents, display.currency)}
             </span>
           </div>
         )}
         <div className="flex items-center justify-between border-t border-border pt-2 text-base font-bold">
-          <span>Total</span>
+          <span>{t("Total")}</span>
           <span className="tabular-nums" data-testid="receipt-total">
             {formatCents(display.totalCents, display.currency)}
           </span>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          {display.itemCount} item{display.itemCount === 1 ? "" : "s"} · {display.lineCount} line
-          {display.lineCount === 1 ? "" : "s"}
+          {t(display.itemCount === 1 ? "{count} item" : "{count} items", {
+            count: display.itemCount,
+          })}{" "}
+          ·{" "}
+          {t(display.lineCount === 1 ? "{count} line" : "{count} lines", {
+            count: display.lineCount,
+          })}
         </p>
       </div>
 
@@ -273,7 +291,7 @@ export function ReceiptPanel({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={store.paymentQr}
-            alt="Payment QR code"
+            alt={t("Payment QR")}
             className="size-20 shrink-0 rounded-md border border-border bg-muted object-contain"
           />
         ) : (
@@ -282,11 +300,11 @@ export function ReceiptPanel({
           </span>
         )}
         <div className="text-[11px] text-muted-foreground">
-          <p className="text-xs font-medium text-foreground">Scan to pay</p>
+          <p className="text-xs font-medium text-foreground">{t("Scan to pay")}</p>
           {store.paymentQr ? (
-            <p>Show this QR to the customer, then confirm the payment below.</p>
+            <p>{t("Show this QR to the customer, then confirm the payment below.")}</p>
           ) : (
-            <p>No payment QR configured — add one in the store settings.</p>
+            <p>{t("No payment QR configured — add one in the store settings.")}</p>
           )}
         </div>
       </div>
@@ -298,10 +316,10 @@ export function ReceiptPanel({
           <div className="space-y-3" data-testid="checkout-success">
             <p className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="size-4" />
-              Sale recorded
+              {t("Sale recorded")}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Stock has been reduced and the sale saved to QuickStore history as{" "}
+              {t("Stock has been reduced and the sale saved to QuickStore history as")}{" "}
               <span className="font-mono">{completed.receiptNumber}</span>.
             </p>
             <Button
@@ -311,7 +329,7 @@ export function ReceiptPanel({
                 onNewSale()
               }}
             >
-              New sale
+              {t("New sale")}
             </Button>
           </div>
         )}
@@ -319,14 +337,14 @@ export function ReceiptPanel({
         {state.phase === "countdown" && (
           <div className="space-y-3" data-testid="checkout-countdown">
             <Button className="w-full gap-2" disabled>
-              {`Confirm in ${state.secondsLeft}s…`}
+              {t("Confirm in {seconds}s…", { seconds: state.secondsLeft })}
             </Button>
             <Button
               variant="outline"
               className="w-full"
               onClick={() => dispatch({ type: "CANCEL_CONFIRM" })}
             >
-              Cancel
+              {t("Cancel")}
             </Button>
           </div>
         )}
@@ -348,18 +366,18 @@ export function ReceiptPanel({
             </Button>
             <p className="text-[11px] text-muted-foreground">
               {state.phase === "idle"
-                ? "Review the receipt, then confirm to start the 3-second safeguard."
-                : "Confirm once the customer has paid."}
+                ? t("Review the receipt, then confirm to start the 3-second safeguard.")
+                : t("Confirm once the customer has paid.")}
             </p>
           </div>
         )}
 
         {state.phase === "awaiting_payment" && (
           <div className="space-y-3" data-testid="checkout-awaiting-payment">
-            <p className="text-center text-sm font-semibold">Customer Paid?</p>
+            <p className="text-center text-sm font-semibold">{t("Customer Paid?")}</p>
             <div className="grid grid-cols-2 gap-2">
               <Button data-testid="checkout-paid-yes" disabled={locked} onClick={() => dispatch({ type: "PAY_YES" })}>
-                Yes
+                {t("Yes")}
               </Button>
               <Button
                 variant="outline"
@@ -367,11 +385,11 @@ export function ReceiptPanel({
                 disabled={locked}
                 onClick={() => dispatch({ type: "PAY_NO" })}
               >
-                No
+                {t("No")}
               </Button>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Only &ldquo;Yes&rdquo; records the sale and reduces stock.
+              {t("Only “Yes” records the sale and reduces stock.")}
             </p>
           </div>
         )}
@@ -379,7 +397,7 @@ export function ReceiptPanel({
         {state.phase === "submitting" && (
           <Button className="w-full gap-2" disabled data-testid="checkout-submitting">
             <Loader2 className="size-4 animate-spin" />
-            Recording sale…
+            {t("Recording sale…")}
           </Button>
         )}
 
@@ -387,10 +405,10 @@ export function ReceiptPanel({
           <div className="space-y-3" data-testid="checkout-error">
             <p className="flex items-start gap-2 text-xs font-medium text-destructive">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-              <span>{state.message}</span>
+              <span>{checkoutErrorText(lang, state.code, state.message)}</span>
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Nothing has been recorded. Fix the items above and confirm again.
+              {t("Nothing has been recorded. Fix the items above and confirm again.")}
             </p>
             <Button
               variant="outline"
@@ -399,7 +417,7 @@ export function ReceiptPanel({
               onClick={() => dispatch({ type: "START_CONFIRM", seconds: 0 })}
             >
               <RefreshCw className="size-3.5" />
-              Back to confirm
+              {t("Back to confirm")}
             </Button>
           </div>
         )}
