@@ -13,7 +13,7 @@ import {
   LogOut,
   Package2,
   Settings,
-  ShoppingBag,
+  ShoppingCart,
   Store,
   Users,
   X,
@@ -40,10 +40,16 @@ export interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    label: "Main",
+    label: "Apps",
     items: [
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { title: "POS Checkout", href: "/dashboard/pos", icon: ShoppingBag, badge: "Live" },
+      { title: "POS System", href: "/pos", icon: ShoppingCart, badge: "Live" },
+      { title: "Quick Store", href: "/quickstore", icon: Store },
+    ],
+  },
+  {
+    label: "Main",
+    items: [
       { title: "Kitchen (KDS)", href: "/dashboard/kitchen", icon: ChefHat, badge: "3" },
     ],
   },
@@ -93,7 +99,7 @@ export function MainSidebar() {
           if (e.key === "Enter" || e.key === " ") setOpen(false)
         }}
         className={cn(
-          "fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ease-in-out cursor-pointer",
+          "fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ease-in-out cursor-pointer",
           open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         )}
       />
@@ -102,7 +108,7 @@ export function MainSidebar() {
         aria-label="Sidebar navigation"
         aria-hidden={!open}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 sm:w-80 flex-col border-r border-border bg-card shadow-2xl transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 flex w-72 sm:w-80 flex-col border-r border-border bg-background transition-transform duration-300 ease-in-out will-change-transform",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -112,7 +118,7 @@ export function MainSidebar() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 font-bold tracking-tight text-foreground cursor-pointer group"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <div className="flex size-7 items-center justify-center rounded bg-primary text-primary-foreground">
               <Store className="size-4" />
             </div>
             <div className="flex flex-col leading-none">
@@ -129,7 +135,7 @@ export function MainSidebar() {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close sidebar"
-            className="grid size-8 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            className="grid size-8 place-items-center rounded border border-border bg-background text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
           >
             <X className="size-4" />
           </button>
@@ -154,10 +160,10 @@ export function MainSidebar() {
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-xs font-medium transition-colors cursor-pointer",
+                        "group flex items-center justify-between gap-3 rounded-md px-3 py-2.5 text-xs font-medium transition-colors cursor-pointer",
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          ? "bg-muted text-foreground font-semibold"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                       )}
                     >
                       <div className="flex min-w-0 items-center gap-3">
@@ -165,7 +171,7 @@ export function MainSidebar() {
                           className={cn(
                             "size-4 shrink-0 transition-colors",
                             isActive
-                              ? "text-primary-foreground"
+                              ? "text-foreground"
                               : "text-muted-foreground group-hover:text-foreground"
                           )}
                         />
@@ -175,10 +181,10 @@ export function MainSidebar() {
                       {item.badge ? (
                         <span
                           className={cn(
-                            "rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none",
+                            "rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
                             isActive
-                              ? "bg-primary-foreground/20 text-primary-foreground"
-                              : "bg-primary/10 text-primary"
+                              ? "bg-foreground text-background"
+                              : "bg-muted text-muted-foreground"
                           )}
                         >
                           {item.badge}
@@ -221,7 +227,7 @@ export function MainSidebar() {
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 cursor-pointer"
+            className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 cursor-pointer"
           >
             <LogOut className="size-4 shrink-0" />
             <span>Sign out</span>

@@ -6,8 +6,15 @@ import {
   DollarSign,
   Package2,
   ShoppingBag,
+  ShoppingCart,
+  Store,
   Users,
 } from "lucide-react"
+
+export const metadata = {
+  title: "Dashboard — CrossCart",
+  description: "Overview of your CrossCart store operations.",
+}
 
 export default function DashboardPage() {
   const stats = [
@@ -43,26 +50,64 @@ export default function DashboardPage() {
     { id: "#ORD-1047", table: "Table 09", items: "3x Matcha, 2x Muffin", total: "Rp 160.000", status: "Completed" },
   ]
 
+  /** Two primary navigation destinations */
+  const primaryNav = [
+    {
+      title: "POS System",
+      subtitle: "Point-of-sale cashier for in-store orders",
+      href: "/pos",
+      icon: ShoppingCart,
+      badge: "Live",
+    },
+    {
+      title: "Quick Store",
+      subtitle: "Manage your online micro-store & inventory",
+      href: "/quickstore",
+      icon: Store,
+      badge: null,
+    },
+  ]
+
   return (
     <div className="space-y-8">
       {/* Welcome header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Overview Dashboard</h2>
+          <h1 className="text-2xl font-bold tracking-tight">Overview Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Live overview of store sales, orders, and kitchen operations.
           </p>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/pos"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90 cursor-pointer"
-          >
-            <ShoppingBag className="size-4" />
-            Open Cashier POS
-          </Link>
-        </div>
+      {/* ── Primary navigation cards ──────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {primaryNav.map((nav) => {
+          const Icon = nav.icon
+          return (
+            <Link
+              key={nav.href}
+              href={nav.href}
+              className="group relative flex items-center gap-4 border border-border bg-card p-5 transition-colors hover:border-foreground"
+            >
+              <span className="grid size-12 shrink-0 place-items-center border border-border bg-background transition-transform group-hover:scale-105">
+                <Icon className="size-5 text-primary" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">{nav.title}</span>
+                  {nav.badge && (
+                    <span className="bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-primary uppercase">
+                      {nav.badge}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{nav.subtitle}</p>
+              </div>
+              <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </Link>
+          )
+        })}
       </div>
 
       {/* Metric Cards */}
@@ -72,19 +117,17 @@ export default function DashboardPage() {
           return (
             <div
               key={stat.title}
-              className="rounded-xl border border-border bg-card p-5 shadow-xs transition-shadow hover:shadow-sm"
+              className="border border-border bg-card p-5"
             >
               <div className="flex items-center justify-between text-muted-foreground">
-                <span className="text-xs font-medium">{stat.title}</span>
-                <span className="rounded-md bg-secondary p-2 text-foreground">
-                  <Icon className="size-4 text-primary" />
-                </span>
+                <span className="text-[10px] uppercase tracking-wider font-semibold">{stat.title}</span>
+                <Icon className="size-4 text-muted-foreground" />
               </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold tracking-tight text-foreground">
+              <div className="mt-4">
+                <div className="text-2xl font-medium tracking-tight text-foreground">
                   {stat.value}
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">{stat.change}</div>
+                <div className="mt-2 text-[10px] text-muted-foreground">{stat.change}</div>
               </div>
             </div>
           )
@@ -93,11 +136,11 @@ export default function DashboardPage() {
 
       {/* Recent Orders & Quick Links */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card p-5 lg:col-span-2">
+        <div className="border border-border bg-card p-5 lg:col-span-2">
           <div className="flex items-center justify-between pb-4">
             <div>
               <h3 className="text-base font-semibold">Recent Store Orders</h3>
-              <p className="text-xs text-muted-foreground">Real-time receipts from tables & counter</p>
+              <p className="text-xs text-muted-foreground">Real-time receipts from tables &amp; counter</p>
             </div>
             <Link
               href="/dashboard/orders"
@@ -146,13 +189,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Shortcuts */}
-        <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <div className="space-y-4 border border-border bg-card p-5">
           <h3 className="text-base font-semibold">Quick Shortcuts</h3>
           <p className="text-xs text-muted-foreground">Fast navigation</p>
 
           <div className="space-y-2 pt-2">
             {[
-              { title: "Point of Sale (POS)", href: "/dashboard/pos", icon: ShoppingBag },
+              { title: "Point of Sale (POS)", href: "/pos", icon: ShoppingBag },
+              { title: "Quick Store", href: "/quickstore", icon: Store },
               { title: "Kitchen Display (KDS)", href: "/dashboard/kitchen", icon: ChefHat },
               { title: "Inventory Stocks", href: "/dashboard/inventory", icon: Package2 },
               { title: "Sales Analytics", href: "/dashboard/analytics", icon: BarChart3 },
@@ -162,17 +206,17 @@ export default function DashboardPage() {
                 <Link
                   key={shortcut.title}
                   href={shortcut.href}
-                  className="group flex items-center justify-between rounded-lg border border-border/80 p-3 transition-colors hover:border-primary hover:bg-muted/40 cursor-pointer"
+                  className="group flex items-center justify-between border-b border-border/50 py-3 last:border-0 transition-colors hover:border-foreground cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="grid size-8 place-items-center rounded-md bg-secondary text-primary">
-                      <Icon className="size-4" />
+                    <span className="grid size-7 place-items-center border border-border bg-background text-muted-foreground group-hover:text-primary transition-colors">
+                      <Icon className="size-3.5" />
                     </span>
-                    <span className="text-xs font-semibold text-foreground group-hover:text-primary">
+                    <span className="text-xs font-medium text-foreground">
                       {shortcut.title}
                     </span>
                   </div>
-                  <ArrowUpRight className="size-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <ArrowUpRight className="size-3.5 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               )
             })}

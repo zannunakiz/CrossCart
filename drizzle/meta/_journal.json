@@ -15,6 +15,13 @@
       "when": 1790408196228,
       "tag": "0001_strong_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790415515754,
+      "tag": "0002_ambitious_patch",
+      "breakpoints": true
     }
   ]
 }
