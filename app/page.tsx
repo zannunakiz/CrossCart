@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { signIn, signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
 import { Switch } from '@/components/ui/switch'
@@ -36,6 +37,7 @@ const copy = {
     headline: 'The quiet system behind busy businesses.',
     body: 'CrossCart keeps checkout, stock, payments, and kitchen orders moving in one calm workspace.',
     primary: 'Log In',
+    dashboard: 'Dashboard',
     secondary: 'Explore the workflow',
     proof: 'Free forever. No transaction fees.',
     pulse: 'Today at a glance',
@@ -79,6 +81,7 @@ const copy = {
     headline: 'Sistem tenang di balik bisnis yang sibuk.',
     body: 'CrossCart menyatukan kasir, stok, pembayaran, dan pesanan dapur dalam satu ruang kerja.',
     primary: 'Masuk',
+    dashboard: 'Dasbor',
     secondary: 'Lihat alur kerja',
     proof: 'Gratis selamanya. Tanpa biaya transaksi.',
     pulse: 'Ringkasan hari ini',
@@ -235,19 +238,28 @@ export default function Home() {
                 src={session.user?.image}
                 name={session.user?.name ?? session.user?.email}
               />
-              <span className="max-w-28 truncate text-xs text-muted-foreground">
+              <Link
+                href="/dashboard"
+                className="max-w-28 truncate text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
                 {session.user?.name ?? session.user?.email}
-              </span>
+              </Link>
+              <Link
+                href="/dashboard"
+                className="border-b border-primary pb-1 text-xs font-medium text-primary cursor-pointer"
+              >
+                {t.dashboard}
+              </Link>
               <button
                 onClick={() => signOut()}
-                className="border-b border-border pb-1 text-xs text-muted-foreground hover:text-foreground"
+                className="border-b border-border pb-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 Sign out
               </button>
             </div>
           ) : (
             <button
-              onClick={() => signIn('google')}
+              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
               className="border-b border-primary pb-1 text-xs font-medium text-primary"
             >
               {t.primary}
@@ -311,12 +323,19 @@ export default function Home() {
               <span className="min-w-0 flex-1 truncate text-muted-foreground">
                 {session.user?.name ?? session.user?.email}
               </span>
+              <Link
+                href="/dashboard"
+                onClick={() => setOpen(false)}
+                className="shrink-0 text-primary cursor-pointer"
+              >
+                {t.dashboard}
+              </Link>
               <button
                 onClick={() => {
                   setOpen(false)
                   signOut()
                 }}
-                className="shrink-0 text-primary"
+                className="shrink-0 text-muted-foreground cursor-pointer"
               >
                 Sign out
               </button>
@@ -325,7 +344,7 @@ export default function Home() {
             <button
               onClick={() => {
                 setOpen(false)
-                signIn('google')
+                signIn('google', { callbackUrl: '/dashboard' })
               }}
               className="border-t border-border pt-4 text-left text-primary"
             >

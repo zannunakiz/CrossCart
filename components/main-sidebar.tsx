@@ -1,0 +1,233 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { signOut, useSession } from "next-auth/react"
+import {
+  BarChart3,
+  ChefHat,
+  ChevronRight,
+  CreditCard,
+  History,
+  LayoutDashboard,
+  LogOut,
+  Package2,
+  Settings,
+  ShoppingBag,
+  Store,
+  Users,
+  X,
+} from "lucide-react"
+
+import { useEffect } from "react"
+
+import { useMainSidebar } from "@/components/main-sidebar-context"
+import { Separator } from "@/components/ui/separator"
+import { UserAvatar } from "@/components/user-avatar"
+import { cn } from "@/lib/utils"
+
+export interface NavItem {
+  title: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  badge?: string
+}
+
+export interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Main",
+    items: [
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { title: "POS Checkout", href: "/dashboard/pos", icon: ShoppingBag, badge: "Live" },
+      { title: "Kitchen (KDS)", href: "/dashboard/kitchen", icon: ChefHat, badge: "3" },
+    ],
+  },
+  {
+    label: "Store Operations",
+    items: [
+      { title: "Inventory & Stock", href: "/dashboard/inventory", icon: Package2 },
+      { title: "Orders & Sales", href: "/dashboard/orders", icon: History },
+      { title: "Payment Methods", href: "/dashboard/payments", icon: CreditCard },
+      { title: "Customers", href: "/dashboard/customers", icon: Users },
+    ],
+  },
+  {
+    label: "Settings & Analytics",
+    items: [
+      { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+      { title: "Settings", href: "/dashboard/settings", icon: Settings },
+    ],
+  },
+]
+
+export function MainSidebar() {
+  const { open, setOpen } = useMainSidebar()
+  const pathname = usePathname()
+  const { data: session } = useSession()
+
+  // Close the drawer with the Escape key for keyboard users.
+  useEffect(() => {
+    if (!open) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false)
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [open, setOpen])
+
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close sidebar"
+        onClick={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setOpen(false)
+        }}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ease-in-out cursor-pointer",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        )}
+      />
+
+      <aside
+        aria-label="Sidebar navigation"
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-72 sm:w-80 flex-col border-r border-border bg-card shadow-2xl transition-transform duration-300 ease-in-out",
+          open ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-5">
+          <Link
+            href="/dashboard"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 font-bold tracking-tight text-foreground cursor-pointer group"
+          >
+            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <Store className="size-4" />
+            </div>
+            <div className="flex flex-col leading-none">
+              <span className="text-base font-semibold">
+                crosscart<span className="text-primary">.</span>
+              </span>
+              <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                Admin Console
+              </span>
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close sidebar"
+            className="grid size-8 place-items-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-6 overflow-y-auto p-4">
+          {navGroups.map((group) => (
+            <div key={group.label} className="space-y-1">
+              <p className="px-3 text-[10px] font-bold tracking-[0.16em] uppercase text-muted-foreground/80">
+                {group.label}
+              </p>
+              <div className="mt-2 space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(item.href))
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "group flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-xs font-medium transition-colors cursor-pointer",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      )}
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Icon
+                          className={cn(
+                            "size-4 shrink-0 transition-colors",
+                            isActive
+                              ? "text-primary-foreground"
+                              : "text-muted-foreground group-hover:text-foreground"
+                          )}
+                        />
+                        <span className="truncate">{item.title}</span>
+                      </div>
+
+                      {item.badge ? (
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none",
+                            isActive
+                              ? "bg-primary-foreground/20 text-primary-foreground"
+                              : "bg-primary/10 text-primary"
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      ) : (
+                        <ChevronRight
+                          className={cn(
+                            "size-3.5 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5",
+                            isActive && "opacity-80"
+                          )}
+                        />
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="border-t border-border p-4 bg-muted/20">
+          <div className="flex items-center gap-3 mb-3">
+            <UserAvatar
+              src={session?.user?.image}
+              name={session?.user?.name ?? session?.user?.email ?? "User"}
+              className="size-9 ring-1 ring-border"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-foreground">
+                {session?.user?.name ?? "Operator"}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {session?.user?.email ?? "operator@crosscart.com"}
+              </p>
+            </div>
+          </div>
+
+          <Separator className="my-2 opacity-50" />
+
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 cursor-pointer"
+          >
+            <LogOut className="size-4 shrink-0" />
+            <span>Sign out</span>
+          </button>
+        </div>
+      </aside>
+    </>
+  )
+}
