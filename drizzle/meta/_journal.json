@@ -22,6 +22,13 @@
       "when": 1790415515754,
       "tag": "0002_ambitious_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790424055798,
+      "tag": "0003_big_lizard",
+      "breakpoints": true
     }
   ]
 }

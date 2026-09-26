@@ -33,14 +33,6 @@ next-env.d.ts
 # build tools & cache
 .turbo
 
-# testing & coverage
-/coverage
-/.nyc_output
-/cypress/videos
-/cypress/screenshots
-/playwright-report
-/test-results
-
 # operating system files
 .DS_Store
 .DS_Store?
