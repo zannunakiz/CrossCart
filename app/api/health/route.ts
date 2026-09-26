@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import { cloudinary } from '@/lib/cloudinary'
 import { db } from '@/lib/db'
+import { pingOpenRouter } from '@/lib/openrouter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,12 +35,28 @@ export async function GET() {
     cloudinaryStatus = 'unhealthy'
   }
 
+  // ── OpenRouter health ──────────────────────────────────────────────────
+  // GET /api/v1/key is a lightweight call that validates the API key.
+  // Fails gracefully when the key is not configured — status is reported
+  // but does not affect the overall response code.
+  let openrouterStatus: 'healthy' | 'unhealthy' | 'not_configured' =
+    'not_configured'
+  try {
+    if (process.env.OPEN_ROUTER_KEY) {
+      await pingOpenRouter()
+      openrouterStatus = 'healthy'
+    }
+  } catch {
+    openrouterStatus = 'unhealthy'
+  }
+
   const allOk = databaseStatus === 'connected'
   return Response.json(
     {
       status: allOk ? 'ok' : 'error',
       database: databaseStatus,
       cloudinary: cloudinaryStatus,
+      openrouter: openrouterStatus,
     },
     { status: allOk ? 200 : 503 }
   )
