@@ -14,6 +14,7 @@
  *  Invite / remove member|  ✅    |  ❌   |  ❌
  *  Change member role    |  ✅    |  ❌   |  ❌
  *  Add / edit / del item |  ✅    |  ✅   |  ❌
+ *  Ring up a sale        |  ✅    |  ✅   |  ❌
  *  View store + items    |  ✅    |  ✅   |  ❌ (private stores)
  */
 
@@ -28,6 +29,7 @@ export type Permission =
   | "item:create"
   | "item:edit"
   | "item:delete"
+  | "sale:create"
   | "store:view"
 
 /**
@@ -44,6 +46,7 @@ const ROLE_PERMISSIONS: Record<StoreRole, Permission[]> = {
     "item:create",
     "item:edit",
     "item:delete",
+    "sale:create",
     "store:view",
   ],
   admin: [
@@ -51,6 +54,7 @@ const ROLE_PERMISSIONS: Record<StoreRole, Permission[]> = {
     "item:create",
     "item:edit",
     "item:delete",
+    "sale:create",
     "store:view",
   ],
 }
@@ -96,3 +100,7 @@ export const canManageItems = (role: StoreRole | null | undefined) =>
 /** True if the role can invite members or change their roles. */
 export const canManageMembers = (role: StoreRole | null | undefined) =>
   hasPermission(role, "member:invite")
+
+/** True if the role can ring up sales in the cashier (QuickStore). */
+export const canCreateSale = (role: StoreRole | null | undefined) =>
+  hasPermission(role, "sale:create")

@@ -2,16 +2,28 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, Settings2, Store, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  History,
+  Loader2,
+  Settings2,
+  ShoppingCart,
+  Store,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
+} from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { HistoryTab } from "@/components/quickstore/history-tab"
 import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
 import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
+import { hasPermission } from "@/lib/quickstore/permissions"
 import type { StoreRole } from "@/lib/db/schema"
 import type { Store as StoreType } from "@/lib/db/schema"
 
@@ -124,29 +136,44 @@ export default function StoreDetailPage() {
           </div>
         </div>
 
-        {isMaster && (
-          <Button
-            id="delete-store-btn"
-            variant="destructive"
-            size="sm"
-            className="shrink-0 gap-2"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Trash2 className="size-4" />
-            )}
-            Delete Store
-          </Button>
-        )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {hasPermission(store.role, "sale:create") && (
+            <Link href={`/quickstore/${storeId}/cashier`}>
+              <Button id="open-cashier-btn" size="sm" className="gap-2">
+                <ShoppingCart className="size-4" />
+                Cashier
+              </Button>
+            </Link>
+          )}
+
+          {isMaster && (
+            <Button
+              id="delete-store-btn"
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+              Delete Store
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="items">
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="items" className="flex-1 sm:flex-none">Items</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1 gap-1 sm:flex-none">
+            <History className="size-3.5" />
+            History
+          </TabsTrigger>
           <TabsTrigger value="members" className="flex-1 sm:flex-none">Members</TabsTrigger>
           {isMaster && (
             <TabsTrigger value="settings" className="flex-1 sm:flex-none gap-1">
@@ -158,6 +185,10 @@ export default function StoreDetailPage() {
 
         <TabsContent value="items" className="mt-6">
           <ItemsTab storeId={storeId} role={store.role} />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <HistoryTab storeId={storeId} />
         </TabsContent>
 
         <TabsContent value="members" className="mt-6">

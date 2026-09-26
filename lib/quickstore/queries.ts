@@ -2,11 +2,13 @@
  * Server-side QuickStore query helpers.
  * Import only in API routes / Server Components.
  */
-import { and, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 
 import { db } from "@/lib/db"
-import { storeMembers, stores } from "@/lib/db/schema"
+import { qsHistory, storeMembers, stores } from "@/lib/db/schema"
 import type { StoreRole } from "@/lib/db/schema"
+import type { Receipt } from "@/lib/quickstore/cashier"
+import { mapReceiptRow } from "@/lib/quickstore/checkout-drizzle"
 
 /**
  * Get the authenticated user's role within a store.
@@ -46,4 +48,34 @@ export async function assertStoreAccess(userId: string, storeId: string) {
     throw new Error("FORBIDDEN")
   }
   return role
+}
+
+/** Hard bounds for the history page size. */
+export const HISTORY_MIN_LIMIT = 1
+export const HISTORY_MAX_LIMIT = 100
+export const HISTORY_DEFAULT_LIMIT = 20
+
+/**
+ * Latest sales of a store, newest first, with their receipt lines.
+ * `limit` is clamped so a client cannot ask for the whole table at once.
+ */
+export async function getStoreHistory(
+  storeId: string,
+  limit: number = HISTORY_DEFAULT_LIMIT
+): Promise<Receipt[]> {
+  const safeLimit = Number.isFinite(limit)
+    ? Math.min(Math.max(Math.trunc(limit), HISTORY_MIN_LIMIT), HISTORY_MAX_LIMIT)
+    : HISTORY_DEFAULT_LIMIT
+
+  const rows = await db.query.qsHistory.findMany({
+    where: eq(qsHistory.storeId, storeId),
+    orderBy: [desc(qsHistory.paidAt), desc(qsHistory.createdAt)],
+    limit: safeLimit,
+    with: {
+      lines: true,
+      cashier: { columns: { name: true } },
+    },
+  })
+
+  return rows.map((row) => mapReceiptRow(row, row.cashier?.name ?? null, row.lines))
 }
