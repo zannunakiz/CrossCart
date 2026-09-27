@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, type Variants } from "framer-motion"
-import { Plus, ToggleLeft, ToggleRight } from "lucide-react"
+import { Plus } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import type { Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
 
-// Menambahkan tipe 'Variants' secara eksplisit untuk menyelesaikan error TypeScript
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -108,7 +107,7 @@ export default function QuickStorePage() {
                   <div className="mt-2.5 h-2 w-11/12 animate-pulse rounded bg-muted" />
                 </div>
                 {/* Badge skeleton */}
-                <div className="h-5 w-[68px] shrink-0 animate-pulse rounded-full bg-muted" />
+                <div className="h-5 w-17 shrink-0 animate-pulse rounded-full bg-muted" />
               </div>
 
               {/* Row 3: Footer date + link */}
@@ -155,7 +154,7 @@ export default function QuickStorePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p
-                      className="truncate text-sm font-semibold text-foreground"
+                      className="truncate text-sm font-normal text-foreground"
                       title={store.name}
                     >
                       {store.name}
@@ -165,21 +164,19 @@ export default function QuickStorePage() {
                         className="mt-1 text-2xs text-muted-foreground"
                         title={store.description}
                       >
-                        {store.description.length > 30
-                          ? `${store.description.slice(0, 30)}...`
+                        {store.description.length > 24
+                          ? `${store.description.slice(0, 24)}...`
                           : store.description}
                       </p>
                     )}
                   </div>
                   <Badge
                     variant={store.open ? "default" : "secondary"}
-                    className="shrink-0 gap-1 text-3xs"
+                    className={`shrink-0 text-3xs ${!store.open
+                      ? "dark:bg-zinc-800 dark:border-zinc-800 dark:text-zinc-300"
+                      : ""
+                      }`}
                   >
-                    {store.open ? (
-                      <ToggleRight className="size-3" />
-                    ) : (
-                      <ToggleLeft className="size-3" />
-                    )}
                     {store.open ? t("qs.open") : t("qs.closed")}
                   </Badge>
                 </div>

@@ -116,7 +116,10 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }}>
-      <DialogContent className="max-w-md">
+      {/* Ukuran dialog: ruang longgar di LUAR kiri-kanan (bukan padding dalam).
+          - <sm : lebar = viewport - 3rem (1.5rem kosong tiap sisi)
+          - >=sm: lebar maksimum 28rem, jadi gutter ikut melebar di layar besar */}
+      <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-bold">{t("Create New Store")}</DialogTitle>
           <DialogDescription>

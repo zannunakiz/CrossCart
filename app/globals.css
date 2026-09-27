@@ -163,11 +163,14 @@
  * screens read tighter while the hierarchy stays the same. Only the sizes are
  * overridden — Tailwind's line-height ratios stay in place, so leading scales
  * with the text. `text-2xs` / `text-3xs` are the micro steps for badges and
- * mono meta labels (9px is the legibility floor). Tune the scale here only. */
+ * mono meta labels (9px is the legibility floor). `text-2sm` is the 12px step
+ * used by the small Button labels. Tablet/mobile re-declare these same tokens
+ * in the media query right below, so tune both tables together. */
 @theme {
   --text-3xs: 0.5625rem;  /* 9px  — micro label floor */
   --text-2xs: 0.625rem;   /* 10px — micro label */
   --text-xs: 0.6875rem;   /* 11px */
+  --text-2sm: 0.75rem;    /* 12px — small Button labels */
   --text-sm: 0.8125rem;   /* 13px */
   --text-base: 0.9375rem; /* 15px */
   --text-lg: 1.0625rem;   /* 17px */
@@ -176,6 +179,30 @@
   --text-3xl: 1.75rem;    /* 28px */
   --text-4xl: 2.0625rem;  /* 33px */
   --text-5xl: 2.75rem;    /* 44px */
+}
+
+/* ── Tablet / mobile type scale ─────────────────────────────────────────────
+ * Desktop (lg and up, >= 1024px) keeps the scale above untouched. Below that
+ * every step sits ~5% lower (~0.5–2px per step) so the dense POS / Quick Store
+ * screens stay comfortable on tablets and phones. The 9px micro floor is never
+ * shrunk, and Tailwind's line-height ratios are inherited, so leading follows
+ * the text automatically. Declared OUTSIDE the `theme` layer on purpose: layer
+ * precedence lets this beat the @theme defaults without !important. The values
+ * stay in rem so a user's browser font-size preference still applies. */
+@media (width < 64rem) {
+  :root {
+    --text-2sm: 0.71875rem; /*  12px  -> 11.5px — small Button labels */
+    --text-2xs: 0.59375rem; /*  10px  ->  9.5px */
+    --text-xs: 0.65625rem;  /*  11px  -> 10.5px */
+    --text-sm: 0.78125rem;  /*  13px  -> 12.5px */
+    --text-base: 0.875rem;  /*  15px  -> 14px */
+    --text-lg: 1rem;        /*  17px  -> 16px */
+    --text-xl: 1.125rem;    /*  19px  -> 18px */
+    --text-2xl: 1.3125rem;  /*  22px  -> 21px */
+    --text-3xl: 1.65625rem; /*  28px  -> 26.5px */
+    --text-4xl: 1.96875rem; /*  33px  -> 31.5px */
+    --text-5xl: 2.625rem;   /*  44px  -> 42px */
+  }
 }
 
 @layer base {
