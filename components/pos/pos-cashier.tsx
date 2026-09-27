@@ -183,7 +183,12 @@ export function PosCashier({
       setEditLines(map)
       setPhase("order")
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : (id ? "Kode tidak ditemukan." : "Order not found."))
+      const message = e instanceof Error ? e.message : ""
+      toast.error(
+        message === "CODE_ALREADY_USED"
+          ? (id ? "Kode ini sudah dipakai dan tidak berlaku lagi." : "This code has already been used and is no longer valid.")
+          : message || (id ? "Kode tidak ditemukan." : "Order not found.")
+      )
     } finally {
       setLookingUp(false)
     }
@@ -276,10 +281,25 @@ export function PosCashier({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setPhase("done")
+      setScanCode("") // the access code is now burned — never reuse it
       void loadCatalog() // refresh stock
-      toast.success(id ? "Pesanan selesai. Stok diperbarui." : "Order completed. Stock updated.")
+      toast.success(id ? "Pesanan selesai. Kode sudah hangus, stok diperbarui." : "Order completed. Code is now void, stock updated.")
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : (id ? "Gagal menyelesaikan." : "Could not complete."))
+      const message = e instanceof Error ? e.message : ""
+      // Another terminal/tap already confirmed this order: the code is burned,
+      // but the sale itself is recorded, so show the success state.
+      if (message === "CODE_ALREADY_USED") {
+        setPhase("done")
+        setScanCode("")
+        void loadCatalog()
+        toast.info(
+          id
+            ? "Kode sudah dipakai sebelumnya — pesanan sudah tercatat lunas."
+            : "Code was already used — this order is already paid."
+        )
+        return
+      }
+      toast.error(message || (id ? "Gagal menyelesaikan." : "Could not complete."))
       setPhase("order")
     } finally {
       setSaving(false)
@@ -761,6 +781,9 @@ export function PosCashier({
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {id ? "Stok telah diperbarui." : "Stock has been updated."}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {id ? "Kode/QR pelanggan sudah hangus dan tidak bisa dipakai lagi." : "The customer code/QR is now void and cannot be reused."}
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={resetFlow}>

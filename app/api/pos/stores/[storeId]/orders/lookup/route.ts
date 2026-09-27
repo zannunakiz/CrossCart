@@ -14,6 +14,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ stor
   try { await assertPosPermission(session.user.id, storeId, "order:read") } catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
   const [order] = await db.select().from(posOrders).where(and(eq(posOrders.storeId, storeId), eq(posOrders.accessCode, code))).limit(1)
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 })
+  // Access codes are single-use: once the cashier confirms payment (or the order
+  // reaches a terminal state) the code/QR is burned and can never be replayed.
+  if (order.codeUsedAt || order.paymentStatus === "paid" || ["completed", "cancelled", "expired"].includes(order.status)) {
+    return NextResponse.json({ error: "CODE_ALREADY_USED" }, { status: 410 })
+  }
   const lines = await db.select().from(posOrderItems).where(eq(posOrderItems.orderId, order.id))
   return NextResponse.json({ ...order, lines })
 }

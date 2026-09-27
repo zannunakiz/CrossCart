@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
-import { ChefHat, Plus, ShoppingBag, Store } from "lucide-react"
+import { Plus, ShoppingBag, Store } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -198,20 +198,6 @@ export function PosHomeClient() {
           </AnimatePresence>
         </div>
       )}
-
-      {/* Kitchen board shortcut */}
-      <section className="flex items-center justify-between rounded-xl border bg-card p-4">
-        <div>
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <ChefHat className="size-4" />
-            {id ? "Layar Dapur" : "Kitchen Display"}
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {id ? "Buka tampilan dapur untuk semua toko." : "Open kitchen display for all stores."}
-          </p>
-        </div>
-        <Button variant="outline" size="sm" render={<Link href="/pos/kitchen" />}>{id ? "Buka" : "Open"}</Button>
-      </section>
     </div>
   )
 }
