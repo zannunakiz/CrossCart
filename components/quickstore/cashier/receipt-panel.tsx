@@ -193,7 +193,7 @@ export function ReceiptPanel({
               <Store className="size-3.5 text-muted-foreground" />
               <span className="truncate">{store.name}</span>
             </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
+            <p className="mt-0.5 text-2xs text-muted-foreground">
               {completed ? t("Receipt") : t("Draft receipt")} ·{" "}
               {completed
                 ? new Date(completed.paidAt).toLocaleString(
@@ -202,18 +202,18 @@ export function ReceiptPanel({
                 : clock || "—"}
             </p>
             {cashierName && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-2xs text-muted-foreground">
                 {t("Cashier: {name}", { name: cashierName })}
               </p>
             )}
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-1">
-            <Badge variant="outline" className="font-mono text-[10px]">
+            <Badge variant="outline" className="font-mono text-3xs">
               {completed ? completed.receiptNumber : t("NOT RECORDED")}
             </Badge>
             {!store.open && (
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-3xs">
                 {t("Store closed")}
               </Badge>
             )}
@@ -233,7 +233,7 @@ export function ReceiptPanel({
               <li key={row.key} className="flex items-start justify-between gap-3 text-sm">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{row.name}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-2xs text-muted-foreground">
                     {row.quantity} × {formatCents(toCents(row.unitPricePaid), display.currency)}
                     {row.discountPercent > 0 &&
                       ` ${t("(list {price})", {
@@ -272,7 +272,7 @@ export function ReceiptPanel({
             {formatCents(display.totalCents, display.currency)}
           </span>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-2xs text-muted-foreground">
           {t(display.itemCount === 1 ? "{count} item" : "{count} items", {
             count: display.itemCount,
           })}{" "}
@@ -299,7 +299,7 @@ export function ReceiptPanel({
             <QrCode className="size-6" />
           </span>
         )}
-        <div className="text-[11px] text-muted-foreground">
+        <div className="text-2xs text-muted-foreground">
           <p className="text-xs font-medium text-foreground">{t("Scan to pay")}</p>
           {store.paymentQr ? (
             <p>{t("Show this QR to the customer, then confirm the payment below.")}</p>
@@ -318,7 +318,7 @@ export function ReceiptPanel({
               <CheckCircle2 className="size-4" />
               {t("Sale recorded")}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {t("Stock has been reduced and the sale saved to QuickStore history as")}{" "}
               <span className="font-mono">{completed.receiptNumber}</span>.
             </p>
@@ -364,7 +364,7 @@ export function ReceiptPanel({
             >
               Confirm
             </Button>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {state.phase === "idle"
                 ? t("Review the receipt, then confirm to start the 3-second safeguard.")
                 : t("Confirm once the customer has paid.")}
@@ -388,7 +388,7 @@ export function ReceiptPanel({
                 {t("No")}
               </Button>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {t("Only “Yes” records the sale and reduces stock.")}
             </p>
           </div>
@@ -407,7 +407,7 @@ export function ReceiptPanel({
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
               <span>{checkoutErrorText(lang, state.code, state.message)}</span>
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {t("Nothing has been recorded. Fix the items above and confirm again.")}
             </p>
             <Button

@@ -264,6 +264,9 @@ const phraseId = {
   'Pin to top': 'Sematkan di atas',
   'Save Changes': 'Simpan Perubahan',
 
+  // ── Store detail: tab navigation ──────────────────────────────────────────
+  'Store navigation': 'Navigasi toko',
+
   // ── Members tab & invite dialog ───────────────────────────────────────────
   'Failed to load members': 'Gagal memuat anggota',
   'Remove {name} from store?': 'Hapus {name} dari toko?',

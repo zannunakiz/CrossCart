@@ -116,12 +116,12 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium">{item.name}</span>
                     {item.stocks == null ? null : (
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                      <Badge variant="outline" className="shrink-0 text-3xs">
                         {t("{count} left", { count: item.stocks })}
                       </Badge>
                     )}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  <span className="mt-0.5 block text-2xs text-muted-foreground">
                     {sellable
                       ? item.description || t("Tap to add to the sale")
                       : availabilityText(lang, availability.code, availabilityLabel(availability.code))}

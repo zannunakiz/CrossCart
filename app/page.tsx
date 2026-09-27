@@ -360,10 +360,10 @@ export default function Home() {
       >
         <div className="grid items-end gap-16 lg:grid-cols-[.8fr_1.2fr] lg:gap-24">
           <Reveal>
-            <p className="mb-6 text-[10px] font-semibold tracking-[.22em] text-primary">
+            <p className="mb-6 text-3xs font-semibold tracking-[.22em] text-primary">
               {t.badge}
             </p>
-            <h1 className="max-w-xl text-[clamp(2.8rem,7vw,6.5rem)] font-medium leading-[.92] tracking-[-.085em]">
+            <h1 className="max-w-xl text-[clamp(2.6rem,6.5vw,6rem)] font-medium leading-[.92] tracking-[-.085em]">
               {t.headline}
             </h1>
             <p className="mt-7 max-w-sm text-sm leading-6 text-muted-foreground">
@@ -384,7 +384,7 @@ export default function Home() {
                 {t.secondary}
               </a>
             </div>
-            <p className="mt-8 text-[11px] text-muted-foreground">
+            <p className="mt-8 text-2xs text-muted-foreground">
               <Check className="mr-1 inline size-3.5 text-primary" />
               {t.proof}
             </p>
@@ -397,49 +397,49 @@ export default function Home() {
             >
               <div className="mb-8 flex items-center justify-between border-b border-border pb-4">
                 <div>
-                  <p className="text-[10px] font-semibold tracking-[.18em] text-primary">
+                  <p className="text-3xs font-semibold tracking-[.18em] text-primary">
                     CROSSCART / OVERVIEW
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t.pulse}
                   </p>
                 </div>
-                <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span className="flex items-center gap-2 text-3xs text-muted-foreground">
                   <span className="size-1.5 rounded-full bg-emerald-400" /> LIVE
                 </span>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="border border-border p-4">
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-3xs text-muted-foreground">
                     {t.revenue}
                   </p>
                   <p className="mt-3 text-xl font-medium tracking-[-.05em]">
                     Rp 4.28m
                   </p>
-                  <p className="mt-2 text-[10px] text-emerald-500">
+                  <p className="mt-2 text-3xs text-emerald-500">
                     +18.4% this week
                   </p>
                 </div>
                 <div className="border border-border p-4">
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-3xs text-muted-foreground">
                     {t.orders}
                   </p>
                   <p className="mt-3 text-xl font-medium tracking-[-.05em]">
                     184
                   </p>
-                  <p className="mt-2 text-[10px] text-muted-foreground">
+                  <p className="mt-2 text-3xs text-muted-foreground">
                     12 in progress
                   </p>
                 </div>
                 <div className="border border-border p-4">
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-3xs text-muted-foreground">
                     {t.stock}
                   </p>
                   <p className="mt-3 text-xl font-medium tracking-[-.05em]">
                     07
                   </p>
-                  <p className="mt-2 text-[10px] text-primary">
+                  <p className="mt-2 text-3xs text-primary">
                     Needs attention
                   </p>
                 </div>
@@ -448,26 +448,26 @@ export default function Home() {
               <div className="mt-8 grid gap-8 sm:grid-cols-[1fr_1.2fr]">
                 <div>
                   <div className="mb-3 flex items-center justify-between">
-                    <p className="text-[10px] font-semibold tracking-[.14em]">
+                    <p className="text-3xs font-semibold tracking-[.14em]">
                       {t.live}
                     </p>
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-3xs text-muted-foreground">
                       Last 30 min
                     </span>
                   </div>
                   <div className="space-y-4">
                     {t.activity.map(([time, label, detail, amount]) => (
                       <div key={time} className="flex gap-3 border-t border-border pt-3">
-                        <span className="font-mono text-[9px] text-muted-foreground">
+                        <span className="font-mono text-3xs text-muted-foreground">
                           {time}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[11px]">{label}</p>
-                          <p className="mt-1 truncate text-[10px] text-muted-foreground">
+                          <p className="truncate text-2xs">{label}</p>
+                          <p className="mt-1 truncate text-3xs text-muted-foreground">
                             {detail}
                           </p>
                         </div>
-                        <span className="text-[9px] text-primary">
+                        <span className="text-3xs text-primary">
                           {amount}
                         </span>
                       </div>
@@ -476,7 +476,7 @@ export default function Home() {
                 </div>
 
                 <div className="relative min-h-40 border border-border p-4">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <div className="flex justify-between text-3xs text-muted-foreground">
                     <span>Revenue flow</span>
                     <span>7 days</span>
                   </div>
@@ -500,7 +500,7 @@ export default function Home() {
       </section>
 
       <section className="border-y border-border">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 text-[10px] font-semibold tracking-[.14em] text-muted-foreground sm:grid-cols-4">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 text-3xs font-semibold tracking-[.14em] text-muted-foreground sm:grid-cols-4">
           <div className="border-r border-border px-5 py-5 sm:px-8">
             ZERO FEES
           </div>
@@ -520,7 +520,7 @@ export default function Home() {
         <Reveal>
           <div className="mb-14 grid gap-6 sm:grid-cols-[1fr_.55fr] sm:items-end">
             <div>
-              <p className="mb-5 text-[10px] font-semibold tracking-[.22em] text-primary">
+              <p className="mb-5 text-3xs font-semibold tracking-[.22em] text-primary">
                 {t.workflowLabel}
               </p>
               <h2 className="max-w-2xl text-3xl font-medium leading-[.98] tracking-[-.07em] sm:text-5xl">
@@ -541,7 +541,7 @@ export default function Home() {
                   <span className="grid size-9 place-items-center border border-border text-primary">
                     <feature.icon className="size-4" />
                   </span>
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-mono text-3xs text-muted-foreground">
                     0{i + 1}
                   </span>
                 </div>
@@ -562,7 +562,7 @@ export default function Home() {
         <Reveal>
           <div className="grid gap-10 border-t border-border pt-12 sm:grid-cols-[1fr_auto] sm:items-end">
             <div>
-              <p className="mb-5 text-[10px] font-semibold tracking-[.22em] text-primary">
+              <p className="mb-5 text-3xs font-semibold tracking-[.22em] text-primary">
                 CROSSCART / PRICING
               </p>
               <h2 className="max-w-2xl text-3xl font-medium leading-[.98] tracking-[-.07em] sm:text-5xl">

@@ -87,7 +87,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
             onChange={(e) => setName(e.target.value)}
             disabled={submitting}
           />
-          <p className="text-right text-[11px] text-muted-foreground">{name.length}/20</p>
+          <p className="text-right text-2xs text-muted-foreground">{name.length}/20</p>
         </div>
 
         <div className="space-y-1.5">
@@ -100,7 +100,7 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             disabled={submitting}
           />
-          <p className="text-right text-[11px] text-muted-foreground">{description.length}/100</p>
+          <p className="text-right text-2xs text-muted-foreground">{description.length}/100</p>
         </div>
 
         <div className="flex items-center justify-between rounded-lg border border-border p-4">

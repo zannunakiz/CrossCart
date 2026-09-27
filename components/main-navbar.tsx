@@ -81,7 +81,7 @@ export function MainNavbar() {
           type="button"
           onClick={toggleLanguage}
           aria-label={t("nav.toggleLanguage")}
-          className="flex h-8 items-center gap-1.5 border border-border bg-background px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+          className="flex h-8 items-center gap-1.5 border border-border bg-background px-2 text-2xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
         >
           <Globe2 className="size-3.5" />
           <span className={lang === "EN" ? "text-foreground" : "opacity-60"}>EN</span>
@@ -110,7 +110,7 @@ export function MainNavbar() {
             <span className="text-xs font-semibold text-foreground">
               {session?.user?.name ?? "Operator"}
             </span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-3xs text-muted-foreground">
               {session?.user?.email ?? "Online"}
             </span>
           </div>

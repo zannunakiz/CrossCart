@@ -158,7 +158,7 @@ export function MembersTab({ storeId, role }: Props) {
               </div>
               <Badge
                 variant={member.role === "master" ? "default" : "secondary"}
-                className="gap-1 text-[10px]"
+                className="gap-1 text-3xs"
               >
                 {member.role === "master" && <Crown className="size-2.5" />}
                 {member.role}

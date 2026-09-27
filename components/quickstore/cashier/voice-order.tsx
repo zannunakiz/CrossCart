@@ -200,7 +200,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
         </p>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">{t("Language")}</span>
+          <span className="text-2xs text-muted-foreground">{t("Language")}</span>
           <Select
             value={language}
             onValueChange={(value) => setLanguage(value as VoiceLanguage)}
@@ -278,7 +278,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
         </div>
 
         {!speech.supported ? (
-          <p className="text-[11px] text-muted-foreground">{t(SPEECH_ERROR_PHRASE.not_supported)}</p>
+          <p className="text-2xs text-muted-foreground">{t(SPEECH_ERROR_PHRASE.not_supported)}</p>
         ) : null}
 
         {errorText || micErrorText ? (
@@ -294,7 +294,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
         {/* Review: nothing reaches the cart before this confirmation */}
         {result && result.lines.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("Detected items")} · “{result.transcript}”
             </p>
 
@@ -312,7 +312,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
                       <span className="block truncate text-sm font-medium">{item.name}</span>
                       <span
                         className={cn(
-                          "block text-[11px]",
+                          "block text-2xs",
                           availability.ok ? "text-muted-foreground" : "text-destructive"
                         )}
                       >
@@ -336,7 +336,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
             </ul>
 
             {result.unmatched.length > 0 ? (
-              <ul className="space-y-1 text-[11px] text-muted-foreground">
+              <ul className="space-y-1 text-2xs text-muted-foreground">
                 {result.unmatched.map((entry) => (
                   <li key={entry.heard} className="flex items-start gap-1.5">
                     <TriangleAlert className="mt-0.5 size-3 shrink-0" />

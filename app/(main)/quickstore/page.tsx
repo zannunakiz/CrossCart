@@ -99,7 +99,7 @@ export default function QuickStorePage() {
                 </div>
                 <Badge
                   variant={store.open ? "default" : "secondary"}
-                  className="shrink-0 gap-1 text-[10px]"
+                  className="shrink-0 gap-1 text-3xs"
                 >
                   {store.open ? (
                     <ToggleRight className="size-3" />
@@ -121,7 +121,7 @@ export default function QuickStorePage() {
                 </div>
               )}
 
-              <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="mt-4 flex items-center justify-between text-2xs text-muted-foreground">
                 <span>
                   {new Date(store.createdAt).toLocaleDateString(
                     lang === "ID" ? "id-ID" : "en-GB",

@@ -112,12 +112,12 @@ export function SaleCart({
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium">{line.name}</p>
                     {line.discountPercent > 0 && (
-                      <Badge variant="secondary" className="shrink-0 text-[10px]">
+                      <Badge variant="secondary" className="shrink-0 text-3xs">
                         -{line.discountPercent}%
                       </Badge>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 text-2xs text-muted-foreground">
                     {t("{price} each", {
                       price: formatCents(line.unitPricePaidCents, line.currency),
                     })}
@@ -197,7 +197,7 @@ export function SaleCart({
               </div>
 
               {(!availability.ok || draftInvalid) && (
-                <p className="mt-2 text-[11px] font-medium text-destructive">
+                <p className="mt-2 text-2xs font-medium text-destructive">
                   {draftInvalid
                     ? t("Quantity must be a whole number of at least 1")
                     : availabilityMessage(lang, availability.code, availability.message, {

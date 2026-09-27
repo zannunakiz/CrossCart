@@ -114,7 +114,7 @@ export function MainSidebar() {
               <span className="text-base font-semibold">
                 crosscart<span className="text-primary">.</span>
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+              <span className="font-mono text-3xs uppercase tracking-wider text-muted-foreground mt-0.5">
                 {t("brand.adminConsole")}
               </span>
             </div>
@@ -133,7 +133,7 @@ export function MainSidebar() {
         <nav aria-label={t("nav.sidebarNav")} className="flex-1 space-y-6 overflow-y-auto p-4">
           {navGroups.map((group) => (
             <div key={group.labelKey} className="space-y-1">
-              <p className="px-3 text-[10px] font-bold tracking-[0.16em] uppercase text-muted-foreground/80">
+              <p className="px-3 text-3xs font-bold tracking-[0.16em] uppercase text-muted-foreground/80">
                 {t(group.labelKey)}
               </p>
               <div className="mt-2 space-y-1">
@@ -170,7 +170,7 @@ export function MainSidebar() {
                       {item.badgeKey ? (
                         <span
                           className={cn(
-                            "rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                            "rounded px-1.5 py-0.5 text-3xs font-semibold leading-none",
                             isActive
                               ? "bg-foreground text-background"
                               : "bg-muted text-muted-foreground"
@@ -205,7 +205,7 @@ export function MainSidebar() {
               <p className="truncate text-xs font-semibold text-foreground">
                 {session?.user?.name ?? "Operator"}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-2xs text-muted-foreground">
                 {session?.user?.email ?? "operator@crosscart.com"}
               </p>
             </div>
@@ -219,7 +219,7 @@ export function MainSidebar() {
               type="button"
               onClick={toggleTheme}
               aria-label={t("nav.toggleTheme")}
-              className="flex items-center justify-center gap-2 border border-border bg-background px-2 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+              className="flex items-center justify-center gap-2 border border-border bg-background px-2 py-2 text-2xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
             >
               {isDark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
               <span>{isDark ? t("nav.theme.dark") : t("nav.theme.light")}</span>
@@ -229,7 +229,7 @@ export function MainSidebar() {
               type="button"
               onClick={toggleLanguage}
               aria-label={t("nav.toggleLanguage")}
-              className="flex items-center justify-center gap-2 border border-border bg-background px-2 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+              className="flex items-center justify-center gap-2 border border-border bg-background px-2 py-2 text-2xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
             >
               <Globe2 className="size-3.5" />
               <span>{lang === "ID" ? "ID" : "EN"}</span>

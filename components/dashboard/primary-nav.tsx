@@ -73,7 +73,7 @@ export function PrimaryNav() {
                            <Icon className="size-5 text-primary" />
                         </span>
                         {nav.badgeKey && (
-                           <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                           <span className="flex items-center gap-1.5 text-2xs font-medium text-muted-foreground">
                               <span className="size-1.5 rounded-full bg-emerald-500" />
                               <T k={nav.badgeKey} />
                            </span>

@@ -457,7 +457,7 @@ export function PosCashier({
                   <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                     {fmt(item.price, currency, lang)}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  <p className="mt-0.5 text-3xs text-muted-foreground">
                     {item.trackStock
                       ? isOOS
                         ? (id ? "Habis" : "Out of stock")
@@ -466,7 +466,7 @@ export function PosCashier({
                   </p>
                   {/* Badge for in-cart/order quantity */}
                   {(inCart > 0 || inOrder > 0) && (
-                    <span className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    <span className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-primary text-3xs font-bold text-primary-foreground">
                       {phase === "order" ? inOrder : inCart}
                     </span>
                   )}
@@ -530,7 +530,7 @@ export function PosCashier({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{line.item?.name ?? line.itemId}</p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-2xs text-muted-foreground">
                           {fmt(line.item?.price ?? 0, currency, lang)}
                         </p>
                       </div>
@@ -664,7 +664,7 @@ export function PosCashier({
             >
               <div className="p-3 bg-muted/30 border-b space-y-0.5">
                 <p className="text-xs font-semibold">{currentOrder.customerName}</p>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-2xs text-muted-foreground">
                   {id ? "Status" : "Status"}: <span className="capitalize">{currentOrder.status}</span>
                 </p>
               </div>
@@ -688,7 +688,7 @@ export function PosCashier({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{line.name}</p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-2xs text-muted-foreground">
                           {fmt(line.price, currency, lang)}
                         </p>
                       </div>

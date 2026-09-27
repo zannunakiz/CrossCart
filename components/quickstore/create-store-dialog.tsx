@@ -121,7 +121,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
               onChange={(e) => setName(e.target.value)}
               disabled={submitting}
             />
-            <p className="text-right text-[11px] text-muted-foreground">
+            <p className="text-right text-2xs text-muted-foreground">
               {name.length}/20
             </p>
           </div>
@@ -138,7 +138,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
               onChange={(e) => setDescription(e.target.value)}
               disabled={submitting}
             />
-            <p className="text-right text-[11px] text-muted-foreground">
+            <p className="text-right text-2xs text-muted-foreground">
               {description.length}/100
             </p>
           </div>
