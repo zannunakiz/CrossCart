@@ -174,8 +174,8 @@ export function PosHomeClient() {
                     <Badge
                       className={
                         store.isOpen
-                          ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 text-[10px]"
-                          : "bg-muted text-muted-foreground hover:bg-muted text-[10px]"
+                          ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 text-3xs"
+                          : "bg-muted text-muted-foreground hover:bg-muted text-3xs"
                       }
                     >
                       {store.isOpen ? (id ? "Buka" : "Open") : (id ? "Tutup" : "Closed")}
@@ -190,7 +190,7 @@ export function PosHomeClient() {
                         {store.description}
                       </p>
                     )}
-                    <p className="mt-1 text-[11px] text-muted-foreground">{store.currency}</p>
+                    <p className="mt-1 text-2xs text-muted-foreground">{store.currency}</p>
                   </div>
                 </Link>
               </motion.div>

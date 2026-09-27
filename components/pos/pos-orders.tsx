@@ -112,10 +112,10 @@ export function PosOrders({ storeId }: { storeId: string }) {
                     <td className="px-4 py-3 font-medium">{o.customerName}</td>
                     <td className="px-4 py-3">
                       <div className="space-y-1">
-                        <Badge className="text-[10px] bg-muted text-muted-foreground hover:bg-muted capitalize">
+                        <Badge className="text-3xs bg-muted text-muted-foreground hover:bg-muted capitalize">
                           {o.status}
                         </Badge>
-                        <Badge className={`text-[10px] hover:bg-inherit capitalize ${o.paymentStatus === 'paid' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                        <Badge className={`text-3xs hover:bg-inherit capitalize ${o.paymentStatus === 'paid' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
                           {o.paymentStatus.replace("_", " ")}
                         </Badge>
                       </div>

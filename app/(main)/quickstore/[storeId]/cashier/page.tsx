@@ -295,10 +295,10 @@ export default function CashierPage() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-xl font-bold tracking-tight">{store.name}</h1>
-              <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
+              <Badge variant="outline" className="text-3xs font-semibold uppercase tracking-wide">
                 {t("Cashier")}
               </Badge>
-              <Badge variant={store.open ? "default" : "secondary"} className="gap-1 text-[10px]">
+              <Badge variant={store.open ? "default" : "secondary"} className="gap-1 text-3xs">
                 {store.open ? <ToggleRight className="size-3" /> : <ToggleLeft className="size-3" />}
                 {store.open ? t("Open") : t("Closed")}
               </Badge>

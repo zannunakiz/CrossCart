@@ -1,13 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
+import { useState } from "react"
 import {
   ChefHat,
   ChevronLeft,
   ClipboardList,
-  History,
   Package,
   QrCode,
   Settings,
@@ -15,11 +13,11 @@ import {
   Tag,
   Users,
 } from "lucide-react"
-import { useState } from "react"
 
 import { ShareOrderDialog } from "@/components/pos/share-order-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/lib/i18n"
 
@@ -50,13 +48,12 @@ export function PosStoreLayout({
   permissions: Permissions
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
   const lang = useLanguage()
   const id = lang === "ID"
   const base = `/pos/${store.id}`
   const [shareOpen, setShareOpen] = useState(false)
 
-  const tabs = [
+  const tabs: (TabNavItem & { show: boolean })[] = [
     {
       href: `${base}/cashier`,
       label: id ? "Kasir" : "Cashier",
@@ -115,7 +112,7 @@ export function PosStoreLayout({
               <h1 className="text-base font-semibold tracking-tight">{store.name}</h1>
               <Badge
                 className={cn(
-                  "text-[10px] px-1.5 py-0",
+                  "text-3xs px-1.5 py-0",
                   store.isOpen
                     ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
                     : "bg-muted text-muted-foreground hover:bg-muted"
@@ -124,7 +121,7 @@ export function PosStoreLayout({
                 {store.isOpen ? (id ? "Buka" : "Open") : (id ? "Tutup" : "Closed")}
               </Badge>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {id ? "Toko POS" : "POS Store"} · {store.currency}
             </p>
           </div>
@@ -148,40 +145,12 @@ export function PosStoreLayout({
         storeName={store.name}
       />
 
-      {/* Tab nav */}
-      <div className="relative">
-        <nav
-          className="flex gap-1 overflow-x-auto border-b pb-0 scrollbar-none"
-          aria-label={id ? "Navigasi POS" : "POS navigation"}
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/")
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={cn(
-                  "relative flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors",
-                  isActive
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Icon className="size-3.5 shrink-0" />
-                {tab.label}
-                {isActive && (
-                  <motion.span
-                    layoutId={`pos-tab-${store.id}`}
-                    className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground"
-                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                  />
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-      </div>
+      {/* Tab nav — shared with Quick Store so both screens stay identical. */}
+      <TabNav
+        items={tabs.filter((tab) => tab.show)}
+        ariaLabel={id ? "Navigasi POS" : "POS navigation"}
+        layoutId={`pos-tab-${store.id}`}
+      />
 
       {/* Page content */}
       <div>{children}</div>

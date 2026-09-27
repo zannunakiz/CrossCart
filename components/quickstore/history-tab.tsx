@@ -110,12 +110,12 @@ export function HistoryTab({ storeId }: Props) {
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-semibold">{sale.receiptNumber}</span>
                     {sale.status !== "completed" && (
-                      <Badge variant="secondary" className="text-[10px] uppercase">
+                      <Badge variant="secondary" className="text-3xs uppercase">
                         {sale.status}
                       </Badge>
                     )}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                  <span className="mt-0.5 block text-2xs text-muted-foreground">
                     {new Date(sale.paidAt).toLocaleString(
                       lang === "ID" ? "id-ID" : undefined
                     )}{" "}

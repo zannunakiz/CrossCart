@@ -323,7 +323,7 @@ export function PosCatalog({
                             {item.description && (
                               <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
                             )}
-                            {item.sku && <p className="text-[11px] text-muted-foreground/60">SKU: {item.sku}</p>}
+                            {item.sku && <p className="text-2xs text-muted-foreground/60">SKU: {item.sku}</p>}
                           </div>
                         </div>
                       </td>
@@ -331,18 +331,18 @@ export function PosCatalog({
                       <td className="px-4 py-3 text-sm">
                         {item.trackStock ? item.stockOnHand : (id ? "∞" : "∞")}
                         {item.trackStock && item.stockOnHand <= item.lowStockAt && item.stockOnHand > 0 && (
-                          <span className="ml-1 text-[10px] text-amber-600 font-semibold">LOW</span>
+                          <span className="ml-1 text-3xs text-amber-600 font-semibold">LOW</span>
                         )}
                         {item.trackStock && item.stockOnHand === 0 && (
-                          <span className="ml-1 text-[10px] text-destructive font-semibold">OOS</span>
+                          <span className="ml-1 text-3xs text-destructive font-semibold">OOS</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <Badge
                           className={
                             item.available
-                              ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 text-[10px]"
-                              : "bg-muted text-muted-foreground hover:bg-muted text-[10px]"
+                              ? "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 text-3xs"
+                              : "bg-muted text-muted-foreground hover:bg-muted text-3xs"
                           }
                         >
                           {item.available

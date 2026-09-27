@@ -1,15 +1,35 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { motion, type Variants } from "framer-motion"
+import { Plus } from "lucide-react"
 import Link from "next/link"
-import { Plus, Store, ToggleLeft, ToggleRight } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { CreateStoreDialog } from "@/components/quickstore/create-store-dialog"
-import { useTranslation } from "@/lib/i18n"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import type { Store as StoreType } from "@/lib/db/schema"
+import { useTranslation } from "@/lib/i18n"
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" },
+  },
+}
 
 export default function QuickStorePage() {
   const { lang, t } = useTranslation()
@@ -38,107 +58,148 @@ export default function QuickStorePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("qs.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("qs.subtitle")}</p>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-2xl font-light tracking-tight sm:text-3xl">
+            <span className="text-primary">Quick</span>{" "}
+            <span className="text-foreground">Store</span>
+          </h1>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+            {lang === "ID" ? "Kelola toko mikro Anda" : "Manage your micro stores"}
+          </p>
         </div>
         <Button
           id="create-store-btn"
+          variant="outline"
+          size="sm"
           onClick={() => setDialogOpen(true)}
-          className="shrink-0 gap-2"
+          className="shrink-0 gap-1.5 self-start sm:self-auto"
         >
-          <Plus className="size-4" />
+          <Plus className="size-3.5" />
           {t("qs.newStore")}
         </Button>
-      </div>
+      </motion.div>
 
-      {/* Store grid */}
+      {/* Store grid area */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {Array.from({ length: 3 }).map((_, i) => (
-            <div
+            <motion.div
               key={i}
-              className="h-40 animate-pulse border border-border bg-muted/40"
-            />
+              variants={itemVariants}
+              className="flex flex-col justify-between border border-border bg-card p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {/* Row 1: Title */}
+                  <div className="mt-0.5 h-3.5 w-3/4 animate-pulse rounded bg-muted" />
+                  {/* Row 2: Description */}
+                  <div className="mt-2.5 h-2 w-11/12 animate-pulse rounded bg-muted" />
+                </div>
+                {/* Badge skeleton */}
+                <div className="h-5 w-17 shrink-0 animate-pulse rounded-full bg-muted" />
+              </div>
+
+              {/* Row 3: Footer date + link */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="h-2 w-24 animate-pulse rounded bg-muted" />
+                <div className="h-2 w-16 animate-pulse rounded bg-muted" />
+              </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : stores.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-20 text-center">
-          <span className="mb-4 grid size-14 place-items-center bg-secondary text-primary">
-            <Store className="size-7" />
-          </span>
+        <motion.div
+          initial={{ opacity: 0, y: 15, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="flex flex-col items-center justify-center border border-dashed border-border py-20 text-center"
+        >
           <p className="text-base font-semibold">{t("qs.empty.title")}</p>
           <p className="mt-1 text-sm text-muted-foreground">{t("qs.empty.subtitle")}</p>
           <Button
             id="create-store-empty-btn"
+            variant="outline"
             onClick={() => setDialogOpen(true)}
             className="mt-5 gap-2"
           >
             <Plus className="size-4" />
             {t("qs.empty.cta")}
           </Button>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {stores.map((store) => (
-            <Link
-              key={store.id}
-              href={`/quickstore/${store.id}`}
-              id={`store-card-${store.id}`}
-              className="group relative flex flex-col justify-between border border-border bg-card p-5 transition-colors hover:border-foreground"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-foreground">{store.name}</p>
-                  {store.description && (
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {store.description}
+            <motion.div key={store.id} variants={itemVariants} className="h-full">
+              <Link
+                href={`/quickstore/${store.id}`}
+                id={`store-card-${store.id}`}
+                className="group relative flex h-full flex-col justify-between border border-border bg-card p-5 transition-colors hover:border-foreground"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="truncate text-sm font-normal text-foreground"
+                      title={store.name}
+                    >
+                      {store.name}
                     </p>
-                  )}
+                    {store.description && (
+                      <p
+                        className="mt-1 text-2xs text-muted-foreground"
+                        title={store.description}
+                      >
+                        {store.description.length > 24
+                          ? `${store.description.slice(0, 24)}...`
+                          : store.description}
+                      </p>
+                    )}
+                  </div>
+                  <Badge
+                    variant={store.open ? "default" : "secondary"}
+                    className={`shrink-0 text-3xs ${!store.open
+                      ? "dark:bg-zinc-800 dark:border-zinc-800 dark:text-zinc-300"
+                      : ""
+                      }`}
+                  >
+                    {store.open ? t("qs.open") : t("qs.closed")}
+                  </Badge>
                 </div>
-                <Badge
-                  variant={store.open ? "default" : "secondary"}
-                  className="shrink-0 gap-1 text-[10px]"
-                >
-                  {store.open ? (
-                    <ToggleRight className="size-3" />
-                  ) : (
-                    <ToggleLeft className="size-3" />
-                  )}
-                  {store.open ? t("qs.open") : t("qs.closed")}
-                </Badge>
-              </div>
 
-              {store.paymentQr && (
-                <div className="mt-3 h-16 w-16 overflow-hidden border border-border bg-muted">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={store.paymentQr}
-                    alt="Payment QR"
-                    className="h-full w-full object-cover"
-                  />
+                <div className="mt-4 flex items-center justify-between gap-4 text-2xs text-muted-foreground">
+                  <span className="truncate">
+                    {new Date(store.createdAt).toLocaleDateString(
+                      lang === "ID" ? "id-ID" : "en-GB",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    )}
+                  </span>
+                  <span className="shrink-0 font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                    {t("qs.openLink")}
+                  </span>
                 </div>
-              )}
-
-              <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
-                <span>
-                  {new Date(store.createdAt).toLocaleDateString(
-                    lang === "ID" ? "id-ID" : "en-GB",
-                    {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }
-                  )}
-                </span>
-                <span className="font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                  {t("qs.openLink")}
-                </span>
-              </div>
-            </Link>
+              </Link>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
 
       <CreateStoreDialog

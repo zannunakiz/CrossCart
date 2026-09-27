@@ -136,19 +136,19 @@ export function ItemsTab({ storeId, role }: Props) {
                     : `$${Number(item.price).toFixed(2)}`}
                 </span>
                 {item.discountPercent > 0 && (
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-3xs">
                     -{item.discountPercent}%
                   </Badge>
                 )}
                 <Badge
                   variant={item.available ? "default" : "secondary"}
-                  className="text-[10px]"
+                  className="text-3xs"
                 >
                   {item.available ? t("Available") : t("Unavailable")}
                 </Badge>
               </div>
 
-              <div className="mt-2 text-[11px] text-muted-foreground">
+              <div className="mt-2 text-2xs text-muted-foreground">
                 {item.stocks != null
                   ? t("{count} in stock", { count: item.stocks })
                   : t("Unlimited stock")}{" "}

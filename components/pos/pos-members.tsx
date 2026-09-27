@@ -138,7 +138,7 @@ export function PosMembers({ storeId }: { storeId: string }) {
                   </td>
                   <td className="px-4 py-3 text-xs">{m.roleName}</td>
                   <td className="px-4 py-3">
-                    <Badge className={`text-[10px] ${m.active ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"} hover:bg-inherit`}>
+                    <Badge className={`text-3xs ${m.active ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"} hover:bg-inherit`}>
                       {m.active ? (id ? "Aktif" : "Active") : (id ? "Nonaktif" : "Inactive")}
                     </Badge>
                   </td>
@@ -173,7 +173,7 @@ export function PosMembers({ storeId }: { storeId: string }) {
                   <td className="px-4 py-3 font-medium">{inv.email}</td>
                   <td className="px-4 py-3 text-xs">{inv.roleName}</td>
                   <td className="px-4 py-3">
-                    <Badge className={`text-[10px] ${statusBadge(inv.status)} hover:bg-inherit`}>
+                    <Badge className={`text-3xs ${statusBadge(inv.status)} hover:bg-inherit`}>
                       {inv.status}
                     </Badge>
                   </td>

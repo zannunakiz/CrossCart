@@ -29,7 +29,7 @@ export function UserAvatar({ src, name, className }: UserAvatarProps) {
     <span
       title={name ?? undefined}
       className={cn(
-        'grid size-7 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-muted text-[10px] font-semibold uppercase leading-none text-muted-foreground',
+        'grid size-7 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-muted text-3xs font-semibold uppercase leading-none text-muted-foreground',
         className
       )}
     >

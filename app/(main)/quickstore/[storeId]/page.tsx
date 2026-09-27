@@ -6,40 +6,45 @@ import {
   ArrowLeft,
   History,
   Loader2,
-  Settings2,
+  Package,
+  Settings,
   ShoppingCart,
   Store,
   ToggleLeft,
   ToggleRight,
-  Trash2,
+  Users,
 } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
 import { HistoryTab } from "@/components/quickstore/history-tab"
 import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
 import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
 import { hasPermission } from "@/lib/quickstore/permissions"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { useTranslation } from "@/lib/i18n"
 import type { StoreRole } from "@/lib/db/schema"
 import type { Store as StoreType } from "@/lib/db/schema"
 
 interface StoreWithRole extends StoreType {
   role: StoreRole
+  /** True when the signed-in user is the store creator (owner). */
+  isOwner?: boolean
 }
+
+type StoreTab = "items" | "history" | "members" | "settings"
 
 export default function StoreDetailPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const router = useRouter()
-  const { lang, t } = useTranslation()
+  const { t } = useTranslation()
 
   const [store, setStore] = useState<StoreWithRole | null>(null)
   const [loading, setLoading] = useState(true)
-  const [deleting, setDeleting] = useState(false)
+  const [tab, setTab] = useState<StoreTab>("items")
 
   const fetchStore = useCallback(async () => {
     try {
@@ -63,25 +68,6 @@ export default function StoreDetailPage() {
     fetchStore()
   }, [fetchStore])
 
-  const handleDelete = async () => {
-    if (deleting) return
-    const confirmed = window.confirm(
-      t('Delete store "{name}"? This cannot be undone.', { name: store?.name ?? "" })
-    )
-    if (!confirmed) return
-
-    setDeleting(true)
-    try {
-      const res = await fetch(`/api/quickstore/stores/${storeId}`, { method: "DELETE" })
-      if (!res.ok) throw new Error((await res.json()).error ?? t("Delete failed"))
-      toast.success(t("Store deleted"))
-      router.replace("/quickstore")
-    } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
-      setDeleting(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -102,7 +88,20 @@ export default function StoreDetailPage() {
     )
   }
 
-  const isMaster = store.role === "master"
+  // Master (store:delete) or the store owner — the only ones who may delete it.
+  const canDeleteStore = hasPermission(store.role, "store:delete") || !!store.isOwner
+  // Store settings follow the RBAC matrix: master + admin have store:edit.
+  const canEditStore = hasPermission(store.role, "store:edit")
+
+  const tabItems: TabNavItem[] = [
+    { value: "items", label: t("Items"), icon: Package },
+    { value: "history", label: t("History"), icon: History },
+    { value: "members", label: t("Members"), icon: Users },
+  ]
+
+  if (canEditStore) {
+    tabItems.push({ value: "settings", label: t("Settings"), icon: Settings })
+  }
 
   return (
     <div className="space-y-6">
@@ -119,7 +118,7 @@ export default function StoreDetailPage() {
               <h1 className="truncate text-xl font-bold tracking-tight">{store.name}</h1>
               <Badge
                 variant={store.open ? "default" : "secondary"}
-                className="gap-1 text-[10px]"
+                className="gap-1 text-3xs"
               >
                 {store.open ? (
                   <ToggleRight className="size-3" />
@@ -128,7 +127,7 @@ export default function StoreDetailPage() {
                 )}
                 {store.open ? t("Open") : t("Closed")}
               </Badge>
-              <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
+              <Badge variant="outline" className="text-3xs font-semibold uppercase tracking-wide">
                 {store.role}
               </Badge>
             </div>
@@ -147,70 +146,33 @@ export default function StoreDetailPage() {
               </Button>
             </Link>
           )}
-
-          {isMaster && (
-            <Button
-              id="delete-store-btn"
-              variant="destructive"
-              size="sm"
-              className="gap-2"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4" />
-              )}
-              {t("Delete Store")}
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="items">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="items" className="flex-1 sm:flex-none">
-            {t("Items")}
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex-1 gap-1 sm:flex-none">
-            <History className="size-3.5" />
-            {t("History")}
-          </TabsTrigger>
-          <TabsTrigger value="members" className="flex-1 sm:flex-none">
-            {t("Members")}
-          </TabsTrigger>
-          {/* Store settings follow the RBAC matrix: master + admin have store:edit. */}
-          {hasPermission(store.role, "store:edit") && (
-            <TabsTrigger value="settings" className="flex-1 sm:flex-none gap-1">
-              <Settings2 className="size-3.5" />
-              {t("Settings")}
-            </TabsTrigger>
-          )}
-        </TabsList>
+      {/* Tabs — same underlined nav as POS so both screens stay identical. */}
+      <TabNav
+        items={tabItems}
+        activeValue={tab}
+        onSelect={(value) => setTab(value as StoreTab)}
+        ariaLabel={t("Store navigation")}
+        layoutId={`quickstore-tab-${storeId}`}
+      />
 
-        <TabsContent value="items" className="mt-6">
-          <ItemsTab storeId={storeId} role={store.role} />
-        </TabsContent>
+      <div className="mt-4">
+        {tab === "items" && <ItemsTab storeId={storeId} role={store.role} />}
 
-        <TabsContent value="history" className="mt-6">
-          <HistoryTab storeId={storeId} />
-        </TabsContent>
+        {tab === "history" && <HistoryTab storeId={storeId} />}
 
-        <TabsContent value="members" className="mt-6">
-          <MembersTab storeId={storeId} role={store.role} />
-        </TabsContent>
+        {tab === "members" && <MembersTab storeId={storeId} role={store.role} />}
 
-        {hasPermission(store.role, "store:edit") && (
-          <TabsContent value="settings" className="mt-6">
-            <StoreSettingsTab
-              store={store}
-              onUpdated={(updated) => setStore({ ...updated, role: store.role })}
-            />
-          </TabsContent>
+        {canEditStore && tab === "settings" && (
+          <StoreSettingsTab
+            store={store}
+            canDelete={canDeleteStore}
+            onUpdated={(updated) => setStore({ ...updated, role: store.role })}
+          />
         )}
-      </Tabs>
+      </div>
     </div>
   )
 }
