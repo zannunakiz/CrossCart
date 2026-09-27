@@ -99,22 +99,34 @@ export async function POST(req: NextRequest, { params }: Params) {
     return voiceError("This store has no items to order yet", "NO_CATALOG", 400)
   }
 
-  try {
-    const { content } = await chatCompletion([
-      { role: "system", content: VOICE_ORDER_SYSTEM_PROMPT },
-      { role: "user", content: buildVoiceOrderUserMessage(spoken, language, catalog) },
-    ])
+  // "openrouter/free" picks a random free model per request; a flaky one can
+  // answer with empty text or prose. One retry keeps the feature reliable.
+  const MAX_ATTEMPTS = 2
+  let parsed: unknown = null
 
-    const parsed = extractJsonObject(content)
-    if (!parsed) {
-      console.error("[quickstore/voice] model returned non-JSON:", content.slice(0, 200))
-      return voiceError("Could not understand the order, please try again", "OPENROUTER_FAILED", 502)
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && parsed === null; attempt += 1) {
+    try {
+      const { content } = await chatCompletion([
+        { role: "system", content: VOICE_ORDER_SYSTEM_PROMPT },
+        { role: "user", content: buildVoiceOrderUserMessage(spoken, language, catalog) },
+      ])
+
+      parsed = extractJsonObject(content)
+      if (!parsed) {
+        console.error(
+          `[quickstore/voice] attempt ${attempt} returned non-JSON:`,
+          content.slice(0, 200)
+        )
+      }
+    } catch (error) {
+      console.error(`[quickstore/voice] attempt ${attempt} failed`, error)
     }
-
-    // Validation happens here: unknown ids are dropped, never trusted.
-    return NextResponse.json(mapVoiceOrderResult(parsed, catalog, spoken, language))
-  } catch (error) {
-    console.error("[quickstore/voice] failed", error)
-    return voiceError("Voice interpretation failed, please try again", "OPENROUTER_FAILED", 502)
   }
+
+  if (!parsed) {
+    return voiceError("Could not understand the order, please try again", "OPENROUTER_FAILED", 502)
+  }
+
+  // Validation happens here: unknown ids are dropped, never trusted.
+  return NextResponse.json(mapVoiceOrderResult(parsed, catalog, spoken, language))
 }
