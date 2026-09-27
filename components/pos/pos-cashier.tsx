@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion"
 import {
+  Camera,
   Check,
   Clock3,
   Loader2,
@@ -17,6 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
+import { QrCameraScanner } from "@/components/pos/qr-camera-scanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -98,6 +100,7 @@ export function PosCashier({
   // Scan/lookup mode
   const [phase, setPhase] = useState<Phase>("idle")
   const [scanCode, setScanCode] = useState("")
+  const [scannerOpen, setScannerOpen] = useState(false)
   const [lookingUp, setLookingUp] = useState(false)
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null)
   const [editLines, setEditLines] = useState<Map<string, CartLine>>(new Map())
@@ -162,12 +165,13 @@ export function PosCashier({
   }
 
   // ── Order lookup ──────────────────────────────────────────────────────
-  const lookupOrder = async () => {
-    if (!scanCode.trim()) return
+  const lookupOrder = async (raw?: string) => {
+    const value = (raw ?? scanCode).trim().toUpperCase()
+    if (!value) return
     setLookingUp(true)
     try {
       const res = await fetch(
-        `/api/pos/stores/${storeId}/orders/lookup?code=${encodeURIComponent(scanCode.trim().toUpperCase())}`,
+        `/api/pos/stores/${storeId}/orders/lookup?code=${encodeURIComponent(value)}`,
         { cache: "no-store" }
       )
       const data = await res.json()
@@ -192,6 +196,23 @@ export function PosCashier({
     } finally {
       setLookingUp(false)
     }
+  }
+
+  // QR payload is `CCPOS:<slug>:<CODE>` — raw codes are accepted too
+  const parseScanPayload = (payload: string) => {
+    const parts = payload.trim().split(":").filter(Boolean)
+    return (parts.at(-1) ?? "").trim().toUpperCase().slice(0, 12)
+  }
+
+  const handleScanResult = (payload: string) => {
+    setScannerOpen(false)
+    const code = parseScanPayload(payload)
+    if (!code) {
+      toast.error(id ? "QR tidak dikenali." : "Unrecognized QR code.")
+      return
+    }
+    setScanCode(code)
+    void lookupOrder(code)
   }
 
   // ── Edit lines for order ───────────────────────────────────────────────
@@ -598,11 +619,15 @@ export function PosCashier({
                   autoFocus
                 />
               </div>
+              <Button variant="outline" className="w-full" onClick={() => setScannerOpen(true)}>
+                <Camera className="size-4" />
+                {id ? "Scan QR pakai kamera" : "Scan QR with camera"}
+              </Button>
               <div className="flex gap-2">
                 <Button
                   className="flex-1"
                   disabled={!scanCode.trim() || lookingUp}
-                  onClick={lookupOrder}
+                  onClick={() => void lookupOrder()}
                 >
                   {lookingUp ? <Loader2 className="animate-spin" /> : null}
                   {id ? "Cari pesanan" : "Find order"}
@@ -793,6 +818,12 @@ export function PosCashier({
           )}
         </AnimatePresence>
       </aside>
+
+      <QrCameraScanner
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onResult={handleScanResult}
+      />
     </div>
   )
 }

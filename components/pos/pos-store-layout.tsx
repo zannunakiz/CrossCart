@@ -9,11 +9,15 @@ import {
   ClipboardList,
   History,
   Package,
+  QrCode,
   Settings,
   ShoppingBag,
   Tag,
   Users,
 } from "lucide-react"
+import { useState } from "react"
+
+import { ShareOrderDialog } from "@/components/pos/share-order-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -50,6 +54,7 @@ export function PosStoreLayout({
   const lang = useLanguage()
   const id = lang === "ID"
   const base = `/pos/${store.id}`
+  const [shareOpen, setShareOpen] = useState(false)
 
   const tabs = [
     {
@@ -124,11 +129,24 @@ export function PosStoreLayout({
             </p>
           </div>
         </div>
-        {/* QR link for customer view */}
-        <Button variant="outline" size="sm" render={<Link href={`/order/${store.slug}`} target="_blank" />}>
+        {/* Customer ordering entry: shareable QR + link */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+            <QrCode className="size-4" />
+            {id ? "Bagikan QR menu" : "Share menu QR"}
+          </Button>
+          <Button variant="ghost" size="sm" render={<Link href={`/order/${store.slug}`} target="_blank" />}>
             {id ? "Lihat menu pelanggan" : "Customer menu ↗"}
-        </Button>
+          </Button>
+        </div>
       </div>
+
+      <ShareOrderDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        slug={store.slug}
+        storeName={store.name}
+      />
 
       {/* Tab nav */}
       <div className="relative">
