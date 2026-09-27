@@ -11,11 +11,13 @@ import { Button } from "@/components/ui/button"
 import { ProductSearch } from "@/components/quickstore/cashier/product-search"
 import { ReceiptPanel } from "@/components/quickstore/cashier/receipt-panel"
 import { SaleCart } from "@/components/quickstore/cashier/sale-cart"
+import { VoiceOrder } from "@/components/quickstore/cashier/voice-order"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 import { hasPermission } from "@/lib/quickstore/permissions"
 import { checkoutErrorText, serverText, useTranslation } from "@/lib/i18n"
 import {
   addLine,
+  checkAvailability,
   computeTotals,
   formatCents,
   newClientRequestId,
@@ -129,6 +131,40 @@ export default function CashierPage() {
   const handleQuantityChange = useCallback((item: CashierItem, quantity: number) => {
     setLines((prev) => updateLineQuantity(prev, item, quantity))
   }, [])
+
+  /**
+   * Voice order: the panel already showed the detected lines for confirmation,
+   * so this only has to apply the availability rules the cart also enforces.
+   * Nothing is silently dropped — unavailable products are reported.
+   */
+  const handleVoiceAdd = useCallback(
+    (picked: readonly { item: CashierItem; quantity: number }[]) => {
+      const accepted: { item: CashierItem; quantity: number }[] = []
+      let skipped = 0
+
+      for (const entry of picked) {
+        const availability = checkAvailability(entry.item, entry.quantity)
+        if (availability.ok) {
+          accepted.push(entry)
+        } else if (availability.orderable && availability.orderable > 0) {
+          // Clamp to what is actually left instead of refusing the whole line.
+          accepted.push({ item: entry.item, quantity: availability.orderable })
+        } else {
+          skipped += 1
+        }
+      }
+
+      if (accepted.length > 0) {
+        setLines((prev) =>
+          accepted.reduce((acc, entry) => addLine(acc, entry.item, entry.quantity), prev)
+        )
+      }
+      if (skipped > 0) {
+        toast.warning(t("Unavailable items were skipped: {count}", { count: skipped }))
+      }
+    },
+    [t]
+  )
 
   const handleRemove = useCallback(
     (itemId: string) => {
@@ -293,6 +329,11 @@ export default function CashierPage() {
         {/* Entry column */}
         <div className="space-y-4">
           <ProductSearch items={items} onSelect={handleSelect} />
+
+          {/* Voice entry — hands the same kind of lines to the cart as search. */}
+          {items.length > 0 ? (
+            <VoiceOrder storeId={storeId} items={items} onAdd={handleVoiceAdd} />
+          ) : null}
 
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-14 text-center">
