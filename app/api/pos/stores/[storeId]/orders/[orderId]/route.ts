@@ -1,0 +1,17 @@
+import { getServerSession } from "next-auth"
+import { and, eq, inArray, isNull, sql } from "drizzle-orm"
+import { NextRequest, NextResponse } from "next/server"
+import { authOptions } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { posItems, posOrderItems, posOrders } from "@/lib/db/schema"
+import { assertPosPermission } from "@/lib/pos/server"
+export const runtime = "nodejs"
+type InputLine = { itemId?: unknown; quantity?: unknown; note?: unknown }
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ storeId: string; orderId: string }> }) {
+  const session = await getServerSession(authOptions); if (!session?.user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); const { storeId, orderId } = await params
+  try { await assertPosPermission(session.user.id, storeId, "order:manage") } catch { return NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
+  const body = await req.json().catch(() => null) as { lines?: unknown; note?: unknown; version?: unknown } | null
+  if (!body || !Array.isArray(body.lines) || !body.lines.length || body.lines.length > 50 || !Number.isInteger(body.version)) return NextResponse.json({ error: "Invalid update" }, { status: 400 })
+  const quantities = new Map<string, number>(); for (const line of body.lines as InputLine[]) { if (typeof line.itemId !== "string" || !Number.isInteger(line.quantity) || Number(line.quantity) < 1 || Number(line.quantity) > 99) return NextResponse.json({ error: "Invalid line" }, { status: 400 }); quantities.set(line.itemId, (quantities.get(line.itemId) ?? 0) + Number(line.quantity)) }
+  try { const result = await db.transaction(async (tx) => { const [order] = await tx.select().from(posOrders).where(and(eq(posOrders.id, orderId), eq(posOrders.storeId, storeId))).for("update").limit(1); if (!order) throw new Error("NOT_FOUND"); if (order.version !== body.version) throw new Error("STALE_ORDER"); if (order.paymentStatus === "paid") throw new Error("PAID_ORDER"); const ids = [...quantities.keys()]; const items = await tx.select().from(posItems).where(and(eq(posItems.storeId, storeId), inArray(posItems.id, ids), eq(posItems.available, true), isNull(posItems.deletedAt))).for("update"); if (items.length !== ids.length) throw new Error("ITEM_UNAVAILABLE"); let total = 0; const rows = items.map((item) => { const quantity = quantities.get(item.id)!; if (item.trackStock && item.stockOnHand < quantity) throw new Error("OUT_OF_STOCK"); const lineTotal = Number(item.price) * quantity; total += lineTotal; const source = (body.lines as InputLine[]).find((line) => line.itemId === item.id); return { orderId, itemId: item.id, nameSnapshot: item.name, unitPrice: item.price, quantity, lineTotal: String(lineTotal.toFixed(2)), note: typeof source?.note === "string" ? source.note.slice(0, 240) : null } }); await tx.delete(posOrderItems).where(eq(posOrderItems.orderId, orderId)); await tx.insert(posOrderItems).values(rows); const [updated] = await tx.update(posOrders).set({ subtotal: String(total.toFixed(2)), total: String(total.toFixed(2)), note: typeof body.note === "string" ? body.note.slice(0, 500) : order.note, version: sql`${posOrders.version} + 1`, updatedAt: new Date() }).where(eq(posOrders.id, orderId)).returning(); return { ...updated, lines: rows } }); return NextResponse.json(result) } catch (error) { const message = error instanceof Error ? error.message : "UPDATE_FAILED"; return NextResponse.json({ error: message }, { status: message === "NOT_FOUND" ? 404 : 409 }) }
+}
