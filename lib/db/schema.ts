@@ -121,8 +121,8 @@ export const stores = pgTable("stores", {
   /** Display name — max 20 chars enforced at DB level too. */
   name: varchar("name", { length: 20 }).notNull(),
 
-  /** Short description shown on the store card. */
-  description: varchar("description", { length: 100 }),
+  /** Short description shown on the store card — max 50 chars enforced at DB level too. */
+  description: varchar("description", { length: 50 }),
 
   /** Whether the store is currently accepting orders. */
   open: boolean("open").notNull().default(true),

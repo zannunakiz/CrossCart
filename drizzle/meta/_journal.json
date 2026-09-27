@@ -50,6 +50,13 @@
       "when": 1790489271385,
       "tag": "0006_mighty_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790503623221,
+      "tag": "0007_cooing_switch",
+      "breakpoints": true
     }
   ]
 }

@@ -123,13 +123,13 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
           <Label htmlFor="settings-description">{t("Description")}</Label>
           <Textarea
             id="settings-description"
-            maxLength={100}
+            maxLength={50}
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={submitting}
           />
-          <p className="text-right text-2xs text-muted-foreground">{description.length}/100</p>
+          <p className="text-right text-2xs text-muted-foreground">{description.length}/50</p>
         </div>
 
         <div className="flex items-center justify-between rounded-lg border border-border p-4">

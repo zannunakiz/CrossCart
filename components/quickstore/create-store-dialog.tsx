@@ -152,14 +152,14 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
             <Textarea
               id="store-description"
               placeholder={t("Short description of your store...")}
-              maxLength={100}
+              maxLength={50}
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={submitting}
             />
             <p className="text-right text-2xs text-muted-foreground">
-              {description.length}/100
+              {description.length}/50
             </p>
           </div>
 

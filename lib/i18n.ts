@@ -493,6 +493,7 @@ const serverMessageId: Record<string, string> = {
   'Item name cannot be empty': 'Nama item tidak boleh kosong',
   'Name must be 20 characters or less': 'Nama maksimal 20 karakter',
   'Description must be 100 characters or less': 'Deskripsi maksimal 100 karakter',
+  'Description must be 50 characters or less': 'Deskripsi maksimal 50 karakter',
   'discountPercent must be 0-100': 'Diskon harus bernilai 0-100',
   'Email is required': 'Email wajib diisi',
   'Cannot invite yourself': 'Tidak dapat mengundang diri sendiri',

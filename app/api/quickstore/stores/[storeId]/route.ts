@@ -75,8 +75,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Name must be 20 characters or less" }, { status: 400 })
     }
   }
-  if (description !== undefined && typeof description === "string" && description.length > 100) {
-    return NextResponse.json({ error: "Description must be 100 characters or less" }, { status: 400 })
+  if (description !== undefined && typeof description === "string" && description.length > 50) {
+    return NextResponse.json({ error: "Description must be 50 characters or less" }, { status: 400 })
   }
 
   const updateData: Record<string, unknown> = {
