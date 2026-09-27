@@ -8,6 +8,9 @@
 /.next/
 /out/
 
+# Enigma Blitz
+EB.*
+
 # production build
 /build
 
