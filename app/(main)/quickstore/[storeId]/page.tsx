@@ -1,22 +1,21 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { History, Loader2, Package, Store as StoreIcon, Users } from "lucide-react"
-import { toast } from "sonner"
+import { History, Loader2, Package, ShoppingCart, Store as StoreIcon, Users } from "lucide-react"
 import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
-import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
 import { HistoryTab } from "@/components/quickstore/history-tab"
 import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
-import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
-import { hasPermission } from "@/lib/quickstore/permissions"
+import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
+import { Button } from "@/components/ui/button"
+import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
+import type { StoreRole, Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
-import type { StoreRole } from "@/lib/db/schema"
-import type { Store as StoreType } from "@/lib/db/schema"
+import { hasPermission } from "@/lib/quickstore/permissions"
 
 interface StoreWithRole extends StoreType {
   role: StoreRole
@@ -40,8 +39,13 @@ export default function StoreDetailPage() {
   const fetchStore = useCallback(async () => {
     try {
       const res = await fetch(`/api/quickstore/stores/${storeId}`)
+      // No access → store list. Unknown store id → the shared 404 screen.
       if (res.status === 403 || res.status === 401) {
         router.replace("/quickstore")
+        return
+      }
+      if (res.status === 404) {
+        router.replace("/not-found")
         return
       }
       if (!res.ok) throw new Error()
@@ -93,6 +97,7 @@ export default function StoreDetailPage() {
 
   // Master (store:delete) or the store owner — the only ones who may delete it.
   const canDeleteStore = hasPermission(store.role, "store:delete") || !!store.isOwner
+  const canCreateSale = hasPermission(store.role, "sale:create")
 
   // Every tab is permission-gated; the Store tab itself is read-only for roles
   // without `store:update-*` (see StoreSettingsTab).
@@ -113,6 +118,36 @@ export default function StoreDetailPage() {
 
   return (
     <div>
+      {/* Full width row: Cashier button di kiri, Status & Role di kanan */}
+      <div className="mb-4 flex w-full items-center justify-between gap-3 text-xs text-muted-foreground">
+        <div>
+          {canCreateSale && (
+            <Link href={`/quickstore/${store.id}/cashier`} id="open-cashier-btn">
+              <Button size="sm" className="gap-1.5">
+                <ShoppingCart className="size-3.5" />
+                <span>{t("Cashier")}</span>
+              </Button>
+            </Link>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div>
+            STATUS:{" "}
+            <span className={store.open ? "font-medium text-emerald-600 dark:text-emerald-400" : "font-medium text-rose-600 dark:text-rose-400"}>
+              {store.open ? "open" : "closed"}
+            </span>
+          </div>
+          <span>•</span>
+          <div>
+            ROLE:{" "}
+            <span className="font-medium text-foreground">
+              {store.role.toLowerCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs — same underlined nav as POS so both screens stay identical. */}
       <TabNav
         items={tabItems}

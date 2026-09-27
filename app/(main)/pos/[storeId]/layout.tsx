@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { posStores } from "@/lib/db/schema"
+import { isUuid } from "@/lib/ids"
 import { getPosPermissions } from "@/lib/pos/server"
 import { PosStoreLayout } from "@/components/pos/pos-store-layout"
 
@@ -18,6 +19,11 @@ export default async function PosStoreRootLayout({
   if (!session) redirect("/")
 
   const { storeId } = await params
+
+  // A malformed id can never match a row — and Postgres would reject the literal
+  // (22P02) — so treat it exactly like a store that does not exist.
+  if (!isUuid(storeId)) redirect("/not-found")
+
   const [store] = await db
     .select({
       id: posStores.id,
@@ -31,7 +37,8 @@ export default async function PosStoreRootLayout({
     .where(eq(posStores.id, storeId))
     .limit(1)
 
-  if (!store) redirect("/pos")
+  // Unknown (or deleted) store id → the single 404 screen at /not-found.
+  if (!store) redirect("/not-found")
 
   const permissions = await getPosPermissions(session.user.id, storeId)
   if (!permissions.length) redirect("/pos")

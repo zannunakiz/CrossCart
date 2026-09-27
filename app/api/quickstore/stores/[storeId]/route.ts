@@ -10,6 +10,7 @@ import { and, eq, isNull } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { stores } from "@/lib/db/schema"
+import { isUuid } from "@/lib/ids"
 import { getUserRole } from "@/lib/quickstore/queries"
 import { hasPermission, type Permission } from "@/lib/quickstore/permissions"
 
@@ -25,16 +26,26 @@ export async function GET(_req: NextRequest, { params }: Params) {
   }
 
   const { storeId } = await params
-  const role = await getUserRole(session.user.id, storeId)
-  if (!role) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  // Unknown (or soft-deleted) store → 404 *before* the permission check, so the
+  // UI can tell "this store does not exist" (→ /not-found) apart from
+  // "you are not a member of it" (→ the store list). A malformed id (e.g.
+  // `...aezzz`) can never match a row — Postgres would raise 22P02 on the uuid
+  // comparison — so it is answered exactly the same way.
+  if (!isUuid(storeId)) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 })
   }
 
   const store = await db.query.stores.findFirst({
-    where: eq(stores.id, storeId),
+    where: and(eq(stores.id, storeId), isNull(stores.deletedAt)),
   })
   if (!store) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 })
+  }
+
+  const role = await getUserRole(session.user.id, storeId)
+  if (!role) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   return NextResponse.json({
@@ -59,6 +70,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 
   const { storeId } = await params
+
+  // Malformed id → same answer as an unknown store (see GET above).
+  if (!isUuid(storeId)) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 })
+  }
+
   const role = await getUserRole(session.user.id, storeId)
   if (!role) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
@@ -148,6 +165,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { storeId } = await params
+
+  // Malformed id → same answer as an unknown store (see GET above).
+  if (!isUuid(storeId)) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 })
+  }
 
   const store = await db.query.stores.findFirst({
     where: and(eq(stores.id, storeId), isNull(stores.deletedAt)),

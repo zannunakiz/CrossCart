@@ -7,6 +7,7 @@ import { and, desc, eq, isNull } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { qsHistory, storeMembers, stores } from "@/lib/db/schema"
 import type { StoreRole } from "@/lib/db/schema"
+import { isUuid } from "@/lib/ids"
 import type { Receipt } from "@/lib/quickstore/cashier"
 import { mapReceiptRow } from "@/lib/quickstore/checkout-drizzle"
 
@@ -24,6 +25,10 @@ export async function getUserRole(
   userId: string,
   storeId: string
 ): Promise<StoreRole | null> {
+  // A malformed id can never match a row — and would make Postgres raise 22P02 —
+  // so it is simply "no role" here, which callers already translate to 403.
+  if (!isUuid(storeId)) return null
+
   // Check if they're the store owner — owners are always Master
   const store = await db.query.stores.findFirst({
     where: and(eq(stores.id, storeId), isNull(stores.deletedAt)),

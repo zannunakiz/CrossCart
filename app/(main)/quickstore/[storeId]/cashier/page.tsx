@@ -11,6 +11,7 @@ import { ProductSearch } from "@/components/quickstore/cashier/product-search"
 import { ReceiptPanel } from "@/components/quickstore/cashier/receipt-panel"
 import { SaleCart } from "@/components/quickstore/cashier/sale-cart"
 import { VoiceOrder } from "@/components/quickstore/cashier/voice-order"
+import { StoreStatusBar } from "@/components/quickstore/store-status-bar"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 import { hasPermission } from "@/lib/quickstore/permissions"
@@ -70,18 +71,26 @@ export default function CashierPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [storeRes, catalog] = await Promise.all([
-        fetch(`/api/quickstore/stores/${storeId}`),
-        loadCatalog(),
-      ])
+      // The store is fetched first: its status decides whether this route even
+      // exists for the caller, and a failing catalog request must not mask it.
+      const storeRes = await fetch(`/api/quickstore/stores/${storeId}`)
 
+      // No access → store list. Unknown store id → the shared 404 screen.
       if (storeRes.status === 401 || storeRes.status === 403) {
         router.replace("/quickstore")
         return
       }
+      if (storeRes.status === 404) {
+        router.replace("/not-found")
+        return
+      }
       if (!storeRes.ok) throw new Error("Failed to load store")
 
-      const storeData = (await storeRes.json()) as StoreWithRole
+      const [storeData, catalog] = await Promise.all([
+        storeRes.json() as Promise<StoreWithRole>,
+        loadCatalog(),
+      ])
+
       setStore(storeData)
       setItems(catalog)
       setLines((prev) => reconcileLines(prev, catalog))
@@ -297,11 +306,17 @@ export default function CashierPage() {
   return (
     <div className="space-y-5">
       {/*
-       * No page header here: the store name, open/closed state and the user's
-       * role are rendered once, in the navbar breadcrumb (see the store detail
-       * page publishing `useQuickStoreHeader`). Only the page-specific hint and
-       * the stock refresh action remain.
+       * The store name stays in the navbar breadcrumb; the open/closed state and
+       * the user's role moved here (see `StoreStatusBar`) — no cashier shortcut
+       * because this IS the cashier route.
        */}
+      <StoreStatusBar
+        storeId={storeId}
+        open={store.open}
+        role={store.role}
+        showCashier={false}
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {t("Enter the customer's items, review the receipt, then confirm the payment.")}

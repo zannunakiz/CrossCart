@@ -85,6 +85,18 @@ const en = {
   'qs.openLink': 'Open →',
   'qs.loadFailed': 'Failed to load stores',
   'qs.created': 'Store "{name}" created!',
+
+  // ── 404 / Not found ───────────────────────────────────────────────────────
+  // Rendered by app/not-found.tsx: for unmatched URLs, including the
+  // `/not-found` path that store pages redirect to when a store id is unknown
+  // (or malformed, i.e. not a UUID).
+  'nf.badge': 'Error 404',
+  'nf.title': 'Page not found',
+  'nf.body': 'The page you are looking for is unavailable.',
+  'nf.back': 'Back to home',
+  'nf.redirecting': 'Redirecting to home in {seconds} seconds',
+  'nf.redirectingOne': 'Redirecting to home in 1 second',
+  'nf.redirectingNow': 'Redirecting now…',
 } as const
 
 export type TranslationKey = keyof typeof en | PhraseKey
@@ -161,6 +173,15 @@ const id: Record<keyof typeof en, string> = {
   'qs.openLink': 'Buka →',
   'qs.loadFailed': 'Gagal memuat daftar toko',
   'qs.created': 'Toko "{name}" berhasil dibuat!',
+
+  // ── 404 / Not found ───────────────────────────────────────────────────────
+  'nf.badge': 'Galat 404',
+  'nf.title': 'Halaman tidak ditemukan',
+  'nf.body': 'Halaman yang Anda cari tidak tersedia.',
+  'nf.back': 'Kembali ke beranda',
+  'nf.redirecting': 'Mengalihkan ke beranda dalam {seconds} detik',
+  'nf.redirectingOne': 'Mengalihkan ke beranda dalam 1 detik',
+  'nf.redirectingNow': 'Mengalihkan sekarang…',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
