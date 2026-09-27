@@ -380,7 +380,7 @@ export function PosCashier({
       const snap = currentOrder?.lines.find((l) => l.itemId === itemId)
       const name = item?.name ?? snap?.nameSnapshot ?? itemId
       const price = item ? Number(item.price) : Number(snap?.unitPrice ?? 0)
-      return { itemId, quantity: line.quantity, note: line.note, name, price, total: price * line.quantity }
+      return { itemId, quantity: line.quantity, note: line.note, name, price, imageUrl: item?.imageUrl ?? null, total: price * line.quantity }
     })
   }, [editLines, catalog, currentOrder])
 
@@ -424,7 +424,7 @@ export function PosCashier({
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {loadingCatalog ? (
             [...Array(8)].map((_, i) => (
-              <div key={i} className="h-28 animate-pulse rounded-lg border bg-muted" />
+              <div key={i} className="h-36 animate-pulse rounded-lg border bg-muted" />
             ))
           ) : visibleItems.length === 0 ? (
             <p className="col-span-full py-12 text-center text-sm text-muted-foreground">
@@ -445,10 +445,15 @@ export function PosCashier({
                   }
                   className="group relative cursor-pointer rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <div className="grid size-8 place-items-center rounded-md bg-primary/10 text-primary">
-                    <UtensilsCrossed className="size-4" />
+                  <div className="mb-2 grid h-20 w-full place-items-center overflow-hidden rounded-md bg-muted">
+                    {item.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.imageUrl} alt={item.name} className="size-full object-cover" />
+                    ) : (
+                      <UtensilsCrossed className="size-5 text-muted-foreground/60" />
+                    )}
                   </div>
-                  <p className="mt-3 truncate text-xs font-semibold">{item.name}</p>
+                  <p className="truncate text-xs font-semibold">{item.name}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                     {fmt(item.price, currency, lang)}
                   </p>
@@ -515,6 +520,14 @@ export function PosCashier({
                 ) : (
                   cartLines.map((line) => (
                     <div key={line.itemId} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
+                      <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-background">
+                        {line.item?.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={line.item.imageUrl} alt={line.item.name} className="size-full object-cover" />
+                        ) : (
+                          <UtensilsCrossed className="size-4 text-muted-foreground/60" />
+                        )}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{line.item?.name ?? line.itemId}</p>
                         <p className="text-[11px] text-muted-foreground">
@@ -665,6 +678,14 @@ export function PosCashier({
                 ) : (
                   editLinesList.map((line) => (
                     <div key={line.itemId} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
+                      <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border bg-background">
+                        {line.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={line.imageUrl} alt={line.name} className="size-full object-cover" />
+                        ) : (
+                          <UtensilsCrossed className="size-4 text-muted-foreground/60" />
+                        )}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium">{line.name}</p>
                         <p className="text-[11px] text-muted-foreground">
