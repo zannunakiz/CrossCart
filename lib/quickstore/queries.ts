@@ -2,7 +2,7 @@
  * Server-side QuickStore query helpers.
  * Import only in API routes / Server Components.
  */
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, isNull } from "drizzle-orm"
 
 import { db } from "@/lib/db"
 import { qsHistory, storeMembers, stores } from "@/lib/db/schema"
@@ -16,6 +16,9 @@ import { mapReceiptRow } from "@/lib/quickstore/checkout-drizzle"
  *
  * NOTE: The store owner (stores.userId) is implicitly Master even if they
  * somehow don't appear in store_members. We handle that case below.
+ *
+ * Soft-deleted stores are treated as non-existent, which closes every read and
+ * write path (items, members, history, checkout, voice) in one place.
  */
 export async function getUserRole(
   userId: string,
@@ -23,7 +26,7 @@ export async function getUserRole(
 ): Promise<StoreRole | null> {
   // Check if they're the store owner — owners are always Master
   const store = await db.query.stores.findFirst({
-    where: eq(stores.id, storeId),
+    where: and(eq(stores.id, storeId), isNull(stores.deletedAt)),
     columns: { userId: true },
   })
   if (!store) return null
@@ -73,6 +76,7 @@ export async function getStoreHistory(
     limit: safeLimit,
     with: {
       lines: true,
+      // Fallback for receipts recorded before `cashierName` was snapshotted.
       cashier: { columns: { name: true } },
     },
   })

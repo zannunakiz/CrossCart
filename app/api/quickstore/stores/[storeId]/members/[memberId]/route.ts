@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
   const { storeId, memberId } = await params
   const role = await getUserRole(session.user.id, storeId)
-  if (!hasPermission(role, "member:change_role")) {
+  if (!hasPermission(role, "member:update-role")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

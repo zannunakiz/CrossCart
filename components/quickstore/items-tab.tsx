@@ -24,7 +24,11 @@ export function ItemsTab({ storeId, role }: Props) {
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const canManage = hasPermission(role, "item:create")
+  // Granular catalog permissions — a role may create without being able to
+  // update or delete (and vice versa), so each control is gated separately.
+  const canCreate = hasPermission(role, "item:create")
+  const canUpdate = hasPermission(role, "item:update")
+  const canDelete = hasPermission(role, "item:delete")
 
   const fetchItems = useCallback(async () => {
     try {
@@ -83,7 +87,7 @@ export function ItemsTab({ storeId, role }: Props) {
         <p className="text-sm text-muted-foreground">
           {t(items.length === 1 ? "{count} item" : "{count} items", { count: items.length })}
         </p>
-        {canManage && (
+        {canCreate && (
           <Button
             id="add-item-btn"
             size="sm"
@@ -102,7 +106,7 @@ export function ItemsTab({ storeId, role }: Props) {
           <Package2 className="mb-3 size-10 text-muted-foreground/50" />
           <p className="font-semibold">{t("No items yet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {canManage
+            {canCreate
               ? t("Add your first item to get started.")
               : t("No items have been added.")}
           </p>
@@ -155,33 +159,37 @@ export function ItemsTab({ storeId, role }: Props) {
                 · {t("{count} sold", { count: item.purchasedAmount })}
               </div>
 
-              {canManage && (
+              {(canUpdate || canDelete) && (
                 <div className="mt-3 flex items-center gap-2">
-                  <Button
-                    id={`edit-item-${item.id}`}
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1 px-2 text-xs"
-                    onClick={() => openEdit(item)}
-                  >
-                    <Pencil className="size-3" />
-                    {t("Edit")}
-                  </Button>
-                  <Button
-                    id={`delete-item-${item.id}`}
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(item)}
-                    disabled={deletingId === item.id}
-                  >
-                    {deletingId === item.id ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-3" />
-                    )}
-                    {t("Delete")}
-                  </Button>
+                  {canUpdate && (
+                    <Button
+                      id={`edit-item-${item.id}`}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1 px-2 text-xs"
+                      onClick={() => openEdit(item)}
+                    >
+                      <Pencil className="size-3" />
+                      {t("Edit")}
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button
+                      id={`delete-item-${item.id}`}
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDelete(item)}
+                      disabled={deletingId === item.id}
+                    >
+                      {deletingId === item.id ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3" />
+                      )}
+                      {t("Delete")}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

@@ -19,16 +19,25 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { serverText, useTranslation } from "@/lib/i18n"
-import type { Store } from "@/lib/db/schema"
+import {
+  canEditStoreCredential,
+  canEditStoreDetails,
+  canEditStoreStatus,
+} from "@/lib/quickstore/permissions"
+import type { Store, StoreRole } from "@/lib/db/schema"
 
 interface Props {
   store: Store
+  /** The signed-in user's role in this store — drives per-field permissions. */
+  role: StoreRole
+  /** True when the user created the store (implicit master). */
+  isOwner?: boolean
   onUpdated: (store: Store) => void
   /** Master (store:delete) or the store owner — the only ones who may delete. */
   canDelete?: boolean
 }
 
-export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props) {
+export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canDelete = false }: Props) {
   const { lang, t } = useTranslation()
   const router = useRouter()
   const [name, setName] = useState(store.name)
@@ -40,6 +49,13 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Field-level permissions: a role may hold some of these but not others
+  // (e.g. admins can flip open/close but may not touch details or the QR).
+  const allowDetails = canEditStoreDetails(role) || isOwner
+  const allowStatus = canEditStoreStatus(role) || isOwner
+  const allowCredential = canEditStoreCredential(role) || isOwner
+  const canEditAnything = allowDetails || allowStatus || allowCredential
+
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -49,14 +65,15 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return toast.error(t("Store name is required"))
-    if (submitting) return
+    if (!canEditAnything || submitting) return
+    // Only the fields this role may change are sent — the API re-checks anyway.
+    if (allowDetails && !name.trim()) return toast.error(t("Store name is required"))
     setSubmitting(true)
 
     try {
       let paymentQr = store.paymentQr
 
-      if (qrFile) {
+      if (allowCredential && qrFile) {
         const fd = new FormData()
         fd.append("file", qrFile)
         const upRes = await fetch("/api/quickstore/upload", { method: "POST", body: fd })
@@ -65,15 +82,18 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
         paymentQr = url
       }
 
+      const payload: Record<string, unknown> = {}
+      if (allowDetails) {
+        payload.name = name.trim()
+        payload.description = description.trim() || null
+      }
+      if (allowStatus) payload.open = open
+      if (allowCredential && paymentQr !== store.paymentQr) payload.paymentQr = paymentQr
+
       const res = await fetch(`/api/quickstore/stores/${store.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || undefined,
-          open,
-          paymentQr,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? t("Update failed"))
       const updated = await res.json()
@@ -104,6 +124,20 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
 
   return (
     <div className="max-w-lg">
+      {/* Read-only explanation for roles without any store update permission. */}
+      {!canEditAnything && (
+        <p className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+          {t("Only the store master can change these settings.")}
+        </p>
+      )}
+      {canEditAnything && !allowDetails && (
+        <p className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+          {t(
+            "You can change the open status only — store details and the payment credential are master-only."
+          )}
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1.5">
           <Label htmlFor="settings-name">
@@ -114,7 +148,7 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
             maxLength={20}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            disabled={submitting}
+            disabled={submitting || !allowDetails}
           />
           <p className="text-right text-2xs text-muted-foreground">{name.length}/20</p>
         </div>
@@ -127,7 +161,7 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            disabled={submitting}
+            disabled={submitting || !allowDetails}
           />
           <p className="text-right text-2xs text-muted-foreground">{description.length}/50</p>
         </div>
@@ -141,27 +175,40 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
             id="settings-open"
             checked={open}
             onCheckedChange={setOpen}
-            disabled={submitting}
+            disabled={submitting || !allowStatus}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="settings-qr">{t("Payment QR Code")}</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="settings-qr">{t("Payment QR Code")}</Label>
+            <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t("Store Credential")}
+            </span>
+          </div>
           <label
-            htmlFor="settings-qr"
-            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-5 transition-colors hover:bg-muted/50"
+            htmlFor={allowCredential ? "settings-qr" : undefined}
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-5 transition-colors ${
+              allowCredential ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-60"
+            }`}
           >
             {qrPreview ? (
               <div className="flex flex-col items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={qrPreview} alt={t("Payment QR")} className="h-28 w-28 object-contain rounded-lg" />
-                <span className="text-xs text-muted-foreground">{t("Click to change")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {allowCredential
+                    ? t("Click to change")
+                    : t("Only the store master can change the payment QR")}
+                </span>
               </div>
             ) : (
               <>
                 <UploadCloud className="size-7 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  {t("Upload payment QR (PNG, JPG, max 2 MB)")}
+                  {allowCredential
+                    ? t("Upload payment QR (PNG, JPG, max 2 MB)")
+                    : t("Only the store master can change the payment QR")}
                 </span>
               </>
             )}
@@ -172,19 +219,21 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
             accept="image/*"
             className="sr-only"
             onChange={handleQrChange}
-            disabled={submitting}
+            disabled={submitting || !allowCredential}
           />
         </div>
 
-        <Button
-          id="settings-save-btn"
-          type="submit"
-          disabled={submitting || !name.trim()}
-          className="w-full sm:w-auto"
-        >
-          {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-          {t("Save Settings")}
-        </Button>
+        {canEditAnything && (
+          <Button
+            id="settings-save-btn"
+            type="submit"
+            disabled={submitting || (allowDetails && !name.trim())}
+            className="w-full sm:w-auto"
+          >
+            {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+            {t("Save Settings")}
+          </Button>
+        )}
       </form>
 
       {/* Danger zone — master or the store owner only. */}
@@ -194,7 +243,7 @@ export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props)
             <p className="text-sm font-medium text-destructive">{t("Delete Store")}</p>
             <p className="text-xs text-muted-foreground">
               {t(
-                "Permanently delete this store, its items, members and sales history. This cannot be undone."
+                "Delete this store? It is archived (hidden from everyone) and its sales history is kept for audit. This cannot be undone."
               )}
             </p>
           </div>

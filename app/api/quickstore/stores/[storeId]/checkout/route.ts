@@ -72,6 +72,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     const { receipt, reused } = await performCheckout(drizzleCheckoutAccess, {
       storeId,
       cashierId: session.user.id,
+      // Snapshot the display name so the receipt survives account deletion.
+      cashierName: session.user.name ?? session.user.email ?? null,
       clientRequestId,
       lines: lines as { itemId: string; quantity: number }[],
       paymentMethod: paymentMethod as "qr" | "cash" | undefined,

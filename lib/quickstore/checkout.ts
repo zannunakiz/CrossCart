@@ -65,6 +65,11 @@ export interface LockedItem {
 export interface SaleHeaderInput {
   storeId: string
   cashierId: string
+  /**
+   * Display-name snapshot. Receipts keep showing who sold what even after the
+   * operator deletes their account (the `cashier_id` FK then becomes null).
+   */
+  cashierName: string | null
   receiptNumber: string
   currency: CurrencyType
   subtotal: string
@@ -115,6 +120,8 @@ export interface CheckoutAccess {
 export interface CheckoutInput {
   storeId: string
   cashierId: string
+  /** Optional display-name snapshot of the cashier (see `SaleHeaderInput`). */
+  cashierName?: string | null
   clientRequestId: string
   lines: { itemId: string; quantity: number }[]
   paymentMethod?: QsPaymentMethod
@@ -434,6 +441,7 @@ export async function performCheckout(
     const header = {
       storeId: input.storeId,
       cashierId: input.cashierId,
+      cashierName: input.cashierName ?? null,
       currency: totals.currency,
       subtotal: (totals.subtotalCents / 100).toFixed(2),
       discountTotal: (totals.discountTotalCents / 100).toFixed(2),

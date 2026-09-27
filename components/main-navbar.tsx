@@ -3,12 +3,24 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Globe2, Menu, Moon, Store, Sun } from "lucide-react"
+import { Globe2, Menu, Moon, ShoppingCart, Store, Sun, ToggleLeft, ToggleRight } from "lucide-react"
 import { useSyncExternalStore } from "react"
 
 import { useMainSidebar } from "@/components/main-sidebar-context"
+import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
 import { UserAvatar } from "@/components/user-avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
+import { hasPermission } from "@/lib/quickstore/permissions"
 import {
   getServerThemeSnapshot,
   getThemeSnapshot,
@@ -28,6 +40,7 @@ export function MainNavbar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { lang, t } = useTranslation()
+  const { header } = useQuickStoreHeader()
 
   const isDark = useSyncExternalStore(
     subscribePreferences,
@@ -37,9 +50,21 @@ export function MainNavbar() {
 
   const currentTitleKey = routeTitleKeys[pathname]
 
+  /**
+   * Inside a QuickStore store the breadcrumb replaces the page title, so the
+   * same `quickstore › {store} {open/closed} {role}` line shows on every child
+   * route (store detail, cashier, …).
+   */
+  const storeHeader = pathname.startsWith("/quickstore/") ? header : null
+  const cashierHref = storeHeader ? `/quickstore/${storeHeader.storeId}/cashier` : null
+  const showCashierAction =
+    !!cashierHref &&
+    pathname !== cashierHref &&
+    hasPermission(storeHeader?.role, "sale:create")
+
   return (
     <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-4 sm:px-6">
-      {/* Left: Sidebar Toggle Button & Current Page Title */}
+      {/* Left: Sidebar Toggle Button & Breadcrumb / Current Page Title */}
       <div className="flex items-center gap-3 sm:gap-4">
         <button
           type="button"
@@ -61,21 +86,68 @@ export function MainNavbar() {
             <span>crosscart</span>
           </Link>
 
-          <span className="hidden text-xs text-muted-foreground sm:inline-block">/</span>
-          <h1 className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline-block">
-            {currentTitleKey
-              ? t(currentTitleKey)
-              : pathname.startsWith("/dashboard")
-              ? t("nav.dashboard")
-              : pathname.startsWith("/pos")
-              ? t("nav.pos")
-              : t("nav.quickstore")}
-          </h1>
+          {storeHeader ? (
+            <Breadcrumb className="min-w-0">
+              <BreadcrumbList>
+                {/* The brand logo already links out on mobile, so the crumb is desktop-only. */}
+                <BreadcrumbItem className="hidden sm:inline-flex">
+                  <BreadcrumbLink render={<Link href="/quickstore" />} className="cursor-pointer">
+                    {t("nav.quickstore")}
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden sm:list-item" />
+                <BreadcrumbItem className="min-w-0">
+                  <BreadcrumbPage className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-semibold">{storeHeader.name}</span>
+                    <Badge
+                      variant={storeHeader.open ? "default" : "secondary"}
+                      className="gap-1 text-3xs"
+                    >
+                      {storeHeader.open ? (
+                        <ToggleRight className="size-3" />
+                      ) : (
+                        <ToggleLeft className="size-3" />
+                      )}
+                      {storeHeader.open ? t("Open") : t("Closed")}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-3xs font-semibold uppercase tracking-wide"
+                    >
+                      {storeHeader.role}
+                    </Badge>
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          ) : (
+            <>
+              <span className="hidden text-xs text-muted-foreground sm:inline-block">/</span>
+              <h1 className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline-block">
+                {currentTitleKey
+                  ? t(currentTitleKey)
+                  : pathname.startsWith("/dashboard")
+                  ? t("nav.dashboard")
+                  : pathname.startsWith("/pos")
+                  ? t("nav.pos")
+                  : t("nav.quickstore")}
+              </h1>
+            </>
+          )}
         </div>
       </div>
 
       {/* Right: Quick actions, Language & Theme Toggles, Profile */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {showCashierAction && cashierHref && (
+          <Link href={cashierHref} id="open-cashier-btn">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <ShoppingCart className="size-3.5" />
+              <span className="hidden sm:inline">{t("Cashier")}</span>
+            </Button>
+          </Link>
+        )}
+
         {/* Language toggle (EN / ID) */}
         <button
           type="button"

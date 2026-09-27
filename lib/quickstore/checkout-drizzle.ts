@@ -61,7 +61,9 @@ export function mapReceiptRow(
     paymentMethod: header.paymentMethod,
     note: header.note,
     cashierId: header.cashierId,
-    cashierName,
+    // Snapshot first: receipts must keep the name they were issued with, even
+    // after the cashier renames their account or deletes it entirely.
+    cashierName: header.cashierName ?? cashierName ?? null,
     paidAt: toIso(header.paidAt),
     createdAt: toIso(header.createdAt),
     lines,
@@ -142,6 +144,7 @@ function createCheckoutTx(tx: Tx): CheckoutTx {
           itemCount: values.itemCount,
           paymentMethod: values.paymentMethod,
           note: values.note,
+          cashierName: values.cashierName,
           clientRequestId: values.clientRequestId,
           paidAt: values.paidAt,
         })
