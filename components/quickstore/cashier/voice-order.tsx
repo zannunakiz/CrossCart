@@ -64,7 +64,9 @@ const SPEECH_ERROR_PHRASE: Record<SpeechErrorCode, TranslationKey> = {
 export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
   const { lang, t } = useTranslation()
 
-  const [language, setLanguage] = useState<VoiceLanguage>(() => (lang === "ID" ? "ID" : "EN"))
+  // Independent from the UI language: the cashier explicitly picks the spoken
+  // language here (it also drives the speech engine's locale).
+  const [language, setLanguage] = useState<VoiceLanguage>("EN")
   const [phase, setPhase] = useState<Phase>("idle")
   const [result, setResult] = useState<VoiceOrderResult | null>(null)
   const [errorText, setErrorText] = useState<string | null>(null)

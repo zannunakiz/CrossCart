@@ -45,6 +45,7 @@ export function PosSettings({ storeId }: { storeId: string }) {
     }
   }, [storeId, id])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load() }, [load])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
