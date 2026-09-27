@@ -295,6 +295,8 @@ const phraseId = {
   'Upload payment QR (PNG, JPG, max 2 MB)':
     'Unggah QR pembayaran (PNG, JPG, maks 2 MB)',
   'Save Settings': 'Simpan Pengaturan',
+  'Permanently delete this store, its items, members and sales history. This cannot be undone.':
+    'Hapus permanen toko ini beserta item, anggota, dan riwayat penjualannya. Tindakan ini tidak dapat dibatalkan.',
 
   // ── History tab ───────────────────────────────────────────────────────────
   'Failed to load history': 'Gagal memuat riwayat',

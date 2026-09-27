@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { Loader2, UploadCloud } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { Textarea } from "@/components/ui/textarea"
 import type { Store } from "@/lib/db/schema"
+import { serverText, useTranslation } from "@/lib/i18n"
 
 interface Props {
   open: boolean
@@ -97,11 +97,28 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
     }
   }
 
+  // Helper untuk memisah teks "(optional)" agar tetap menggunakan key t() yang sah
+  const renderQrLabel = () => {
+    const fullText = t("Payment QR (optional)")
+    const match = fullText.match(/^(.*?)\s*(\(.*\))$/)
+    if (match) {
+      return (
+        <>
+          {match[1]}{" "}
+          <span className="font-light text-muted-foreground">
+            {match[2]}
+          </span>
+        </>
+      )
+    }
+    return fullText
+  }
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("Create New Store")}</DialogTitle>
+          <DialogTitle className="font-bold">{t("Create New Store")}</DialogTitle>
           <DialogDescription>
             {t("Set up your micro-store in seconds.")}
           </DialogDescription>
@@ -159,7 +176,9 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
 
           {/* QR Upload */}
           <div className="space-y-1.5">
-            <Label htmlFor="store-qr">{t("Payment QR (optional)")}</Label>
+            <Label htmlFor="store-qr">
+              {renderQrLabel()}
+            </Label>
             <label
               htmlFor="store-qr"
               className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
@@ -201,6 +220,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
             type="submit"
             form="create-store-form"
             disabled={submitting || !name.trim()}
+            className="font-bold"
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
             {t("Create Store")}

@@ -1,10 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, UploadCloud } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Loader2, Trash2, UploadCloud } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,16 +24,21 @@ import type { Store } from "@/lib/db/schema"
 interface Props {
   store: Store
   onUpdated: (store: Store) => void
+  /** Master (store:delete) or the store owner — the only ones who may delete. */
+  canDelete?: boolean
 }
 
-export function StoreSettingsTab({ store, onUpdated }: Props) {
+export function StoreSettingsTab({ store, onUpdated, canDelete = false }: Props) {
   const { lang, t } = useTranslation()
+  const router = useRouter()
   const [name, setName] = useState(store.name)
   const [description, setDescription] = useState(store.description ?? "")
   const [open, setOpen] = useState(store.open)
   const [qrFile, setQrFile] = useState<File | null>(null)
   const [qrPreview, setQrPreview] = useState<string | null>(store.paymentQr ?? null)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,6 +84,21 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
       toast.error(err instanceof Error ? serverText(lang, err.message) : t("Save failed"))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/quickstore/stores/${store.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error((await res.json()).error ?? t("Delete failed"))
+      toast.success(t("Store deleted"))
+      router.replace("/quickstore")
+    } catch (err) {
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
+      setDeleting(false)
+      setDeleteOpen(false)
     }
   }
 
@@ -157,6 +186,69 @@ export function StoreSettingsTab({ store, onUpdated }: Props) {
           {t("Save Settings")}
         </Button>
       </form>
+
+      {/* Danger zone — master or the store owner only. */}
+      {canDelete && (
+        <div className="mt-6 space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+          <div>
+            <p className="text-sm font-medium text-destructive">{t("Delete Store")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "Permanently delete this store, its items, members and sales history. This cannot be undone."
+              )}
+            </p>
+          </div>
+          <Button
+            id="settings-delete-store-btn"
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="gap-2"
+            onClick={() => setDeleteOpen(true)}
+            disabled={deleting}
+          >
+            {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            {t("Delete Store")}
+          </Button>
+        </div>
+      )}
+
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(v) => {
+          if (!deleting) setDeleteOpen(v)
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("Delete Store")}</DialogTitle>
+            <DialogDescription>
+              {t('Delete store "{name}"? This cannot be undone.', { name: store.name })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              {t("Cancel")}
+            </Button>
+            <Button
+              id="settings-delete-store-confirm"
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {t("Delete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

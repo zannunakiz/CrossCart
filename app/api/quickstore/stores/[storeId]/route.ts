@@ -1,7 +1,7 @@
 /**
  * GET    /api/quickstore/stores/[storeId]  — get store detail (members can view)
  * PUT    /api/quickstore/stores/[storeId]  — edit store (master | admin)
- * DELETE /api/quickstore/stores/[storeId]  — delete store (master only)
+ * DELETE /api/quickstore/stores/[storeId]  — delete store (master or store owner)
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -37,7 +37,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Store not found" }, { status: 404 })
   }
 
-  return NextResponse.json({ ...store, role })
+  return NextResponse.json({
+    ...store,
+    role,
+    /** The creator of the store may always delete it, whatever their role. */
+    isOwner: store.userId === session.user.id,
+  })
 }
 
 // ── PUT ──────────────────────────────────────────────────────────────────────
@@ -99,8 +104,18 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { storeId } = await params
+
+  const store = await db.query.stores.findFirst({
+    where: eq(stores.id, storeId),
+  })
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 })
+  }
+
   const role = await getUserRole(session.user.id, storeId)
-  if (!hasPermission(role, "store:delete")) {
+  // Allowed for a master (store:delete) or for the store owner.
+  const isOwner = store.userId === session.user.id
+  if (!isOwner && !hasPermission(role, "store:delete")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
