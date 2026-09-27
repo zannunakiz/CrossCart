@@ -4,7 +4,7 @@
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -21,9 +21,9 @@ export async function GET() {
 
   const userId = session.user.id
 
-  // Fetch stores owned by the user
+  // Fetch stores owned by the user (soft-deleted stores stay hidden).
   const ownedStores = await db.query.stores.findMany({
-    where: eq(stores.userId, userId),
+    where: and(eq(stores.userId, userId), isNull(stores.deletedAt)),
     orderBy: (s, { desc }) => [desc(s.createdAt)],
   })
 
@@ -32,7 +32,9 @@ export async function GET() {
     where: eq(storeMembers.userId, userId),
     with: { store: true },
   })
-  const memberStores = memberRows.map((m) => m.store).filter(Boolean)
+  const memberStores = memberRows
+    .map((m) => m.store)
+    .filter((store) => !!store && !store.deletedAt)
 
   // Merge and deduplicate
   const allIds = new Set(ownedStores.map((s) => s.id))

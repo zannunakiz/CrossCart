@@ -57,7 +57,9 @@ export function MembersTab({ storeId, role }: Props) {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
 
-  const canManage = hasPermission(role, "member:invite")
+  // Granular membership permissions: inviting and removing are separate rights.
+  const canInvite = hasPermission(role, "member:invite")
+  const canRemove = hasPermission(role, "member:remove")
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -115,7 +117,7 @@ export function MembersTab({ storeId, role }: Props) {
             count: members.length,
           })}
         </p>
-        {canManage && (
+        {canInvite && (
           <Button
             id="invite-member-btn"
             size="sm"
@@ -163,7 +165,7 @@ export function MembersTab({ storeId, role }: Props) {
                 {member.role === "master" && <Crown className="size-2.5" />}
                 {member.role}
               </Badge>
-              {canManage && (
+              {canRemove && (
                 <Button
                   id={`remove-member-${member.id}`}
                   variant="ghost"
@@ -276,8 +278,8 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">{t("Admin — can manage items & edit store")}</SelectItem>
-                <SelectItem value="master">{t("Master — full control (including delete)")}</SelectItem>
+                <SelectItem value="admin">{t("Admin — manages items & open status")}</SelectItem>
+                <SelectItem value="master">{t("Master — full control (settings, members, credentials)")}</SelectItem>
               </SelectContent>
             </Select>
           </div>

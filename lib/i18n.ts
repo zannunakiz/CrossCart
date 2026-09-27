@@ -282,8 +282,9 @@ const phraseId = {
     'Undang pengguna terdaftar untuk berkolaborasi di toko ini.',
   'Email Address': 'Alamat Email',
   Role: 'Peran',
-  'Admin — can manage items & edit store': 'Admin — dapat mengelola item & mengubah toko',
-  'Master — full control (including delete)': 'Master — kendali penuh (termasuk menghapus)',
+  'Admin — manages items & open status': 'Admin — mengelola item & status buka',
+  'Master — full control (settings, members, credentials)':
+    'Master — kendali penuh (pengaturan, anggota, kredensial)',
   'Send Invite': 'Kirim Undangan',
 
   // ── Store settings tab ────────────────────────────────────────────────────
@@ -295,6 +296,16 @@ const phraseId = {
   'Upload payment QR (PNG, JPG, max 2 MB)':
     'Unggah QR pembayaran (PNG, JPG, maks 2 MB)',
   'Save Settings': 'Simpan Pengaturan',
+  'Store': 'Toko',
+  'Store Credential': 'Kredensial Toko',
+  'Only the store master can change these settings.':
+    'Hanya master toko yang dapat mengubah pengaturan ini.',
+  'You can change the open status only — store details and the payment credential are master-only.':
+    'Anda hanya dapat mengubah status buka/tutup — detail toko dan kredensial pembayaran hanya untuk master.',
+  'Only the store master can change the payment QR':
+    'Hanya master toko yang dapat mengubah QR pembayaran',
+  'Delete this store? It is archived (hidden from everyone) and its sales history is kept for audit. This cannot be undone.':
+    'Hapus toko ini? Toko akan diarsipkan (disembunyikan dari semua orang) dan riwayat penjualannya tetap disimpan untuk audit. Tindakan ini tidak dapat dibatalkan.',
   'Permanently delete this store, its items, members and sales history. This cannot be undone.':
     'Hapus permanen toko ini beserta item, anggota, dan riwayat penjualannya. Tindakan ini tidak dapat dibatalkan.',
 
@@ -517,6 +528,8 @@ const serverMessageId: Record<string, string> = {
   'This store has no items to order yet': 'Toko ini belum punya item untuk dipesan',
   "language must be 'EN' or 'ID'": 'Bahasa harus EN atau ID',
   'transcript is required': 'Transkrip suara wajib diisi',
+  'open must be a boolean': 'Status buka harus berupa boolean',
+  'paymentQr must be a URL string or null': 'QR pembayaran harus berupa URL atau null',
 }
 
 /** Translate a message that came from the API (already English). */

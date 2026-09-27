@@ -135,9 +135,18 @@ export const stores = pgTable("stores", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+
+  /**
+   * Soft-delete marker. `DELETE /stores/[id]` stamps this instead of removing
+   * the row, so items, members and the entire sales history survive for audit,
+   * reporting and dispute handling. Every read path filters it out.
+   */
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 }, (t) => [
   /** "My stores" listing filters by owner — keeps it an index scan at scale. */
   index("stores_user_idx").on(t.userId),
+  /** Listings and permission checks ignore soft-deleted stores. */
+  index("stores_deleted_idx").on(t.deletedAt),
 ])
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,10 +190,11 @@ export const storeItems = pgTable("store_items", {
     .notNull()
     .references(() => stores.id, { onDelete: "cascade" }),
 
-  /** Who created this item. */
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "set null" }),
+  /**
+   * Who created this item. Nullable with `set null` so deleting a user account
+   * can never block — or cascade into — the store catalog.
+   */
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
 
   name: varchar("name", { length: 20 }).notNull(),
   description: varchar("description", { length: 100 }),
@@ -238,6 +248,13 @@ export const qsHistory = pgTable(
 
     /** Who rang up the sale. Kept even if the operator later loses access. */
     cashierId: text("cashier_id").references(() => users.id, { onDelete: "set null" }),
+
+    /**
+     * Snapshot of the cashier's display name at checkout time. Deleting (or
+     * renaming) a user account therefore never rewrites past receipts — history
+     * reporting reads this instead of joining `users`.
+     */
+    cashierName: varchar("cashier_name", { length: 80 }),
 
     /** Human readable identifier printed on the receipt, e.g. QS-20260926-7F3K. */
     receiptNumber: varchar("receipt_number", { length: 24 }).notNull(),

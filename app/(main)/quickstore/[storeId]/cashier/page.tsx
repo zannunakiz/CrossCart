@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon, ToggleLeft, ToggleRight } from "lucide-react"
+import { Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon } from "lucide-react"
 import { toast } from "sonner"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ProductSearch } from "@/components/quickstore/cashier/product-search"
 import { ReceiptPanel } from "@/components/quickstore/cashier/receipt-panel"
 import { SaleCart } from "@/components/quickstore/cashier/sale-cart"
 import { VoiceOrder } from "@/components/quickstore/cashier/voice-order"
+import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 import { hasPermission } from "@/lib/quickstore/permissions"
 import { checkoutErrorText, serverText, useTranslation } from "@/lib/i18n"
@@ -43,6 +43,7 @@ export default function CashierPage() {
   const { storeId } = useParams<{ storeId: string }>()
   const router = useRouter()
   const { lang, t } = useTranslation()
+  const { setHeader } = useQuickStoreHeader()
 
   const [store, setStore] = useState<StoreWithRole | null>(null)
   const [items, setItems] = useState<StoreItem[]>([])
@@ -100,6 +101,17 @@ export default function CashierPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAll()
   }, [fetchAll])
+
+  /**
+   * Publish the same breadcrumb as the store page (`Quick Store › {name}
+   * {open/closed} {role}`) so the navbar stays identical on the cashier route.
+   */
+  useEffect(() => {
+    if (!store) return
+    setHeader({ storeId: store.id, name: store.name, open: store.open, role: store.role })
+  }, [store, setHeader])
+
+  useEffect(() => () => setHeader(null), [setHeader])
 
   /** Re-read stock (another cashier may have sold the last unit). */
   const refreshCatalog = useCallback(async () => {
@@ -284,30 +296,16 @@ export default function CashierPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
+      {/*
+       * No page header here: the store name, open/closed state and the user's
+       * role are rendered once, in the navbar breadcrumb (see the store detail
+       * page publishing `useQuickStoreHeader`). Only the page-specific hint and
+       * the stock refresh action remain.
+       */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <Link href={`/quickstore/${storeId}`} aria-label={t("Back to store")}>
-            <Button variant="ghost" size="icon" className="mt-0.5 shrink-0">
-              <ArrowLeft className="size-4" />
-            </Button>
-          </Link>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-xl font-bold tracking-tight">{store.name}</h1>
-              <Badge variant="outline" className="text-3xs font-semibold uppercase tracking-wide">
-                {t("Cashier")}
-              </Badge>
-              <Badge variant={store.open ? "default" : "secondary"} className="gap-1 text-3xs">
-                {store.open ? <ToggleRight className="size-3" /> : <ToggleLeft className="size-3" />}
-                {store.open ? t("Open") : t("Closed")}
-              </Badge>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("Enter the customer's items, review the receipt, then confirm the payment.")}
-            </p>
-          </div>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {t("Enter the customer's items, review the receipt, then confirm the payment.")}
+        </p>
 
         <Button
           variant="outline"

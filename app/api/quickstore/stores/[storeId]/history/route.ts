@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { storeId } = await params
   const role = await getUserRole(session.user.id, storeId)
-  if (!hasPermission(role, "store:view")) {
+  if (!hasPermission(role, "sale:view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
