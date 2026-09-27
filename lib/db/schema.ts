@@ -135,7 +135,10 @@ export const stores = pgTable("stores", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-})
+}, (t) => [
+  /** "My stores" listing filters by owner — keeps it an index scan at scale. */
+  index("stores_user_idx").on(t.userId),
+])
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QuickStore — store members (RBAC)
@@ -163,6 +166,8 @@ export const storeMembers = pgTable(
   (t) => [
     /** A user can only have one role per store. */
     uniqueIndex("store_members_store_user_unique").on(t.storeId, t.userId),
+    /** The unique index above is store-first: this one serves "stores I'm in". */
+    index("store_members_user_idx").on(t.userId),
   ]
 )
 
@@ -209,7 +214,10 @@ export const storeItems = pgTable("store_items", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-})
+}, (t) => [
+  /** Every catalog read is store-scoped (cashier, items tab, voice context). */
+  index("store_items_store_idx").on(t.storeId),
+])
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QuickStore — transaction history

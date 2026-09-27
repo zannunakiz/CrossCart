@@ -181,7 +181,8 @@ export default function StoreDetailPage() {
           <TabsTrigger value="members" className="flex-1 sm:flex-none">
             {t("Members")}
           </TabsTrigger>
-          {isMaster && (
+          {/* Store settings follow the RBAC matrix: master + admin have store:edit. */}
+          {hasPermission(store.role, "store:edit") && (
             <TabsTrigger value="settings" className="flex-1 sm:flex-none gap-1">
               <Settings2 className="size-3.5" />
               {t("Settings")}
@@ -201,7 +202,7 @@ export default function StoreDetailPage() {
           <MembersTab storeId={storeId} role={store.role} />
         </TabsContent>
 
-        {isMaster && (
+        {hasPermission(store.role, "store:edit") && (
           <TabsContent value="settings" className="mt-6">
             <StoreSettingsTab
               store={store}

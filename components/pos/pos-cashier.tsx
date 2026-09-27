@@ -129,6 +129,7 @@ export function PosCashier({
     }
   }, [storeId, id])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void loadCatalog() }, [loadCatalog])
 
   // Filtered catalog

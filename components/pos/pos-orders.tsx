@@ -70,6 +70,7 @@ export function PosOrders({ storeId }: { storeId: string }) {
     }
   }, [storeId, id])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load() }, [load])
 
   return (

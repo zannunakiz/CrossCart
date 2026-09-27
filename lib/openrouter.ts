@@ -34,6 +34,67 @@ export function openRouterHeaders(): Record<string, string> {
   return headers
 }
 
+/**
+ * Free Models Router (zero-cost models). Override per environment with
+ * OPEN_ROUTER_MODEL when a specific model is preferred.
+ * Docs: https://openrouter.ai/docs/guides/routing/routers/free-router
+ */
+export const OPENROUTER_DEFAULT_MODEL = "openrouter/free"
+
+export function getOpenRouterModel(): string {
+  return process.env.OPEN_ROUTER_MODEL?.trim() || OPENROUTER_DEFAULT_MODEL
+}
+
+export interface OpenRouterChatMessage {
+  role: "system" | "user" | "assistant"
+  content: string
+}
+
+interface OpenRouterChatResponse {
+  choices?: { message?: { content?: string | null } }[]
+  error?: { message?: string }
+  model?: string
+}
+
+/**
+ * Minimal chat-completion call (no SDK). Returns the raw assistant text — the
+ * caller owns prompt building, JSON extraction and validation.
+ * Throws with the provider message when the request or the payload fails.
+ */
+export async function chatCompletion(
+  messages: OpenRouterChatMessage[],
+  options: { model?: string; temperature?: number; maxTokens?: number; timeoutMs?: number } = {}
+): Promise<{ content: string; model: string }> {
+  const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: openRouterHeaders(),
+    cache: "no-store",
+    signal: AbortSignal.timeout(options.timeoutMs ?? 25_000),
+    body: JSON.stringify({
+      model: options.model ?? getOpenRouterModel(),
+      messages,
+      temperature: options.temperature ?? 0,
+      max_tokens: options.maxTokens ?? 700,
+      stream: false,
+    }),
+  })
+
+  const payload = (await response.json().catch(() => ({}))) as OpenRouterChatResponse
+
+  if (!response.ok) {
+    throw new Error(
+      payload.error?.message ?? `OpenRouter request failed with status ${response.status}`
+    )
+  }
+
+  const content = payload.choices?.[0]?.message?.content
+  if (typeof content !== "string" || content.trim() === "") {
+    throw new Error("OpenRouter returned an empty completion")
+  }
+
+  return { content, model: payload.model ?? options.model ?? OPENROUTER_DEFAULT_MODEL }
+}
+
 export type OpenRouterKeyInfo = {
   label: string
   limit: number | null

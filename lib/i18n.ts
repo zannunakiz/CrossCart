@@ -374,6 +374,37 @@ const phraseId = {
     'Tambahkan item ke toko ini sebelum mencatat penjualan.',
   'Add items': 'Tambah item',
   Review: 'Periksa',
+
+  // ── Cashier: voice order ──────────────────────────────────────────────────
+  'Voice order': 'Pesanan suara',
+  Language: 'Bahasa',
+  'Voice language': 'Bahasa suara',
+  'Start voice order': 'Mulai pesanan suara',
+  'Stop and interpret': 'Hentikan & proses',
+  'Listening…': 'Mendengarkan…',
+  'Interpreting the order…': 'Memproses pesanan…',
+  'Say a product and a quantity, e.g. "tiga pensil, empat pena".':
+    'Sebutkan produk dan jumlahnya, mis. "tiga pensil, empat pena".',
+  Discard: 'Buang',
+  'Press the mic to interpret it.': 'Tekan mikrofon untuk memprosesnya.',
+  'Detected items': 'Item terdeteksi',
+  'Not in this store: "{heard}"': 'Tidak ada di toko ini: "{heard}"',
+  'Add {count} to sale': 'Tambahkan {count} ke penjualan',
+  'Nothing was heard. Please try again.': 'Tidak ada suara yang terdengar. Coba lagi.',
+  'No matching item was detected in this store. Try saying the product name again.':
+    'Tidak ada item yang cocok di toko ini. Coba sebutkan nama produknya lagi.',
+  'Those products are no longer in this store. Refresh the catalog.':
+    'Produk tersebut sudah tidak ada di toko ini. Segarkan daftar produk.',
+  'Unavailable items were skipped: {count}': 'Item tidak tersedia diabaikan: {count}',
+  'Voice input is not supported in this browser. Use Chrome or Edge.':
+    'Input suara tidak didukung di browser ini. Gunakan Chrome atau Edge.',
+  'Microphone access was blocked. Allow it in your browser, then try again.':
+    'Akses mikrofon diblokir. Izinkan di browser Anda, lalu coba lagi.',
+  'No microphone was found on this device.': 'Tidak ada mikrofon di perangkat ini.',
+  'The speech service is unreachable. Check your connection.':
+    'Layanan suara tidak dapat dijangkau. Periksa koneksi Anda.',
+  'Listening was stopped.': 'Perekaman dihentikan.',
+  'Voice input failed. Please try again.': 'Input suara gagal. Coba lagi.',
 } as const
 
 export type PhraseKey = keyof typeof phraseId
@@ -473,6 +504,13 @@ const serverMessageId: Record<string, string> = {
   'Checkout failed': 'Pembayaran gagal',
   'Checkout failed, please try again': 'Pembayaran gagal, silakan coba lagi',
   'Insufficient stock': 'Stok tidak cukup',
+  'Nothing was heard, please try again': 'Tidak ada suara yang terdengar, coba lagi',
+  'Could not understand the order, please try again':
+    'Tidak dapat memahami pesanan, coba lagi',
+  'Voice interpretation failed, please try again': 'Gagal memproses suara, coba lagi',
+  'This store has no items to order yet': 'Toko ini belum punya item untuk dipesan',
+  "language must be 'EN' or 'ID'": 'Bahasa harus EN atau ID',
+  'transcript is required': 'Transkrip suara wajib diisi',
 }
 
 /** Translate a message that came from the API (already English). */

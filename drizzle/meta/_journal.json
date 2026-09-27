@@ -43,6 +43,13 @@
       "when": 1790484827009,
       "tag": "0005_pos_order_code_single_use",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790489271385,
+      "tag": "0006_mighty_mister_sinister",
+      "breakpoints": true
     }
   ]
 }
