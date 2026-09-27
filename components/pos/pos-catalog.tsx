@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
-import { Edit2, Loader2, Package, Plus, Search, Trash2 } from "lucide-react"
+import { Edit2, ImagePlus, Loader2, Package, Plus, Search, Trash2, UploadCloud } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +20,7 @@ type Item = {
   id: string
   name: string
   description: string | null
+  imageUrl: string | null
   price: string
   available: boolean
   trackStock: boolean
@@ -66,7 +67,17 @@ export function PosCatalog({
   const [deleting, setDeleting] = useState<string | null>(null)
 
   // Form state
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string
+    description: string
+    price: string
+    available: boolean
+    trackStock: boolean
+    stockOnHand: string
+    sku: string
+    categoryId: string
+    imageUrl: string | null
+  }>({
     name: "",
     description: "",
     price: "",
@@ -75,7 +86,33 @@ export function PosCatalog({
     stockOnHand: "0",
     sku: "",
     categoryId: "",
+    imageUrl: null,
   })
+
+  // Pending image, uploaded on submit — same flow as the POS store settings tab
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toast.error(id ? "Hanya file gambar yang diizinkan." : "Only image files are allowed.")
+      return
+    }
+    if (file.size > 2_000_000) {
+      toast.error(id ? "Gambar maksimal 2 MB." : "Image must be 2 MB or smaller.")
+      return
+    }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const clearImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setForm((prev) => ({ ...prev, imageUrl: null }))
+  }
 
   const load = useCallback(async () => {
     try {
@@ -109,12 +146,16 @@ export function PosCatalog({
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ name: "", description: "", price: "", available: true, trackStock: true, stockOnHand: "0", sku: "", categoryId: "" })
+    setImageFile(null)
+    setImagePreview(null)
+    setForm({ name: "", description: "", price: "", available: true, trackStock: true, stockOnHand: "0", sku: "", categoryId: "", imageUrl: null })
     setDialogOpen(true)
   }
 
   const openEdit = (item: Item) => {
     setEditing(item)
+    setImageFile(null)
+    setImagePreview(null)
     setForm({
       name: item.name,
       description: item.description ?? "",
@@ -124,6 +165,7 @@ export function PosCatalog({
       stockOnHand: String(item.stockOnHand),
       sku: item.sku ?? "",
       categoryId: item.categoryId ?? "",
+      imageUrl: item.imageUrl,
     })
     setDialogOpen(true)
   }
@@ -132,9 +174,20 @@ export function PosCatalog({
     if (!form.name.trim() || !form.price) return
     setSaving(true)
     try {
+      // 1. Upload the picked image (if any) via the server — no preset needed
+      let imageUrl = form.imageUrl
+      if (imageFile) {
+        const fd = new FormData()
+        fd.append("file", imageFile)
+        const upRes = await fetch("/api/pos/upload", { method: "POST", body: fd })
+        if (!upRes.ok) throw new Error((await upRes.json()).error ?? (id ? "Unggah gambar gagal." : "Image upload failed."))
+        imageUrl = (await upRes.json()).url
+      }
+
       const body = {
         name: form.name.trim(),
         description: form.description || null,
+        imageUrl,
         price: Number(form.price),
         available: form.available,
         trackStock: form.trackStock,
@@ -153,6 +206,8 @@ export function PosCatalog({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setDialogOpen(false)
+      setImageFile(null)
+      setImagePreview(null)
       await load()
       toast.success(editing
         ? (id ? "Item diperbarui." : "Item updated.")
@@ -254,11 +309,23 @@ export function PosCatalog({
                   return (
                     <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="font-medium">{item.name}</p>
-                        {item.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                        )}
-                        {item.sku && <p className="text-[11px] text-muted-foreground/60">SKU: {item.sku}</p>}
+                        <div className="flex items-center gap-3">
+                          <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border bg-muted">
+                            {item.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.imageUrl} alt={item.name} className="size-full object-cover" />
+                            ) : (
+                              <ImagePlus className="size-4 text-muted-foreground/60" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium">{item.name}</p>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
+                            )}
+                            {item.sku && <p className="text-[11px] text-muted-foreground/60">SKU: {item.sku}</p>}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 tabular-nums text-sm">{fmt(item.price, currency)}</td>
                       <td className="px-4 py-3 text-sm">
@@ -348,6 +415,50 @@ export function PosCatalog({
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 pt-2">
+            {/* Item image */}
+            <div className="space-y-1">
+              <Label className="text-xs">{id ? "Gambar Item" : "Item Image"}</Label>
+              <div className="flex items-center gap-3">
+                <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted">
+                  {imagePreview || form.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imagePreview ?? form.imageUrl ?? ""} alt={form.name || "Item image"} className="size-full object-cover" />
+                  ) : (
+                    <ImagePlus className="size-6 text-muted-foreground/60" />
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="pos-item-image"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
+                  >
+                    <UploadCloud className="size-4" />
+                    {imagePreview || form.imageUrl
+                      ? (id ? "Klik untuk ganti" : "Click to change")
+                      : (id ? "Klik untuk unggah (PNG, JPG, maks 2 MB)" : "Click to upload (PNG, JPG, max 2 MB)")}
+                  </label>
+                  <input
+                    id="pos-item-image"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleImageChange}
+                    disabled={saving}
+                  />
+                  {(imagePreview || form.imageUrl) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-destructive"
+                      disabled={saving}
+                      onClick={clearImage}
+                    >
+                      {id ? "Hapus Gambar" : "Remove Image"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">{id ? "Nama" : "Name"} *</Label>
               <Input
