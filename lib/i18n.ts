@@ -196,6 +196,7 @@ const phraseId = {
   // ── Common ────────────────────────────────────────────────────────────────
   Cancel: 'Batal',
   Delete: 'Hapus',
+  'Delete?': 'Hapus?',
   Edit: 'Ubah',
   'Try again': 'Coba lagi',
   Yes: 'Ya',
@@ -368,8 +369,8 @@ const phraseId = {
     'Anda hanya dapat mengubah status buka/tutup — detail toko dan kredensial pembayaran hanya untuk master.',
   'Only the store master can change the payment QR':
     'Hanya master toko yang dapat mengubah QR pembayaran',
-  'Delete this store? It is archived (hidden from everyone) and its sales history is kept for audit. This cannot be undone.':
-    'Hapus toko ini? Toko akan diarsipkan (disembunyikan dari semua orang) dan riwayat penjualannya tetap disimpan untuk audit. Tindakan ini tidak dapat dibatalkan.',
+  'Delete this store? This cannot be undone.':
+    'Hapus toko ini? Tindakan ini tidak dapat dibatalkan.',
   'Permanently delete this store, its items, members and sales history. This cannot be undone.':
     'Hapus permanen toko ini beserta item, anggota, dan riwayat penjualannya. Tindakan ini tidak dapat dibatalkan.',
 

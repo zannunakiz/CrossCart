@@ -20,14 +20,6 @@ import { toast } from "sonner"
 import { ItemDialog } from "@/components/quickstore/item-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -459,18 +451,47 @@ export function ItemsTab({ storeId, role }: Props) {
                             <Pencil className="size-3.5" />
                           </Button>
                         )}
-                        {canDelete && (
-                          <Button
-                            id={`delete-item-${item.id}`}
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            aria-label={t("Delete item")}
-                            onClick={() => setDeleteTarget(item)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        )}
+                        {canDelete &&
+                          (deleteTarget?.id === item.id ? (
+                            /* Inline confirm: the trash icon swaps itself for "Delete?" + Yes/No. */
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-xs font-medium text-destructive">
+                                {t("Delete?")}
+                              </span>
+                              <Button
+                                id={`item-delete-confirm-${item.id}`}
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => void handleDelete()}
+                                disabled={deleting}
+                              >
+                                {deleting && <Loader2 className="mr-1 size-3.5 animate-spin" />}
+                                {t("Yes")}
+                              </Button>
+                              <Button
+                                id={`item-delete-cancel-${item.id}`}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={deleting}
+                              >
+                                {t("No")}
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              id={`delete-item-${item.id}`}
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              aria-label={t("Delete item")}
+                              onClick={() => setDeleteTarget(item)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          ))}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -546,46 +567,6 @@ export function ItemsTab({ storeId, role }: Props) {
         item={editingItem}
         onSaved={handleSaved}
       />
-
-      {/* Delete confirmation — a row disappears for good, so never in one click. */}
-      <Dialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open && !deleting) setDeleteTarget(null)
-        }}
-      >
-        <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-bold">{t("Delete Item")}</DialogTitle>
-            <DialogDescription>
-              {deleteTarget
-                ? t('Delete "{name}"? This cannot be undone.', { name: deleteTarget.name })
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteTarget(null)}
-              disabled={deleting}
-            >
-              {t("Cancel")}
-            </Button>
-            <Button
-              id="item-delete-confirm"
-              type="button"
-              variant="destructive"
-              onClick={() => void handleDelete()}
-              disabled={deleting}
-            >
-              {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
-              {t("Delete")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

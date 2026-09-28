@@ -139,11 +139,17 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
           </DialogDescription>
         </DialogHeader>
 
-        {/* The body scrolls, the header and the footer stay put on a phone. */}
+        {/* The body scrolls, the header and the footer stay put on a phone.
+            `-mx-4 px-4` bleeds the scroller into the dialog's `p-4`, so the
+            fields stay aligned with the title while the scrollport keeps a
+            16px gutter on both sides: the 3px focus ring is never clipped on
+            the left, and the global 10px scrollbar sits in the gutter instead
+            of covering the right edge of the inputs. `py-1` does the same for
+            the first and last field when the body is scrolled. */}
         <form
           id="item-form"
           onSubmit={handleSubmit}
-          className="max-h-[52dvh] space-y-4 overflow-y-auto pr-1 sm:max-h-[60dvh]"
+          className="-mx-4 max-h-[52dvh] space-y-4 overflow-y-auto px-4 py-1 sm:max-h-[60dvh]"
         >
           {/* Name */}
           <div className="space-y-1.5">
