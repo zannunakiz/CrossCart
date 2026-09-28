@@ -1,6 +1,6 @@
 "use client"
 
-import { History, Loader2, Package, ShoppingCart, Store as StoreIcon, Users } from "lucide-react"
+import { Loader2, ShoppingCart, Store as StoreIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { HistoryTab } from "@/components/quickstore/history-tab"
 import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
+import { STORE_TAB_UI } from "@/components/quickstore/store-tab-ui"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
 import { StoreStatusLine } from "@/components/quickstore/store-status-line"
 import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
@@ -18,6 +19,7 @@ import type { StoreRole, Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
 import { hasPermission } from "@/lib/quickstore/permissions"
 import {
+  allowedStoreTabs,
   parseStoreTab,
   resolveStoreTab,
   storeTabUrlParams,
@@ -87,6 +89,17 @@ function StoreDetailView() {
   const [store, setStore] = useState<StoreWithRole | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Tab model: which tabs this role may open (`allowedStoreTabs`) and which one
+  // the URL asks for. Computed before the store arrives — an unknown role simply
+  // has no tabs yet — so the same values can be published to the sidebar below.
+  const allowedTabs = allowedStoreTabs(store?.role)
+  const tab = resolveStoreTab(new URLSearchParams(searchParams.toString()), allowedTabs)
+  const tabItems: TabNavItem[] = allowedTabs.map((value) => ({
+    value,
+    label: t(STORE_TAB_UI[value].titleKey),
+    icon: STORE_TAB_UI[value].icon,
+  }))
+
   const fetchStore = useCallback(async () => {
     try {
       const res = await fetch(`/api/quickstore/stores/${storeId}`)
@@ -121,8 +134,16 @@ function StoreDetailView() {
    */
   useEffect(() => {
     if (!store) return
-    setHeader({ storeId: store.id, name: store.name, open: store.open, role: store.role })
-  }, [store, setHeader])
+    setHeader({
+      storeId: store.id,
+      name: store.name,
+      open: store.open,
+      role: store.role,
+      // The drawer mirrors the open tab, so switching tabs here (or in the page's
+      // tab strip) keeps the sidebar in step.
+      tab,
+    })
+  }, [store, setHeader, tab])
 
   useEffect(() => () => setHeader(null), [setHeader])
 
@@ -149,30 +170,6 @@ function StoreDetailView() {
   // Master (store:delete) or the store owner — the only ones who may delete it.
   const canDeleteStore = hasPermission(store.role, "store:delete") || !!store.isOwner
   const canCreateSale = hasPermission(store.role, "sale:create")
-
-  // Every tab is permission-gated; the Store tab itself is read-only for roles
-  // without `store:update-*` (see StoreSettingsTab).
-  const tabItems: TabNavItem[] = []
-
-  if (hasPermission(store.role, "store:view")) {
-    tabItems.push({ value: "store", label: t("Store"), icon: StoreIcon })
-  }
-  if (hasPermission(store.role, "item:view")) {
-    tabItems.push({ value: "items", label: t("Items"), icon: Package })
-  }
-  if (hasPermission(store.role, "sale:view")) {
-    tabItems.push({ value: "history", label: t("History"), icon: History })
-  }
-  if (hasPermission(store.role, "member:view")) {
-    tabItems.push({ value: "members", label: t("Members"), icon: Users })
-  }
-
-  // The URL owns the open tab; a tab the role cannot see falls back to the
-  // first one they can (a shared link may point at a hidden tab).
-  const allowedTabs = tabItems
-    .map((item) => item.value)
-    .filter((value): value is StoreTab => value !== undefined)
-  const tab = resolveStoreTab(new URLSearchParams(searchParams.toString()), allowedTabs)
 
   /** Open a tab by rewriting the query string, so the URL stays shareable. */
   const selectTab = (value: string) => {

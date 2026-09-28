@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import {
   ChevronRight,
+  ExternalLink,
   Globe2,
   LayoutDashboard,
   LogOut,
   Moon,
+  ShoppingCart,
   Store,
   Sun,
   X,
@@ -17,9 +19,14 @@ import {
 import { useEffect, useSyncExternalStore } from "react"
 
 import { useMainSidebar } from "@/components/main-sidebar-context"
+import { STORE_TAB_UI } from "@/components/quickstore/store-tab-ui"
+import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { UserAvatar } from "@/components/user-avatar"
 import { useTranslation, type TranslationKey } from "@/lib/i18n"
+import { canCreateSale } from "@/lib/quickstore/permissions"
+import { allowedStoreTabs, storeTabUrlParams } from "@/lib/quickstore/store-tabs"
 import {
   getServerThemeSnapshot,
   getThemeSnapshot,
@@ -53,9 +60,20 @@ const navGroups: NavGroup[] = [
 
 export function MainSidebar() {
   const { open, setOpen } = useMainSidebar()
+  const { header } = useQuickStoreHeader()
   const pathname = usePathname()
   const { data: session } = useSession()
   const { lang, t } = useTranslation()
+
+  /**
+   * Store block. The store pages publish the store they are showing through
+   * `useQuickStoreHeader` (name, open state, role, open tab), so the drawer can
+   * add its data — the tab list and the cashier shortcut — on `/quickstore/[storeId]`
+   * (and its child routes) without a second fetch of its own. Elsewhere the
+   * header is `null` and the drawer stays exactly as it was.
+   */
+  const storeTabs = header ? allowedStoreTabs(header.role) : []
+  const cashierHref = header ? `/quickstore/${header.storeId}/cashier` : ""
 
   const isDark = useSyncExternalStore(
     subscribePreferences,
@@ -190,6 +208,100 @@ export function MainSidebar() {
               </div>
             </div>
           ))}
+
+          {/* QuickStore detail routes add their data here: the store, its four
+              tabs (active one in the primary color) and the cashier shortcut. */}
+          {header && (
+            <div className="space-y-4 border-t border-border pt-4">
+              <div className="space-y-1">
+                <p className="px-3 text-3xs font-bold tracking-[0.16em] uppercase text-muted-foreground/80">
+                  {t("nav.group.store")}
+                </p>
+
+                <div className="mt-2 flex items-center gap-2.5 rounded-md bg-muted/50 px-3 py-2.5">
+                  <Store className="size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-foreground">
+                      {header.name}
+                    </p>
+                    <p className="text-2xs text-muted-foreground">
+                      <span
+                        className={cn(
+                          "font-medium",
+                          header.open
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400"
+                        )}
+                      >
+                        {header.open ? t("Open") : t("Closed")}
+                      </span>
+                      {" • "}
+                      <span className="font-medium text-foreground">
+                        {header.role.toLowerCase()}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* The one loud action of the drawer: ring up a sale. Opens in its
+                    own tab, so the store screen (and the open tab) stays put. */}
+                {canCreateSale(header.role) && (
+                  <Link
+                    href={cashierHref}
+                    id="sidebar-open-cashier-btn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={t("nav.openCashierNewTab")}
+                    title={t("nav.openCashierNewTab")}
+                    onClick={() => setOpen(false)}
+                    className="mt-2 block"
+                  >
+                    <Button size="lg" className="w-full gap-2 font-semibold">
+                      <ShoppingCart className="size-3.5" />
+                      <span>{t("To Cashier")}</span>
+                      <ExternalLink className="size-3" />
+                    </Button>
+                  </Link>
+                )}
+              </div>
+
+              {storeTabs.length > 0 && (
+                <div className="space-y-1">
+                  <p className="px-3 text-3xs font-bold tracking-[0.16em] uppercase text-muted-foreground/80">
+                    {t("nav.group.storeTabs")}
+                  </p>
+
+                  <div className="mt-2 space-y-1">
+                    {storeTabs.map((value) => {
+                      const { titleKey, icon: Icon } = STORE_TAB_UI[value]
+                      const isActive = value === header.tab
+
+                      return (
+                        <Link
+                          key={value}
+                          href={`/quickstore/${header.storeId}?${storeTabUrlParams(
+                            new URLSearchParams(),
+                            value
+                          ).toString()}`}
+                          aria-current={isActive ? "page" : undefined}
+                          onClick={() => setOpen(false)}
+                          className={cn(
+                            "group flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-xs font-medium transition-colors cursor-pointer",
+                            isActive
+                              ? "border-primary bg-primary/10 font-semibold text-primary"
+                              : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          )}
+                        >
+                          <Icon className="size-4 shrink-0" />
+                          <span className="truncate">{t(titleKey)}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         <div className="border-t border-border p-4 bg-muted/20">
