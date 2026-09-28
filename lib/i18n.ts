@@ -336,8 +336,8 @@ const phraseId = {
   'Email Address': 'Alamat Email',
   Role: 'Peran',
   'Admin — manages items & open status': 'Admin — mengelola item & status buka',
-  'Master — full control (settings, members, credentials)':
-    'Master — kendali penuh (pengaturan, anggota, kredensial)',
+  'Master — full control':
+    'Master — kendali penuh',
   'Send Invite': 'Kirim Undangan',
   Remove: 'Hapus',
   'Remove Member': 'Hapus Anggota',

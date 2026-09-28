@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { Info, Loader2, Pencil, Trash2, UserPlus } from "lucide-react"
 import { useSession } from "next-auth/react"
-import { Crown, Info, Loader2, Pencil, Trash2, UserPlus } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -68,7 +68,7 @@ const memberLabel = (member: Member) => member.user.name ?? member.user.email ??
  */
 const ROLE_LABELS = {
   admin: "Admin — manages items & open status",
-  master: "Master — full control (settings, members, credentials)",
+  master: "Master — full control",
 } as const
 
 /** Short local date, e.g. "12 Mar 2026" (or "12 Mar 2026" with the ID locale). */
@@ -204,12 +204,6 @@ export function MembersTab({ storeId, role }: Props) {
                       <p className="truncate text-sm font-semibold text-foreground">
                         {member.user.name ?? "—"}
                       </p>
-                      {member.isOwner && (
-                        <Badge className="gap-1 text-3xs">
-                          <Crown className="size-2.5" />
-                          {t("Owner")}
-                        </Badge>
-                      )}
                       {isSelf && !member.isOwner && (
                         <Badge variant="outline" className="text-3xs">
                           {t("You")}
@@ -223,9 +217,11 @@ export function MembersTab({ storeId, role }: Props) {
                       </Badge>
                     </div>
 
-                    <p className="truncate text-xs text-muted-foreground">{member.user.email}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {member.user.email}
+                    </p>
 
-                    <p className="mt-0.5 text-2xs text-muted-foreground">
+                    <p className="mt-1 text-2xs text-muted-foreground">
                       {t("Joined {date}", { date: formatDay(member.createdAt, lang) })}
                       {roleChanged &&
                         ` · ${t("Role updated {date}", { date: formatDay(member.updatedAt, lang) })}`}
@@ -310,8 +306,8 @@ export function MembersTab({ storeId, role }: Props) {
             <DialogDescription>
               {removeTarget
                 ? t('Remove "{name}" from this store? Their past sales stay in the history.', {
-                    name: memberLabel(removeTarget),
-                  })
+                  name: memberLabel(removeTarget),
+                })
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -551,4 +547,3 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
     </Dialog>
   )
 }
-
