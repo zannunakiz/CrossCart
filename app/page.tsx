@@ -1,11 +1,13 @@
 'use client'
 
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 import {
   ArrowUpRight,
   BarChart3,
   Check,
   Globe2,
+  LogOut,
+  Mail,
   Menu,
   Mic2,
   Moon,
@@ -18,6 +20,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
+import { GithubIcon, InstagramIcon } from '@/components/brand-icons'
 import { Switch } from '@/components/ui/switch'
 import { UserAvatar } from '@/components/user-avatar'
 import {
@@ -27,6 +30,7 @@ import {
   getThemeSnapshot,
   setLanguage,
   subscribePreferences,
+  toggleLanguage,
   toggleTheme
 } from '@/lib/preferences'
 
@@ -37,7 +41,10 @@ const copy = {
     headline: 'The quiet system behind busy businesses.',
     body: 'CrossCart keeps checkout, stock, payments, and kitchen orders moving in one calm workspace.',
     primary: 'Log In',
-    dashboard: 'Dashboard',
+    toDashboard: 'To Dashboard',
+    signOut: 'Sign out',
+    language: 'Language',
+    emailCopied: 'Email Copied!',
     secondary: 'Explore the workflow',
     proof: 'Free forever. No transaction fees.',
     pulse: 'Today at a glance',
@@ -81,7 +88,10 @@ const copy = {
     headline: 'Sistem tenang di balik bisnis yang sibuk.',
     body: 'CrossCart menyatukan kasir, stok, pembayaran, dan pesanan dapur dalam satu ruang kerja.',
     primary: 'Masuk',
-    dashboard: 'Dasbor',
+    toDashboard: 'Ke Dasbor',
+    signOut: 'Keluar',
+    language: 'Bahasa',
+    emailCopied: 'Email Tersalin!',
     secondary: 'Lihat alur kerja',
     proof: 'Gratis selamanya. Tanpa biaya transaksi.',
     pulse: 'Ringkasan hari ini',
@@ -156,10 +166,21 @@ export default function Home() {
     getServerLanguageSnapshot
   )
   const [open, setOpen] = useState(false)
+  const [emailCopied, setEmailCopied] = useState(false)
   const { scrollYProgress } = useScroll()
   const y = useTransform(scrollYProgress, [0, 1], [0, -70])
   const { data: session } = useSession()
   const t = copy[lang]
+
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText('richky.abednego@gmail.com')
+      setEmailCopied(true)
+      window.setTimeout(() => setEmailCopied(false), 3000)
+    } catch {
+      setEmailCopied(false)
+    }
+  }
 
   // Keep the <html> element aligned with the stored preferences.
   useEffect(() => {
@@ -183,19 +204,23 @@ export default function Home() {
       <header className="mx-auto flex max-w-6xl items-center justify-between border-b border-border px-5 py-5 sm:px-8">
         <a
           href="#top"
-          className="flex items-center gap-2 text-sm font-semibold tracking-[-.04em]"
+          className="font-light flex items-center gap-2 text-lg tracking-[-.04em]"
           aria-label="CrossCart home"
         >
-          <span className="relative grid size-7 place-items-center overflow-hidden rounded-md bg-primary">
+          <span className="relative grid size-7 place-items-center overflow-hidden rounded-md bg-black">
             <Image
-              src="/CrossCart.png"
+              src="/logo.png"
               alt="CrossCart Logo"
               width={28}
               height={28}
               className="size-full object-contain p-0.5"
             />
           </span>
-          crosscart
+          <span>
+            Cross
+            <span className='text-primary'>Cart</span>
+          </span>
+
         </a>
 
         <nav className="hidden items-center gap-8 text-xs text-muted-foreground md:flex">
@@ -244,18 +269,20 @@ export default function Home() {
               >
                 {session.user?.name ?? session.user?.email}
               </Link>
+              <button
+                onClick={() => signOut()}
+                className="p-1 text-destructive hover:text-destructive/80 cursor-pointer transition-colors"
+                aria-label={t.signOut}
+                title={t.signOut}
+              >
+                <LogOut className="size-4" />
+              </button>
               <Link
                 href="/dashboard"
                 className="border-b border-primary pb-1 text-xs font-medium text-primary cursor-pointer"
               >
-                {t.dashboard}
+                {t.toDashboard}
               </Link>
-              <button
-                onClick={() => signOut()}
-                className="border-b border-border pb-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                Sign out
-              </button>
             </div>
           ) : (
             <button
@@ -288,10 +315,10 @@ export default function Home() {
             {t.nav[2]}
           </a>
           <div className="flex items-center justify-between text-muted-foreground">
-            <span className="flex items-center gap-2">
+            <button type="button" onClick={toggleLanguage} className="flex items-center gap-2 text-left">
               <Globe2 className="size-4" />
-              <span>Language</span>
-            </span>
+              <span>{t.language}</span>
+            </button>
             <div className="flex items-center gap-2 text-xs">
               <span className={lang === 'EN' ? 'font-medium text-foreground' : 'text-muted-foreground'}>
                 EN
@@ -323,22 +350,22 @@ export default function Home() {
               <span className="min-w-0 flex-1 truncate text-muted-foreground">
                 {session.user?.name ?? session.user?.email}
               </span>
-              <Link
-                href="/dashboard"
-                onClick={() => setOpen(false)}
-                className="shrink-0 text-primary cursor-pointer"
-              >
-                {t.dashboard}
-              </Link>
               <button
                 onClick={() => {
                   setOpen(false)
                   signOut()
                 }}
-                className="shrink-0 text-muted-foreground cursor-pointer"
+                className="shrink-0 text-destructive cursor-pointer"
               >
-                Sign out
+                {t.signOut}
               </button>
+              <Link
+                href="/dashboard"
+                onClick={() => setOpen(false)}
+                className="shrink-0 text-primary cursor-pointer"
+              >
+                {t.toDashboard}
+              </Link>
             </div>
           ) : (
             <button
@@ -356,7 +383,7 @@ export default function Home() {
 
       <section
         id="top"
-        className="mx-auto max-w-6xl px-5 pb-20 pt-20 sm:px-8 sm:pb-28 sm:pt-28 lg:pb-36 lg:pt-36"
+        className="mx-auto max-w-6xl px-5 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-20 lg:pb-36 lg:pt-20"
       >
         <div className="grid items-end gap-16 lg:grid-cols-[.8fr_1.2fr] lg:gap-24">
           <Reveal>
@@ -370,13 +397,24 @@ export default function Home() {
               {t.body}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
-              <a
-                href="#pricing"
-                className="inline-flex items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
-              >
-                {t.primary}
-                <ArrowUpRight className="size-4" />
-              </a>
+              {session ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+                >
+                  {t.toDashboard}
+                  <ArrowUpRight className="size-4" />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                  className="inline-flex items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+                >
+                  {t.primary}
+                  <ArrowUpRight className="size-4" />
+                </button>
+              )}
               <a
                 href="#workflow"
                 className="text-xs text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground"
@@ -590,6 +628,46 @@ export default function Home() {
           </span>
           <span>{t.footer}</span>
           <div className="flex items-center gap-4">
+            <a
+              href="https://www.instagram.com/richky_4srg"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="transition-colors hover:text-foreground"
+            >
+              <InstagramIcon className="size-3.5" />
+            </a>
+            <a
+              href="https://github.com/zannunakiz"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub"
+              className="transition-colors hover:text-foreground"
+            >
+              <GithubIcon className="size-3.5" />
+            </a>
+            <button
+              type="button"
+              onClick={() => void copyEmail()}
+              aria-label="Copy email address"
+              className="relative flex items-center gap-1.5 transition-colors hover:text-foreground"
+            >
+              <Mail className="size-3.5" />
+              <AnimatePresence mode="wait">
+                {emailCopied && (
+                  <motion.span
+                    key="email-copied"
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -2 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute right-0 bottom-full mb-2 whitespace-nowrap rounded border border-border bg-background px-2 py-1 text-2xs text-foreground shadow-sm"
+                  >
+                    {t.emailCopied}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
             <div className="flex items-center gap-2 text-xs">
               <span className={lang === 'EN' ? 'font-medium text-foreground' : 'text-muted-foreground'}>
                 EN

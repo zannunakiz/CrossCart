@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
 import {
@@ -119,16 +120,19 @@ export function MainSidebar() {
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-5">
           <Link
-            href="/dashboard"
+            href="/"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 font-bold tracking-tight text-foreground cursor-pointer group"
           >
-            <div className="flex size-7 items-center justify-center rounded bg-primary text-primary-foreground">
-              <Store className="size-4" />
+            {/* The logo art is white/transparent, so it sits on a black plate (not `bg-primary`). */}
+            <div className="flex size-7 items-center justify-center overflow-hidden rounded bg-black">
+              <Image src="/logo.png" alt="CrossCart" width={28} height={28} className="size-full object-contain" />
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-base font-semibold">
-                crosscart<span className="text-primary">.</span>
+                {/* Same treatment as `Quick` + `Store` on the /quickstore page. */}
+                <span className="text-primary">Cross</span>
+                <span className="text-foreground">Cart</span>
               </span>
               <span className="font-mono text-3xs uppercase tracking-wider text-muted-foreground mt-0.5">
                 {t("brand.adminConsole")}

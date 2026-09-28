@@ -12,7 +12,7 @@ export default function DashboardPage() {
        two cards sit centred with no extra scroll height. */
     <div className="flex flex-1 flex-col justify-center">
       <div className="mx-auto w-full max-w-3xl space-y-10">
-        <div>
+        <div className="-mt-15">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             <T k="dash.title" />
           </h1>
