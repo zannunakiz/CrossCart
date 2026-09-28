@@ -1,5 +1,6 @@
 "use client"
 
+import { motion, useReducedMotion, type Variants } from "framer-motion"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
@@ -92,6 +93,14 @@ const PAYMENT_LABELS = {
   cash: "Cash",
 } as const
 
+/**
+ * Cubic-bezier shared by every entrance in this file.
+ *
+ * Kept next to the labels (not inside the component) because the blocks below
+ * the component — the KPI card, the chart panels — animate with the same curve.
+ */
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
 export function HistoryTab({ storeId }: Props) {
   const { lang, t } = useTranslation()
   const router = useRouter()
@@ -112,6 +121,33 @@ export function HistoryTab({ storeId }: Props) {
   const [reloadToken, setReloadToken] = useState(0)
   const [searchInput, setSearchInput] = useState(query.q)
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  const shouldReduceMotion = useReducedMotion()
+
+  /*
+   * Render choreography for the whole tab.
+   *
+   * Two rules, because Framer's variant propagation is shallow: a variant label
+   * only reaches the children of the element that owns it, so a leaf sitting in a
+   * nested container (the KPI grid, the charts grid) never receives `animate` and
+   * stays at `opacity: 0` forever — which is exactly what hid the KPI row and all
+   * five chart panels. Therefore:
+   *   1. every animated element carries its own `initial`/`animate`, and
+   *   2. the cascade comes from `reveal(slot, within)` delays, not from
+   *      `staggerChildren` — `slot` is the block's place on the screen, `within`
+   *      its place inside that block (a KPI in the row, a receipt in the list).
+   */
+  const travel = shouldReduceMotion ? 0 : 12
+  const reveal = (slot: number, within = 0) =>
+    shouldReduceMotion ? 0 : Math.min(slot * 0.08 + within * 0.04, 0.6)
+  const rise = (wait = 0): Variants => ({
+    hidden: { opacity: 0, y: travel },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: shouldReduceMotion ? 0.2 : 0.4, ease: EASE_OUT, delay: wait },
+    },
+  })
 
   /** Patch the URL — callers reset `page` whenever the result set changes. */
   const updateQuery = useCallback(
@@ -212,15 +248,25 @@ export function HistoryTab({ storeId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="flex justify-center py-12"
+      >
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
+      </motion.div>
     )
   }
 
   if (error || !summary || !page) {
     return (
-      <div className="flex flex-col items-center justify-center border border-dashed border-destructive/40 bg-card py-12 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: travel }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: shouldReduceMotion ? 0.2 : 0.4, ease: EASE_OUT }}
+        className="flex flex-col items-center justify-center border border-dashed border-destructive/40 bg-card px-4 py-12 text-center"
+      >
         <p className="font-semibold text-destructive">{error ?? t("Failed to load history")}</p>
         <Button
           variant="outline"
@@ -230,7 +276,7 @@ export function HistoryTab({ storeId }: Props) {
         >
           {t("Try again")}
         </Button>
-      </div>
+      </motion.div>
     )
   }
 
@@ -240,6 +286,19 @@ export function HistoryTab({ storeId }: Props) {
     summary.totals.sales > 0
       ? formatCents(Math.round(toCents(summary.totals.revenue) / summary.totals.sales))
       : money("0")
+
+  /** The four headline numbers, in render order — one `Kpi` card each. */
+  const kpis: { id: string; label: string; value: string; meta?: string }[] = [
+    { id: "history-kpi-revenue", label: t("Revenue"), value: money(summary.totals.revenue) },
+    { id: "history-kpi-sales", label: t("Sales"), value: String(summary.totals.sales) },
+    { id: "history-kpi-items", label: t("Items sold"), value: String(summary.totals.items) },
+    {
+      id: "history-kpi-average",
+      label: t("Average sale"),
+      value: average,
+      meta: `${t("Discounts")} ${money(summary.totals.discount)}`,
+    },
+  ]
 
   const sales = page.sales
   /*
@@ -260,7 +319,12 @@ export function HistoryTab({ storeId }: Props) {
        * (instead of wrapping into three rows) and the custom dates sit right
        * below them, full width, which is what a thumb needs.
        */}
-      <div className="space-y-3">
+      <motion.div
+        variants={rise(reveal(0))}
+        initial="hidden"
+        animate="show"
+        className="space-y-3"
+      >
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:px-0">
           {HISTORY_PRESETS.map((preset) => {
             const active = query.preset === preset
@@ -284,28 +348,28 @@ export function HistoryTab({ storeId }: Props) {
         </div>
 
         {query.preset === "custom" ? (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="flex flex-1 items-center gap-2">
-              <label htmlFor="history-from" className="text-xs text-muted-foreground">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <label htmlFor="history-from" className="shrink-0 text-xs text-muted-foreground">
                 {t("From")}
               </label>
               <Input
                 id="history-from"
                 type="date"
-                className="flex-1"
+                className="min-w-0 flex-1"
                 max={query.to || undefined}
                 value={query.from}
                 onChange={(e) => updateQuery({ from: e.target.value, page: 1 })}
               />
             </div>
-            <div className="flex flex-1 items-center gap-2">
-              <label htmlFor="history-to" className="text-xs text-muted-foreground">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <label htmlFor="history-to" className="shrink-0 text-xs text-muted-foreground">
                 {t("To")}
               </label>
               <Input
                 id="history-to"
                 type="date"
-                className="flex-1"
+                className="min-w-0 flex-1"
                 min={query.from || undefined}
                 max={new Date().toISOString().slice(0, 10)}
                 value={query.to}
@@ -314,43 +378,45 @@ export function HistoryTab({ storeId }: Props) {
             </div>
           </div>
         ) : (
-          <p className="flex items-center gap-1.5 text-2xs text-muted-foreground">
-            <CalendarDays className="size-3.5" />
-            {query.from
-              ? `${dayLabel(query.from, lang)} – ${dayLabel(query.to, lang)}`
-              : t("All recorded sales")}
-            {refreshing && <Loader2 className="size-3 animate-spin" />}
+          <p className="flex min-w-0 items-center gap-1.5 text-2xs text-muted-foreground">
+            <CalendarDays className="size-3.5 shrink-0" />
+            <span className="min-w-0">
+              {query.from
+                ? `${dayLabel(query.from, lang)} – ${dayLabel(query.to, lang)}`
+                : t("All recorded sales")}
+            </span>
+            {refreshing && <Loader2 className="size-3 shrink-0 animate-spin" />}
           </p>
         )}
-      </div>
+      </motion.div>
 
       {/* KPI cards — two per row on a phone, four from `md` up. */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-        <Kpi id="history-kpi-revenue" label={t("Revenue")} value={money(summary.totals.revenue)} />
-        <Kpi id="history-kpi-sales" label={t("Sales")} value={String(summary.totals.sales)} />
-        <Kpi id="history-kpi-items" label={t("Items sold")} value={String(summary.totals.items)} />
-        <Kpi
-          id="history-kpi-average"
-          label={t("Average sale")}
-          value={average}
-          meta={`${t("Discounts")} ${money(summary.totals.discount)}`}
-        />
+        {kpis.map((kpi, index) => (
+          <Kpi key={kpi.id} {...kpi} variants={rise(reveal(1, index))} />
+        ))}
       </div>
 
 
 
       {!hasSales ? (
-        <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-14 text-center">
+        <motion.div
+          variants={rise(reveal(1))}
+          initial="hidden"
+          animate="show"
+          className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-4 py-14 text-center"
+        >
           <ReceiptIcon className="mb-3 size-8 text-muted-foreground/50" />
           <p className="font-semibold">{t("No sales in this range")}</p>
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">
             {t("Pick another date range or ring up a sale in the cashier.")}
           </p>
-        </div>
+        </motion.div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {/* Revenue trend — the headline chart, full width on every screen. */}
           <Panel
+            variants={rise(reveal(2, 0))}
             id="history-panel-revenue"
             title={t("Revenue trend")}
             hint={t(
@@ -370,14 +436,24 @@ export function HistoryTab({ storeId }: Props) {
             />
           </Panel>
 
-          <Panel id="history-panel-hours" title={t("Peak hours")} hint={t("Revenue by hour")}>
+          <Panel
+            variants={rise(reveal(2, 1))}
+            id="history-panel-hours"
+            title={t("Peak hours")}
+            hint={t("Revenue by hour")}
+          >
             <HourStrip
               hours={summary.byHour}
               label={t("No sales in this range")}
             />
           </Panel>
 
-          <Panel id="history-panel-top-items" title={t("Top items")} hint={t("Best sellers")}>
+          <Panel
+            variants={rise(reveal(2, 2))}
+            id="history-panel-top-items"
+            title={t("Top items")}
+            hint={t("Best sellers")}
+          >
             <SliceBars
               slices={summary.topItems}
               emptyLabel={t("No sales in this range")}
@@ -385,7 +461,7 @@ export function HistoryTab({ storeId }: Props) {
             />
           </Panel>
 
-          <Panel id="history-panel-payments" title={t("Payment methods")}>
+          <Panel variants={rise(reveal(2, 3))} id="history-panel-payments" title={t("Payment methods")}>
             <PaymentMix
               slices={summary.byPayment}
               emptyLabel={t("No sales in this range")}
@@ -396,7 +472,7 @@ export function HistoryTab({ storeId }: Props) {
             />
           </Panel>
 
-          <Panel id="history-panel-cashiers" title={t("Top cashiers")}>
+          <Panel variants={rise(reveal(2, 4))} id="history-panel-cashiers" title={t("Top cashiers")}>
             <SliceBars
               slices={summary.byCashier}
               emptyLabel={t("No sales in this range")}
@@ -408,16 +484,27 @@ export function HistoryTab({ storeId }: Props) {
         </div>
       )}
 
-
       {/* ── Transactions ─────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">{t("Transactions")}</h2>
-          {refreshing && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-        </div>
+        <motion.div
+          variants={rise(reveal(3))}
+          initial="hidden"
+          animate="show"
+          className="flex items-center justify-between gap-3"
+        >
+          <h2 className="min-w-0 truncate text-sm font-semibold">{t("Transactions")}</h2>
+          {refreshing && (
+            <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+          )}
+        </motion.div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+        <motion.div
+          variants={rise(reveal(3, 1))}
+          initial="hidden"
+          animate="show"
+          className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center"
+        >
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="history-search"
@@ -450,18 +537,30 @@ export function HistoryTab({ storeId }: Props) {
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </motion.div>
 
         {sales.length === 0 ? (
-          <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-12 text-center">
+          <motion.div
+            variants={rise(reveal(4))}
+            initial="hidden"
+            animate="show"
+            className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-4 py-12 text-center"
+          >
             <ReceiptIcon className="mb-3 size-8 text-muted-foreground/50" />
             <p className="font-semibold">{t("No receipts match")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
               {t("Adjust the search, status or date range.")}
             </p>
-          </div>
+          </motion.div>
         ) : (
           <ul
+            /*
+             * The list remounts with the result set (`key`), so every row replays
+             * its entrance on a page / filter change instead of the rows being
+             * swapped in place — and nothing replays while a receipt is expanded
+             * or a refresh dims the list.
+             */
+            key={apiQuery}
             className={cn(
               "divide-y divide-border overflow-hidden rounded-lg border border-border bg-card transition-opacity",
               // Receipts of the previous page while the requested one loads.
@@ -469,30 +568,36 @@ export function HistoryTab({ storeId }: Props) {
             )}
             aria-busy={stale}
           >
-            {sales.map((sale) => {
+            {sales.map((sale, index) => {
               const isOpen = expanded === sale.id
 
               return (
-                <li key={sale.id} data-testid={`history-sale-${sale.receiptNumber}`}>
+                <motion.li
+                  key={sale.id}
+                  variants={rise(reveal(4, index))}
+                  initial="hidden"
+                  animate="show"
+                  data-testid={`history-sale-${sale.receiptNumber}`}
+                >
                   <button
                     type="button"
-                    className="flex w-full cursor-pointer items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/40 sm:px-4"
+                    className="flex w-full min-w-0 cursor-pointer items-center gap-2 px-3 py-3 text-left transition-colors hover:bg-muted/40 sm:gap-3 sm:px-4"
                     aria-expanded={isOpen}
                     onClick={() => setExpanded(isOpen ? null : sale.id)}
                   >
-                    <span className="text-muted-foreground">
+                    <span className="shrink-0 text-muted-foreground">
                       <ChevronDown
                         className={`size-4 transition-transform ${isOpen ? "" : "-rotate-90"}`}
                       />
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-semibold">
+                      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="min-w-0 truncate font-mono text-xs font-semibold">
                           {sale.receiptNumber}
                         </span>
                         {sale.status !== "completed" && (
-                          <Badge variant="secondary" className="text-3xs uppercase">
+                          <Badge variant="secondary" className="shrink-0 text-3xs uppercase">
                             {sale.status}
                           </Badge>
                         )}
@@ -505,46 +610,60 @@ export function HistoryTab({ storeId }: Props) {
                       </span>
                     </span>
 
-                    <span className="shrink-0 text-sm font-semibold tabular-nums">
+                    <span className="shrink-0 text-end text-2sm font-semibold tabular-nums sm:text-sm">
                       {formatCents(toCents(sale.total))}
                     </span>
                   </button>
 
-
+                  {/*
+                   * The receipt detail opens by animating its own height, so the
+                   * rows below slide down instead of jumping — the row entrance
+                   * (`variants={rise(...)}`) is not replayed, the row never remounts.
+                   */}
                   {isOpen && (
-                    <div className="border-t border-border bg-muted/20 px-3 py-3 sm:px-4">
-                      <ul className="space-y-1.5">
-                        {sale.lines.map((line) => (
-                          <li key={line.id} className="flex items-center justify-between gap-3 text-xs">
-                            <span className="min-w-0 truncate">
-                              {line.name}
-                              <span className="text-muted-foreground">
-                                {" · "}
-                                {line.quantity} ×{" "}
-                                {formatCents(toCents(line.unitPricePaid))}
-                                {line.discountPercent > 0 && ` (−${line.discountPercent}%)`}
+                    <motion.div
+                      initial={shouldReduceMotion ? false : { height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      transition={{ duration: shouldReduceMotion ? 0.15 : 0.28, ease: EASE_OUT }}
+                      className="overflow-hidden border-t border-border bg-muted/20"
+                    >
+                      <div className="px-3 py-3 sm:px-4">
+                        <ul className="space-y-1.5">
+                          {sale.lines.map((line) => (
+                            <li
+                              key={line.id}
+                              className="flex items-center justify-between gap-2 text-xs sm:gap-3"
+                            >
+                              <span className="min-w-0 truncate">
+                                {line.name}
+                                <span className="text-muted-foreground">
+                                  {" · "}
+                                  {line.quantity} ×{" "}
+                                  {formatCents(toCents(line.unitPricePaid))}
+                                  {line.discountPercent > 0 && ` (−${line.discountPercent}%)`}
+                                </span>
                               </span>
-                            </span>
-                            <span className="shrink-0 tabular-nums">
-                              {formatCents(toCents(line.lineTotal))}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                              <span className="shrink-0 tabular-nums">
+                                {formatCents(toCents(line.lineTotal))}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
 
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-xs">
-                        <span className="text-muted-foreground">
-                          {t("Subtotal")} {formatCents(toCents(sale.subtotal))}
-                          {toCents(sale.discountTotal) > 0 &&
-                            ` · ${t("Discounts")} −${formatCents(toCents(sale.discountTotal))}`}
-                        </span>
-                        <span className="font-semibold">
-                          {t("Total")} {formatCents(toCents(sale.total))}
-                        </span>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-xs">
+                          <span className="text-muted-foreground">
+                            {t("Subtotal")} {formatCents(toCents(sale.subtotal))}
+                            {toCents(sale.discountTotal) > 0 &&
+                              ` · ${t("Discounts")} −${formatCents(toCents(sale.discountTotal))}`}
+                          </span>
+                          <span className="font-semibold">
+                            {t("Total")} {formatCents(toCents(sale.total))}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
-                </li>
+                </motion.li>
               )
             })}
           </ul>
@@ -552,12 +671,19 @@ export function HistoryTab({ storeId }: Props) {
 
         {/* Pager — only worth showing once there is more than one page. */}
         {page.total > 0 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <motion.div
+            variants={rise(reveal(5))}
+            initial="hidden"
+            animate="show"
+            className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          >
             <p className="text-xs text-muted-foreground">
               {t("{from}–{to} of {total}", { from, to, total: page.total })}
             </p>
 
-            <div className="flex items-center justify-between gap-2 sm:justify-end">
+            {/* Wraps instead of squeezing: at 320px the page-size box and the
+                two arrows do not fit on one line with the range text. */}
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
               <Select
                 value={String(query.pageSize)}
                 onValueChange={(value) => updateQuery({ pageSize: Number(value), page: 1 })}
@@ -581,7 +707,7 @@ export function HistoryTab({ storeId }: Props) {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <Button
                   id="history-prev-page"
                   type="button"
@@ -609,7 +735,7 @@ export function HistoryTab({ storeId }: Props) {
                 </Button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
@@ -627,47 +753,76 @@ function dateTime(value: string, lang: string) {
   })
 }
 
+/**
+ * One headline number.
+ *
+ * The element owns its entrance (`initial`/`animate`): it sits in a plain grid,
+ * so nothing would hand it a variant label — inheritance only reaches the
+ * children of the element that declares the label.
+ */
 function Kpi({
   id,
   label,
   value,
   meta,
+  variants,
 }: {
   id: string
   label: string
   value: string
   meta?: string
+  variants: Variants
 }) {
   return (
-    <div id={id} className="rounded-lg border border-border bg-card p-3">
-      <p className="text-2xs text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-lg font-semibold tabular-nums text-foreground">{value}</p>
+    <motion.div
+      id={id}
+      variants={variants}
+      initial="hidden"
+      animate="show"
+      className="min-w-0 rounded-lg border border-border bg-card p-2.5 sm:p-3"
+    >
+      <p className="truncate text-2xs text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-base leading-tight font-semibold tabular-nums text-foreground sm:text-lg">
+        {value}
+      </p>
       {meta && <p className="mt-0.5 truncate text-3xs text-muted-foreground">{meta}</p>}
-    </div>
+    </motion.div>
   )
 }
 
+/**
+ * A chart card. Like `Kpi` it carries its own `initial`/`animate`, so the
+ * entrance never depends on a parent container handing a variant down.
+ */
 function Panel({
   id,
   title,
   hint,
   className = "",
+  variants,
   children,
 }: {
   id: string
   title: string
   hint?: string
   className?: string
+  variants: Variants
   children: React.ReactNode
 }) {
   return (
-    <section id={id} className={`rounded-lg border border-border bg-card p-3 sm:p-4 ${className}`}>
+    <motion.section
+      id={id}
+      variants={variants}
+      initial="hidden"
+      animate="show"
+      className={`min-w-0 rounded-lg border border-border bg-card p-3 sm:p-4 ${className}`}
+    >
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {hint && <span className="text-3xs text-muted-foreground">{hint}</span>}
+        <h2 className="min-w-0 truncate text-sm font-semibold">{title}</h2>
+        {hint && <span className="shrink-0 text-3xs text-muted-foreground">{hint}</span>}
       </div>
       {children}
-    </section>
+    </motion.section>
   )
 }
 

@@ -94,7 +94,7 @@ const id: Record<keyof typeof en, string> = {
   'nav.openCashierNewTab': 'Buka kasir di tab baru',
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
-  'dash.title': 'Dasbor Ikhtisar',
+  'dash.title': 'Dasbor',
   'dash.subtitle': 'Semua yang toko mikro Anda butuhkan — item, penjualan, dan tim.',
   'dash.app.quickstore.title': 'Quick Store',
   'dash.app.quickstore.subtitle': 'Kelola toko online mikro & stok Anda',

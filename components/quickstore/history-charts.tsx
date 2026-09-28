@@ -7,7 +7,13 @@
  * bars grow from a shared baseline, scroll horizontally when a range has more
  * buckets than fit, and every bar carries a native `<title>` tooltip so the
  * numbers stay reachable on touch as well as hover.
+ *
+ * The entrance animation is part of that contract: every bar grows out of its
+ * baseline, every ranked row rises, and the delays are index-based and capped so
+ * a 30-day range still lands in well under half a second.
  */
+import { motion, useReducedMotion, type Variants } from "framer-motion"
+
 import { formatCents, toCents } from "@/lib/quickstore/cashier"
 import { dayLabel } from "@/lib/quickstore/history"
 
@@ -28,6 +34,22 @@ export interface ChartSlice {
 export type ChartGranularity = "day" | "week" | "month"
 
 const CHART_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"]
+
+/** Entrance curve, shared with the history tab so the whole screen feels alike. */
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
+
+/*
+ * The variants carry no timing on purpose: `transition` on the element would be
+ * overridden by a transition declared in a variant, and every chart element needs
+ * its own (index-based) delay.
+ */
+const growUp: Variants = { hidden: { scaleY: 0 }, show: { scaleY: 1 } }
+const growRight: Variants = { hidden: { scaleX: 0 }, show: { scaleX: 1 } }
+const fadeIn: Variants = { hidden: { opacity: 0 }, show: { opacity: 1 } }
+const riseIn: Variants = { hidden: { opacity: 0, y: 6 }, show: { opacity: 1, y: 0 } }
+
+/** Staggered entrance delay, capped so a long series never crawls in. */
+const revealDelay = (index: number, step = 0.02, max = 0.4) => Math.min(index * step, max)
 
 const money = (value: string) => formatCents(toCents(value))
 
@@ -88,9 +110,15 @@ export function fillSeries(
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="flex h-32 items-center justify-center text-xs text-muted-foreground">
+    <motion.div
+      variants={fadeIn}
+      initial="hidden"
+      animate="show"
+      transition={{ duration: 0.3, ease: EASE_OUT }}
+      className="flex h-32 items-center justify-center text-xs text-muted-foreground"
+    >
       {label}
-    </div>
+    </motion.div>
   )
 }
 
@@ -107,6 +135,8 @@ export function RevenueBars({
   lang: string
   emptyLabel: string
 }) {
+  const shouldReduceMotion = useReducedMotion()
+
   if (points.length === 0) return <EmptyChart label={emptyLabel} />
 
   const max = Math.max(...points.map((point) => toCents(point.revenue)), 1)
@@ -136,14 +166,26 @@ export function RevenueBars({
                   point.revenue
                 )} · ${point.sales}`}
               >
-                <div
-                  className={`w-full rounded-t-[3px] ${cents === 0 ? "bg-muted" : "bg-[var(--chart-1)]"}`}
+                <motion.div
+                  variants={growUp}
+                  initial={shouldReduceMotion ? false : "hidden"}
+                  animate="show"
+                  transition={{ duration: 0.45, ease: EASE_OUT, delay: revealDelay(index) }}
+                  className={`w-full origin-bottom rounded-t-[3px] ${
+                    cents === 0 ? "bg-muted" : "bg-[var(--chart-1)]"
+                  }`}
                   style={{ height: `${height}%` }}
                 />
                 {index % labelEvery === 0 && (
-                  <span className="mt-1 block truncate text-center text-3xs text-muted-foreground">
+                  <motion.span
+                    variants={fadeIn}
+                    initial={shouldReduceMotion ? false : "hidden"}
+                    animate="show"
+                    transition={{ duration: 0.3, delay: revealDelay(index) + 0.12 }}
+                    className="mt-1 block truncate text-center text-3xs text-muted-foreground"
+                  >
                     {bucketLabel(point.key, granularity, lang)}
-                  </span>
+                  </motion.span>
                 )}
               </div>
             )
@@ -163,6 +205,8 @@ export function HourStrip({
   hours: { hour: number; sales: number; revenue: string }[]
   label: string
 }) {
+  const shouldReduceMotion = useReducedMotion()
+
   if (hours.length === 0) return <EmptyChart label={label} />
 
   const byHour = new Map(hours.map((row) => [row.hour, row]))
@@ -181,8 +225,12 @@ export function HourStrip({
             className="flex h-full flex-1 flex-col justify-end"
             title={`${String(row.hour).padStart(2, "0")}:00 · ${money(row.revenue)} · ${row.sales}`}
           >
-            <div
-              className={`w-full rounded-t-[3px] ${
+            <motion.div
+              variants={growUp}
+              initial={shouldReduceMotion ? false : "hidden"}
+              animate="show"
+              transition={{ duration: 0.45, ease: EASE_OUT, delay: revealDelay(row.hour, 0.015, 0.3) }}
+              className={`w-full origin-bottom rounded-t-[3px] ${
                 toCents(row.revenue) === 0 ? "bg-muted" : "bg-[var(--chart-2)]"
               }`}
               style={{ height: `${row.height}%` }}
@@ -190,13 +238,19 @@ export function HourStrip({
           </div>
         ))}
       </div>
-      <div className="flex justify-between text-3xs text-muted-foreground">
+      <motion.div
+        variants={fadeIn}
+        initial={shouldReduceMotion ? false : "hidden"}
+        animate="show"
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="flex justify-between text-3xs text-muted-foreground"
+      >
         <span>00</span>
         <span>06</span>
         <span>12</span>
         <span>18</span>
         <span>23</span>
-      </div>
+      </motion.div>
     </div>
   )
 }
@@ -214,6 +268,8 @@ export function SliceBars({
   emptyLabel: string
   meta?: (slice: ChartSlice) => string
 }) {
+  const shouldReduceMotion = useReducedMotion()
+
   if (slices.length === 0) return <EmptyChart label={emptyLabel} />
 
   const max = Math.max(...slices.map((slice) => toCents(slice.revenue)), 1)
@@ -221,7 +277,14 @@ export function SliceBars({
   return (
     <ul className="space-y-2.5">
       {slices.map((slice, index) => (
-        <li key={`${slice.label}-${index}`} className="space-y-1">
+        <motion.li
+          key={`${slice.label}-${index}`}
+          variants={riseIn}
+          initial={shouldReduceMotion ? false : "hidden"}
+          animate="show"
+          transition={{ duration: 0.35, ease: EASE_OUT, delay: revealDelay(index, 0.04, 0.3) }}
+          className="space-y-1"
+        >
           <div className="flex items-baseline justify-between gap-3 text-xs">
             <span className="min-w-0 truncate font-medium text-foreground">
               {slice.label || "—"}
@@ -231,8 +294,12 @@ export function SliceBars({
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full"
+            <motion.div
+              variants={growRight}
+              initial={shouldReduceMotion ? false : "hidden"}
+              animate="show"
+              transition={{ duration: 0.5, ease: EASE_OUT, delay: revealDelay(index, 0.04, 0.3) }}
+              className="h-full origin-left rounded-full"
               style={{
                 width: `${Math.max(4, Math.round((toCents(slice.revenue) / max) * 100))}%`,
                 backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
@@ -240,7 +307,7 @@ export function SliceBars({
             />
           </div>
           {meta && <p className="text-3xs text-muted-foreground">{meta(slice)}</p>}
-        </li>
+        </motion.li>
       ))}
     </ul>
   )
@@ -258,6 +325,8 @@ export function PaymentMix({
   /** Localised name of a payment method (`qr`, `cash`, …). */
   methodLabel: (method: string) => string
 }) {
+  const shouldReduceMotion = useReducedMotion()
+
   if (slices.length === 0) return <EmptyChart label={emptyLabel} />
 
   const totalSales = slices.reduce((sum, slice) => sum + slice.sales, 0) || 1
@@ -266,9 +335,14 @@ export function PaymentMix({
     <div className="space-y-3">
       <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
         {slices.map((slice, index) => (
-          <div
+          <motion.div
             key={slice.label}
+            variants={growRight}
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="show"
+            transition={{ duration: 0.5, ease: EASE_OUT, delay: revealDelay(index, 0.05, 0.2) }}
             title={`${methodLabel(slice.label)} · ${slice.sales}`}
+            className="origin-left"
             style={{
               width: `${(slice.sales / totalSales) * 100}%`,
               backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
@@ -279,7 +353,14 @@ export function PaymentMix({
 
       <ul className="space-y-1.5">
         {slices.map((slice, index) => (
-          <li key={slice.label} className="flex items-center gap-2 text-xs">
+          <motion.li
+            key={slice.label}
+            variants={riseIn}
+            initial={shouldReduceMotion ? false : "hidden"}
+            animate="show"
+            transition={{ duration: 0.35, ease: EASE_OUT, delay: revealDelay(index, 0.05, 0.2) }}
+            className="flex min-w-0 items-center gap-2 text-xs"
+          >
             <span
               className="size-2 shrink-0 rounded-full"
               style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
@@ -291,7 +372,7 @@ export function PaymentMix({
             <span className="shrink-0 tabular-nums font-medium">
               {money(slice.revenue)}
             </span>
-          </li>
+          </motion.li>
         ))}
       </ul>
     </div>
