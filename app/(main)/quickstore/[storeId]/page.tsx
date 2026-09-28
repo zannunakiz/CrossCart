@@ -148,6 +148,13 @@ function StoreDetailView() {
   /** Open a tab by rewriting the query string, so the URL stays shareable. */
   const selectTab = (value: string) => {
     const params = storeTabUrlParams(new URLSearchParams(searchParams.toString()), value as StoreTab)
+    // Paging belongs to the tab that owns it: the Items and History tabs share the
+    // `page` / `limit` keys, so carrying them over would open the next tab on a
+    // page the operator never paged to. Switching tabs starts at page 1 again.
+    if (value !== tab) {
+      params.delete("page")
+      params.delete("limit")
+    }
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
   }
 

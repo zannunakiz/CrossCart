@@ -252,15 +252,17 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
                 </div>
 
                 {canEditAnything && (
-                  <Button
-                    id="settings-save-btn"
-                    type="submit"
-                    disabled={!canSave}
-                    className="w-full sm:w-auto"
-                  >
-                    {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    {t("Save Changes")}
-                  </Button>
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      id="settings-save-btn"
+                      type="submit"
+                      disabled={!canSave}
+                      className="w-full sm:w-auto"
+                    >
+                      {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                      {t("Save Changes")}
+                    </Button>
+                  </div>
                 )}
               </form>
             </CardContent>

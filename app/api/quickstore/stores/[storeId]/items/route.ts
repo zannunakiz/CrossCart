@@ -9,6 +9,10 @@
  *  - any of those params → `{ items, total, page, pageSize, totalPages }`,
  *    searched / filtered / sorted / paged in SQL so the Items table never
  *    transfers a whole catalog to render ten rows.
+ *
+ * POST refuses a name that the store already uses (case-insensitive, so
+ * "Apple" === "aPPle") with `409 { error }` — backed by the
+ * `store_items_store_name_unique` index.
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -18,13 +22,16 @@ import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { storeItems } from "@/lib/db/schema"
 import {
+  findStoreItemByName,
   getStoreItemsPage,
   getUserRole,
 } from "@/lib/quickstore/queries"
+import { isUniqueViolation } from "@/lib/quickstore/checkout"
 import { hasItemListParams, parseItemListQuery } from "@/lib/quickstore/item-list"
 import { hasPermission } from "@/lib/quickstore/permissions"
 import {
   DESCRIPTION_MAX_LENGTH,
+  ITEM_NAME_TAKEN_MESSAGE,
   NAME_MAX_LENGTH,
   isPriceInput,
   parseStockInput,
@@ -127,20 +134,34 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "discountPercent must be 0-100" }, { status: 400 })
   }
 
-  const [item] = await db
-    .insert(storeItems)
-    .values({
-      storeId,
-      userId: session.user.id,
-      name: (name as string).trim(),
-      description: description.trim(),
-      // Prices are whole numbers: store them as the canonical numeric string.
-      price: (priceToCents(String(price)) / 100).toFixed(2),
-      available: typeof available === "boolean" ? available : true,
-      stocks: parsedStocks ?? undefined,
-      discountPercent: typeof discountPercent === "number" ? discountPercent : 0,
-    })
-    .returning()
+  // Names are unique per store, case-insensitively ("Apple" === "aPPle"): this
+  // pre-check answers a friendly 409, the unique index is the hard guarantee.
+  if (await findStoreItemByName(storeId, name)) {
+    return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+  }
 
-  return NextResponse.json(item, { status: 201 })
+  try {
+    const [item] = await db
+      .insert(storeItems)
+      .values({
+        storeId,
+        userId: session.user.id,
+        name: (name as string).trim(),
+        description: description.trim(),
+        // Prices are whole numbers: store them as the canonical numeric string.
+        price: (priceToCents(String(price)) / 100).toFixed(2),
+        available: typeof available === "boolean" ? available : true,
+        stocks: parsedStocks ?? undefined,
+        discountPercent: typeof discountPercent === "number" ? discountPercent : 0,
+      })
+      .returning()
+
+    return NextResponse.json(item, { status: 201 })
+  } catch (err) {
+    // Two identical names submitted at the same instant: the index wins.
+    if (isUniqueViolation(err)) {
+      return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+    }
+    throw err
+  }
 }

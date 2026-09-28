@@ -609,6 +609,7 @@ const serverMessageId: Record<string, string> = {
   'Item not found': 'Item tidak ditemukan',
   'Item name is required': 'Nama item wajib diisi',
   'Item name cannot be empty': 'Nama item tidak boleh kosong',
+  'An item with this name already exists': 'Item dengan nama ini sudah ada',
   'Name must be 20 characters or less': 'Nama maksimal 20 karakter',
   'Description is required': 'Deskripsi wajib diisi',
   'Description must be 100 characters or less': 'Deskripsi maksimal 100 karakter',

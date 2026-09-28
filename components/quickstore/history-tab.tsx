@@ -23,6 +23,7 @@ import {
   type ChartPoint,
   type ChartSlice,
 } from "@/components/quickstore/history-charts"
+import { usePageSync } from "@/components/quickstore/use-page-sync"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -45,6 +46,7 @@ import {
   tzOffsetMinutes,
   type HistoryStatus,
 } from "@/lib/quickstore/history"
+import { cn } from "@/lib/utils"
 
 interface Props {
   storeId: string
@@ -126,6 +128,15 @@ export function HistoryTab({ storeId }: Props) {
   )
 
   // ── Fetching ───────────────────────────────────────────────────────────────
+  /*
+   * Same contract as the Items tab: `stale` dims the previous page while the
+   * requested one loads (the pager already points at it), and a page the server
+   * had to clamp is mirrored back into the URL.
+   */
+  const { markLoaded, stale } = usePageSync(apiQuery, query.page, page, (next) =>
+    updateQuery({ page: next })
+  )
+
   // Two requests per view: the SQL summary that feeds the charts and one page of
   // receipts. Neither ever pulls the whole history into the browser.
   useEffect(() => {
@@ -163,6 +174,8 @@ export function HistoryTab({ storeId }: Props) {
         if (!active) return
         setSummary(summaryData)
         setPage(pageData)
+        // These receipts answer the request this URL asked for.
+        markLoaded(apiQuery)
         setError(null)
       })
       .catch((err: unknown) => {
@@ -182,7 +195,7 @@ export function HistoryTab({ storeId }: Props) {
       active = false
       controller.abort()
     }
-  }, [storeId, apiQuery, reloadToken, lang, t])
+  }, [storeId, apiQuery, reloadToken, lang, t, markLoaded])
 
   // Keep the search box in sync when the URL changes elsewhere.
   useEffect(() => {
@@ -196,12 +209,6 @@ export function HistoryTab({ storeId }: Props) {
     const id = setTimeout(() => updateQuery({ q: searchInput.trim(), page: 1 }), 350)
     return () => clearTimeout(id)
   }, [searchInput, query.q, updateQuery])
-
-  // A shared link can point past the last page: the API clamps, we mirror it.
-  useEffect(() => {
-    if (!page || page.total === 0 || page.page === query.page) return
-    updateQuery({ page: page.page })
-  }, [page, query.page, updateQuery])
 
   if (loading) {
     return (
@@ -235,8 +242,14 @@ export function HistoryTab({ storeId }: Props) {
       : money("0")
 
   const sales = page.sales
-  const from = page.total === 0 ? 0 : (page.page - 1) * page.pageSize + 1
-  const to = Math.min(page.page * page.pageSize, page.total)
+  /*
+   * While the next page loads the list still shows the previous receipts, but the
+   * pager already points at the page the URL asks for (never past the last known
+   * page), so the click feels instant.
+   */
+  const shownPage = Math.min(stale ? query.page : page.page, page.totalPages)
+  const from = page.total === 0 ? 0 : (shownPage - 1) * page.pageSize + 1
+  const to = Math.min(shownPage * page.pageSize, page.total)
   const hasSales = summary.totals.sales > 0
 
 
@@ -443,7 +456,14 @@ export function HistoryTab({ storeId }: Props) {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          <ul
+            className={cn(
+              "divide-y divide-border overflow-hidden rounded-lg border border-border bg-card transition-opacity",
+              // Receipts of the previous page while the requested one loads.
+              stale && "opacity-60"
+            )}
+            aria-busy={stale}
+          >
             {sales.map((sale) => {
               const isOpen = expanded === sale.id
 
@@ -561,13 +581,13 @@ export function HistoryTab({ storeId }: Props) {
                   variant="outline"
                   size="icon-sm"
                   aria-label={t("Previous")}
-                  disabled={page.page <= 1 || refreshing}
-                  onClick={() => updateQuery({ page: page.page - 1 })}
+                  disabled={shownPage <= 1 || refreshing}
+                  onClick={() => updateQuery({ page: shownPage - 1 })}
                 >
                   <ChevronLeft className="size-3.5" />
                 </Button>
                 <span className="px-1 text-xs tabular-nums text-muted-foreground">
-                  {t("Page {page} of {pages}", { page: page.page, pages: page.totalPages })}
+                  {t("Page {page} of {pages}", { page: shownPage, pages: page.totalPages })}
                 </span>
                 <Button
                   id="history-next-page"
@@ -575,8 +595,8 @@ export function HistoryTab({ storeId }: Props) {
                   variant="outline"
                   size="icon-sm"
                   aria-label={t("Next")}
-                  disabled={page.page >= page.totalPages || refreshing}
-                  onClick={() => updateQuery({ page: page.page + 1 })}
+                  disabled={shownPage >= page.totalPages || refreshing}
+                  onClick={() => updateQuery({ page: shownPage + 1 })}
                 >
                   <ChevronRight className="size-3.5" />
                 </Button>

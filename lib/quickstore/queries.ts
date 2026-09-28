@@ -2,7 +2,7 @@
  * Server-side QuickStore query helpers.
  * Import only in API routes / Server Components.
  */
-import { and, count, desc, eq, gte, ilike, isNull, lt, or, sql } from "drizzle-orm"
+import { and, count, desc, eq, gte, ilike, isNull, lt, ne, or, sql } from "drizzle-orm"
 import type { AnyColumn } from "drizzle-orm"
 
 import { db } from "@/lib/db"
@@ -418,5 +418,33 @@ export async function getStoreItemsPage(
   })
 
   return { items, total, page, pageSize, totalPages }
+}
+
+/**
+ * Is this name already taken in the store? Case-insensitive, mirroring the
+ * `store_items_store_name_unique` index — "Apple" and "aPPle" are the same item.
+ *
+ * `excludeItemId` lets an edit keep its own name. Answers the clashing item's id
+ * (or `null`), so a caller can turn it into a friendly 409 `{ error }` instead of
+ * leaking a raw unique-violation.
+ */
+export async function findStoreItemByName(
+  storeId: string,
+  name: string,
+  excludeItemId?: string
+): Promise<string | null> {
+  const [clash] = await db
+    .select({ id: storeItems.id })
+    .from(storeItems)
+    .where(
+      and(
+        eq(storeItems.storeId, storeId),
+        sql`lower(${storeItems.name}) = ${name.trim().toLowerCase()}`,
+        excludeItemId ? ne(storeItems.id, excludeItemId) : undefined
+      )
+    )
+    .limit(1)
+
+  return clash?.id ?? null
 }
 

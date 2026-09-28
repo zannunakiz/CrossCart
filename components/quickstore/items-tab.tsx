@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner"
 
 import { ItemDialog } from "@/components/quickstore/item-dialog"
+import { usePageSync } from "@/components/quickstore/use-page-sync"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +44,7 @@ import {
   type ItemSortKey,
 } from "@/lib/quickstore/item-list"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { cn } from "@/lib/utils"
 
 interface Props {
   storeId: string
@@ -121,6 +123,16 @@ export function ItemsTab({ storeId, role }: Props) {
   )
 
   // ── Fetching ───────────────────────────────────────────────────────────────
+  /*
+   * `usePageSync` keeps the URL honest: `stale` marks the rows below as older
+   * than what the URL asks for (a page still loading) so they can be dimmed while
+   * the pager already points at the new page, and a page the server had to clamp
+   * (a shared link past the end) is mirrored back into the URL.
+   */
+  const { markLoaded, stale } = usePageSync(apiQuery, query.page, data, (page) =>
+    updateQuery({ page })
+  )
+
   // One request per page: the server searches, filters, sorts and counts, so a
   // store with thousands of items never ships its whole catalog to the browser.
   useEffect(() => {
@@ -141,6 +153,8 @@ export function ItemsTab({ storeId, role }: Props) {
       .then((page) => {
         if (!active) return
         setData(page)
+        // Tells `usePageSync` these rows answer the request this URL asked for.
+        markLoaded(apiQuery)
       })
       .catch((err: unknown) => {
         if (!active || (err instanceof DOMException && err.name === "AbortError")) return
@@ -157,7 +171,7 @@ export function ItemsTab({ storeId, role }: Props) {
       active = false
       controller.abort()
     }
-  }, [storeId, apiQuery, reloadToken, lang, t])
+  }, [storeId, apiQuery, reloadToken, lang, t, markLoaded])
 
   // Keep the box in sync when the URL changes elsewhere (back button, reset).
   useEffect(() => {
@@ -171,13 +185,6 @@ export function ItemsTab({ storeId, role }: Props) {
     const id = setTimeout(() => updateQuery({ q: searchInput.trim(), page: 1 }), 350)
     return () => clearTimeout(id)
   }, [searchInput, query.q, updateQuery])
-
-  // A shared link can point past the last page; the API answers the last real
-  // page, so mirror it back and the URL and the pager can never disagree.
-  useEffect(() => {
-    if (!data || data.total === 0 || data.page === query.page) return
-    updateQuery({ page: data.page })
-  }, [data, query.page, updateQuery])
 
   // ── Row actions ────────────────────────────────────────────────────────────
   const openCreate = () => {
@@ -242,8 +249,14 @@ export function ItemsTab({ storeId, role }: Props) {
   const total = data?.total ?? 0
   const totalPages = data?.totalPages ?? 1
   const currentPage = data?.page ?? 1
-  const from = total === 0 ? 0 : (currentPage - 1) * (data?.pageSize ?? 0) + 1
-  const to = Math.min(currentPage * (data?.pageSize ?? 0), total)
+  /*
+   * While the next page is loading the rows are still the previous ones, but the
+   * pager already points at the page the URL asks for (never past the last known
+   * page), so a click feels instant instead of lagging a request behind.
+   */
+  const shownPage = Math.min(stale ? query.page : currentPage, totalPages)
+  const from = total === 0 ? 0 : (shownPage - 1) * (data?.pageSize ?? 0) + 1
+  const to = Math.min(shownPage * (data?.pageSize ?? 0), total)
   const narrowed = query.q !== "" || query.availability !== "all"
 
   return (
@@ -370,7 +383,14 @@ export function ItemsTab({ storeId, role }: Props) {
            * description, price, its discount, stock and sales) lives in the
            * first cell, the row actions in the second.
            */}
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div
+            className={cn(
+              "overflow-hidden rounded-lg border border-border bg-card transition-opacity",
+              // Rows of the previous page while the requested one loads.
+              stale && "opacity-60"
+            )}
+            aria-busy={stale}
+          >
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -537,13 +557,13 @@ export function ItemsTab({ storeId, role }: Props) {
                   variant="outline"
                   size="icon-sm"
                   aria-label={t("Previous")}
-                  disabled={currentPage <= 1 || refreshing}
-                  onClick={() => updateQuery({ page: currentPage - 1 })}
+                  disabled={shownPage <= 1 || refreshing}
+                  onClick={() => updateQuery({ page: shownPage - 1 })}
                 >
                   <ChevronLeft className="size-3.5" />
                 </Button>
                 <span className="px-1 text-xs tabular-nums text-muted-foreground">
-                  {t("Page {page} of {pages}", { page: currentPage, pages: totalPages })}
+                  {t("Page {page} of {pages}", { page: shownPage, pages: totalPages })}
                 </span>
                 <Button
                   id="items-next-page"
@@ -551,8 +571,8 @@ export function ItemsTab({ storeId, role }: Props) {
                   variant="outline"
                   size="icon-sm"
                   aria-label={t("Next")}
-                  disabled={currentPage >= totalPages || refreshing}
-                  onClick={() => updateQuery({ page: currentPage + 1 })}
+                  disabled={shownPage >= totalPages || refreshing}
+                  onClick={() => updateQuery({ page: shownPage + 1 })}
                 >
                   <ChevronRight className="size-3.5" />
                 </Button>

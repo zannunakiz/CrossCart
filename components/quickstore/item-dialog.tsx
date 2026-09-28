@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -21,6 +21,7 @@ import type { StoreItem } from "@/lib/db/schema"
 import { serverText, useTranslation } from "@/lib/i18n"
 import {
   DESCRIPTION_MAX_LENGTH,
+  MAX_DISCOUNT_PERCENT,
   MAX_STOCKS,
   NAME_MAX_LENGTH,
   PRICE_MAX_DIGITS,
@@ -29,6 +30,17 @@ import {
   priceDigits,
   toCents,
 } from "@/lib/quickstore/cashier"
+
+/**
+ * Digit ceiling of each numeric box, derived from its own max so the input can
+ * never hold more digits than the value is allowed to have: 999 → 3, 100 → 3.
+ */
+const MAX_STOCK_DIGITS = String(MAX_STOCKS).length
+const MAX_DISCOUNT_DIGITS = String(MAX_DISCOUNT_PERCENT).length
+
+/** Digits only, capped at `maxDigits` (pastes and spinners included). */
+const limitDigits = (value: string, maxDigits: number) =>
+  value.replace(/\D/g, "").slice(0, maxDigits)
 
 interface Props {
   open: boolean
@@ -50,6 +62,10 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
   const [stocks, setStocks] = useState(item?.stocks != null ? String(item.stocks) : "")
   const [discountPercent, setDiscountPercent] = useState(String(item?.discountPercent ?? 0))
   const [submitting, setSubmitting] = useState(false)
+  // Bumped after a successful "Add Item": the name box below is (re)focused once
+  // the request finished, so the next item can be typed without reaching for it.
+  const [focusToken, setFocusToken] = useState(0)
+  const nameRef = useRef<HTMLInputElement>(null)
 
   /**
    * Re-hydrate the draft every time the dialog opens: the table reuses one
@@ -67,6 +83,15 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
     setDiscountPercent(String(item?.discountPercent ?? 0))
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, item])
+
+  /**
+   * Focus the name box after a successful add. The effect runs once React has
+   * committed, which matters because the input is `disabled` while `submitting`.
+   */
+  useEffect(() => {
+    if (focusToken === 0 || submitting) return
+    nameRef.current?.focus()
+  }, [focusToken, submitting])
 
   const reset = () => {
     setName("")
@@ -123,8 +148,20 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
       if (!res.ok) throw new Error((await res.json()).error ?? t("Save failed"))
       const saved = await res.json()
       onSaved(saved)
-      onOpenChange(false)
-      if (!isEdit) reset()
+      if (isEdit) {
+        // Editing is a one-off: the form is closed after a successful save.
+        onOpenChange(false)
+        return
+      }
+
+      /*
+       * Bulk entry: the dialog stays open, the table refreshes behind it
+       * (`onSaved`) and ONLY the name is cleared — every other field keeps the
+       * value just submitted, so repeating an item with the same settings is a
+       * single retype of the name.
+       */
+      setName("")
+      setFocusToken((token) => token + 1)
     } catch (err) {
       toast.error(err instanceof Error ? serverText(lang, err.message) : t("Something went wrong"))
     } finally {
@@ -178,6 +215,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             </Label>
             <Input
               id="item-name"
+              ref={nameRef}
               placeholder={t("e.g. Kopi Susu")}
               maxLength={NAME_MAX_LENGTH}
               value={name}
@@ -234,12 +272,15 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
               <Label htmlFor="item-stocks">{t("Stocks (leave blank = unlimited)")}</Label>
               <Input
                 id="item-stocks"
-                type="number"
-                min="0"
-                max={MAX_STOCKS}
+                // Text + digit filter (not `type="number"`, which ignores
+                // `maxLength`): 3 digits, because 999 is the ceiling. A blank
+                // value still means "unlimited".
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={MAX_STOCK_DIGITS}
                 placeholder="∞"
                 value={stocks}
-                onChange={(e) => setStocks(e.target.value)}
+                onChange={(e) => setStocks(limitDigits(e.target.value, MAX_STOCK_DIGITS))}
                 aria-invalid={!stockValid}
                 disabled={submitting}
               />
@@ -255,11 +296,13 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
               </Label>
               <Input
                 id="item-discount"
-                type="number"
-                min="0"
-                max="100"
+                // Same digit-filtered pattern as Stocks: 3 digits, since 100 is
+                // the ceiling.
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={MAX_DISCOUNT_DIGITS}
                 value={discountPercent}
-                onChange={(e) => setDiscountPercent(e.target.value)}
+                onChange={(e) => setDiscountPercent(limitDigits(e.target.value, MAX_DISCOUNT_DIGITS))}
                 aria-invalid={!discountValid}
                 disabled={submitting}
               />

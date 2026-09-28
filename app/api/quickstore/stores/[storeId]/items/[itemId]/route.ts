@@ -1,6 +1,9 @@
 /**
  * PUT    /api/quickstore/stores/[storeId]/items/[itemId]  — edit item
  * DELETE /api/quickstore/stores/[storeId]/items/[itemId]  — delete item
+ *
+ * PUT also enforces the per-store name rule: renaming to a name another item
+ * already uses (case-insensitively) answers `409 { error }`.
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -9,10 +12,12 @@ import { and, eq } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { storeItems } from "@/lib/db/schema"
-import { getUserRole } from "@/lib/quickstore/queries"
+import { findStoreItemByName, getUserRole } from "@/lib/quickstore/queries"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { isUniqueViolation } from "@/lib/quickstore/checkout"
 import {
   DESCRIPTION_MAX_LENGTH,
+  ITEM_NAME_TAKEN_MESSAGE,
   NAME_MAX_LENGTH,
   isPriceInput,
   parseStockInput,
@@ -96,6 +101,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "discountPercent must be 0-100" }, { status: 400 })
   }
 
+  // Changing the name must not collide with a sibling item — same rule as create
+  // ("Apple" === "aPPle"), compared only when the name actually changes so a
+  // plain price / stock edit of an unchanged name stays free.
+  if (name !== undefined && (name as string).trim() !== existing.name) {
+    if (await findStoreItemByName(storeId, name as string, itemId)) {
+      return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+    }
+  }
+
   const updateData: Record<string, unknown> = { updatedAt: new Date() }
   if (name !== undefined) updateData.name = (name as string).trim()
   if (description !== undefined) updateData.description = (description as string).trim()
@@ -106,13 +120,21 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (stocks !== undefined) updateData.stocks = parsedStocks
   if (discountPercent !== undefined) updateData.discountPercent = discountPercent
 
-  const [updated] = await db
-    .update(storeItems)
-    .set(updateData)
-    .where(and(eq(storeItems.id, itemId), eq(storeItems.storeId, storeId)))
-    .returning()
+  try {
+    const [updated] = await db
+      .update(storeItems)
+      .set(updateData)
+      .where(and(eq(storeItems.id, itemId), eq(storeItems.storeId, storeId)))
+      .returning()
 
-  return NextResponse.json(updated)
+    return NextResponse.json(updated)
+  } catch (err) {
+    // Lost the race against a sibling insert/rename of the same name.
+    if (isUniqueViolation(err)) {
+      return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+    }
+    throw err
+  }
 }
 
 // ── DELETE ───────────────────────────────────────────────────────────────────

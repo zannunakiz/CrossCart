@@ -78,6 +78,13 @@
       "when": 1790596954456,
       "tag": "0010_quickstore_items_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790601625033,
+      "tag": "0011_blushing_shaman",
+      "breakpoints": true
     }
   ]
 }

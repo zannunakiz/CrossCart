@@ -39,9 +39,20 @@ export const PRICE_MAX_DIGITS = 12
 /** Tracked stock ceiling (a blank stock still means unlimited). */
 export const MAX_STOCKS = 999
 
+/** Line discount ceiling in percent (mirrors the `store_items` check constraint). */
+export const MAX_DISCOUNT_PERCENT = 100
+
 /** Ceiling of a description / item name, mirrored by the API validators. */
 export const DESCRIPTION_MAX_LENGTH = 50
 export const NAME_MAX_LENGTH = 20
+
+/**
+ * Answer of the items API when the store already owns that name. Names are
+ * unique per store and case-insensitive, so "Apple" and "aPPle" clash — the rule
+ * lives in the `store_items_store_name_unique` index and is mirrored on the
+ * client by `serverText` (see `lib/i18n.ts`).
+ */
+export const ITEM_NAME_TAKEN_MESSAGE = "An item with this name already exists"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

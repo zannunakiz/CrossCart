@@ -228,6 +228,13 @@ export const storeItems = pgTable("store_items", {
 }, (t) => [
   /** Every catalog read is store-scoped (cashier, items tab, voice context). */
   index("store_items_store_idx").on(t.storeId),
+  /**
+   * Item names are unique inside one store, case-insensitively: "Apple" and
+   * "aPPle" are the same product. Functional index (`lower(name)`) puts the rule
+   * in the database, so it also catches the race between two concurrent inserts
+   * that a pre-check alone can miss.
+   */
+  uniqueIndex("store_items_store_name_unique").on(t.storeId, sql`lower(${t.name})`),
   /** Free stock (NULL) is always allowed; a tracked stock stays within 0-999. */
   check(
     "store_items_stocks_range",
