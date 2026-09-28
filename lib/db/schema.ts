@@ -3,7 +3,6 @@ import {
   check,
   index,
   integer,
-  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -433,94 +432,3 @@ export const usersRelations = relations(users, ({ many }) => ({
   sales: many(qsHistory),
 }))
 
-// POS — restaurant-grade ordering domain. This is deliberately separate from
-// QuickStore: orders may be started by anonymous guests and progress through a
-// kitchen workflow before a cashier records payment.
-export const posCurrencyEnum = pgEnum("pos_currency", ["IDR", "USD"])
-export const posMemberRoleEnum = pgEnum("pos_member_role", ["owner", "manager", "cashier", "kitchen", "inventory", "viewer"])
-export const posOrderStatusEnum = pgEnum("pos_order_status", ["draft", "submitted", "accepted", "preparing", "ready", "completed", "cancelled", "expired"])
-export const posPaymentStatusEnum = pgEnum("pos_payment_status", ["unpaid", "pending_confirmation", "paid", "voided"])
-export const posInviteStatusEnum = pgEnum("pos_invite_status", ["pending", "accepted", "revoked", "expired"])
-export const posStockMovementEnum = pgEnum("pos_stock_movement", ["opening", "adjustment", "sale", "return", "waste"])
-
-export const posStores = pgTable("pos_stores", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  ownerId: text("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }),
-  slug: varchar("slug", { length: 48 }).notNull(),
-  name: varchar("name", { length: 20 }).notNull(),
-  description: varchar("description", { length: 100 }),
-  imageUrl: text("image_url"),
-  telephone: varchar("telephone", { length: 24 }),
-  address: varchar("address", { length: 240 }),
-  currency: posCurrencyEnum("currency").notNull().default("IDR"),
-  timezone: varchar("timezone", { length: 64 }).notNull().default("Asia/Jakarta"),
-  isOpen: boolean("is_open").notNull().default(true),
-  orderTokenVersion: integer("order_token_version").notNull().default(1),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("pos_stores_slug_unique").on(t.slug), index("pos_stores_owner_idx").on(t.ownerId)])
-
-export const posRoles = pgTable("pos_roles", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 48 }).notNull(),
-  systemRole: posMemberRoleEnum("system_role"),
-  permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("pos_roles_store_name_unique").on(t.storeId, t.name)])
-
-export const posMembers = pgTable("pos_members", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  roleId: uuid("role_id").notNull().references(() => posRoles.id, { onDelete: "restrict" }),
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("pos_members_store_user_unique").on(t.storeId, t.userId), index("pos_members_user_idx").on(t.userId)])
-
-export const posInvites = pgTable("pos_invites", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "cascade" }),
-  roleId: uuid("role_id").notNull().references(() => posRoles.id, { onDelete: "restrict" }),
-  email: varchar("email", { length: 320 }).notNull(),
-  tokenHash: varchar("token_hash", { length: 128 }).notNull(),
-  status: posInviteStatusEnum("status").notNull().default("pending"),
-  invitedBy: text("invited_by").notNull().references(() => users.id, { onDelete: "restrict" }),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("pos_invites_token_unique").on(t.tokenHash), index("pos_invites_store_email_idx").on(t.storeId, t.email), index("pos_invites_expiry_idx").on(t.status, t.expiresAt)])
-
-export const posCategories = pgTable("pos_categories", {
-  id: uuid("id").primaryKey().defaultRandom(), storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 48 }).notNull(), description: varchar("description", { length: 140 }), imageUrl: text("image_url"),
-  sortOrder: integer("sort_order").notNull().default(0), active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("pos_categories_store_name_unique").on(t.storeId, t.name), index("pos_categories_store_active_idx").on(t.storeId, t.active, t.sortOrder)])
-
-export const posItems = pgTable("pos_items", {
-  id: uuid("id").primaryKey().defaultRandom(), storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "cascade" }), categoryId: uuid("category_id").references(() => posCategories.id, { onDelete: "set null" }),
-  sku: varchar("sku", { length: 64 }), name: varchar("name", { length: 80 }).notNull(), description: varchar("description", { length: 500 }), imageUrl: text("image_url"),
-  price: numeric("price", { precision: 18, scale: 2 }).notNull(), available: boolean("available").notNull().default(true), trackStock: boolean("track_stock").notNull().default(true), stockOnHand: integer("stock_on_hand").notNull().default(0), lowStockAt: integer("low_stock_at").notNull().default(0), prepStation: varchar("prep_station", { length: 48 }), version: integer("version").notNull().default(1),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(), deletedAt: timestamp("deleted_at", { withTimezone: true }),
-}, (t) => [uniqueIndex("pos_items_store_sku_unique").on(t.storeId, t.sku), index("pos_items_catalog_idx").on(t.storeId, t.available, t.categoryId), index("pos_items_stock_idx").on(t.storeId, t.trackStock, t.stockOnHand), check("pos_items_nonnegative_stock", sql`${t.stockOnHand} >= 0`)])
-
-export const posOrders = pgTable("pos_orders", {
-  id: uuid("id").primaryKey().defaultRandom(), storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "restrict" }),
-  orderNumber: varchar("order_number", { length: 32 }).notNull(), accessCode: varchar("access_code", { length: 12 }).notNull(), customerName: varchar("customer_name", { length: 80 }).notNull(), status: posOrderStatusEnum("status").notNull().default("draft"), paymentStatus: posPaymentStatusEnum("payment_status").notNull().default("unpaid"),
-  currency: posCurrencyEnum("currency").notNull(), subtotal: numeric("subtotal", { precision: 18, scale: 2 }).notNull().default("0"), total: numeric("total", { precision: 18, scale: 2 }).notNull().default("0"), note: varchar("note", { length: 500 }), version: integer("version").notNull().default(1), cashierId: text("cashier_id").references(() => users.id, { onDelete: "set null" }), paidAt: timestamp("paid_at", { withTimezone: true }), codeUsedAt: timestamp("code_used_at", { withTimezone: true }), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex("pos_orders_store_number_unique").on(t.storeId, t.orderNumber), uniqueIndex("pos_orders_access_code_unique").on(t.accessCode), index("pos_orders_kitchen_queue_idx").on(t.storeId, t.status, t.createdAt), index("pos_orders_cashier_lookup_idx").on(t.storeId, t.accessCode)])
-
-export const posOrderItems = pgTable("pos_order_items", {
-  id: uuid("id").primaryKey().defaultRandom(), orderId: uuid("order_id").notNull().references(() => posOrders.id, { onDelete: "cascade" }), itemId: uuid("item_id").references(() => posItems.id, { onDelete: "set null" }), nameSnapshot: varchar("name_snapshot", { length: 80 }).notNull(), unitPrice: numeric("unit_price", { precision: 18, scale: 2 }).notNull(), quantity: integer("quantity").notNull(), modifiers: jsonb("modifiers").$type<{ name: string; price: string }[]>().notNull().default([]), note: varchar("note", { length: 240 }), lineTotal: numeric("line_total", { precision: 18, scale: 2 }).notNull(), prepStatus: posOrderStatusEnum("prep_status").notNull().default("submitted"), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [index("pos_order_items_order_idx").on(t.orderId), index("pos_order_items_item_idx").on(t.itemId), check("pos_order_items_positive_quantity", sql`${t.quantity} > 0`)])
-
-export const posStockMovements = pgTable("pos_stock_movements", {
-  id: uuid("id").primaryKey().defaultRandom(), storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "restrict" }), itemId: uuid("item_id").notNull().references(() => posItems.id, { onDelete: "restrict" }), orderId: uuid("order_id").references(() => posOrders.id, { onDelete: "set null" }), type: posStockMovementEnum("type").notNull(), quantityDelta: integer("quantity_delta").notNull(), balanceAfter: integer("balance_after").notNull(), reason: varchar("reason", { length: 240 }), actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [index("pos_stock_movements_item_created_idx").on(t.itemId, t.createdAt.desc()), index("pos_stock_movements_order_idx").on(t.orderId)])
-
-export const posAuditLogs = pgTable("pos_audit_logs", {
-  id: uuid("id").primaryKey().defaultRandom(), storeId: uuid("store_id").notNull().references(() => posStores.id, { onDelete: "restrict" }), actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }), action: varchar("action", { length: 80 }).notNull(), entityType: varchar("entity_type", { length: 48 }).notNull(), entityId: uuid("entity_id"), payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [index("pos_audit_logs_store_created_idx").on(t.storeId, t.createdAt.desc()), index("pos_audit_logs_entity_idx").on(t.entityType, t.entityId)])
-
-export type PosPermission = "store:manage" | "catalog:read" | "catalog:write" | "order:read" | "order:create" | "order:manage" | "payment:collect" | "kitchen:read" | "kitchen:update" | "inventory:read" | "inventory:write" | "member:manage" | "report:read"

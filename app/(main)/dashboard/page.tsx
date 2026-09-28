@@ -8,7 +8,9 @@ export const metadata = {
 
 export default function DashboardPage() {
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col justify-center">
+    /* `flex-1` fills the content area exactly (see `(main)/layout.tsx`), so the
+       two cards sit centred with no extra scroll height. */
+    <div className="flex flex-1 flex-col justify-center">
       <div className="mx-auto w-full max-w-3xl space-y-10">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">

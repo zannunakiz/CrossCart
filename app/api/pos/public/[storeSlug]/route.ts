@@ -1,6 +1,0 @@
-import { and, asc, eq, isNull } from "drizzle-orm"
-import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { posCategories, posItems, posStores } from "@/lib/db/schema"
-export const runtime = "nodejs"
-export async function GET(_: Request, { params }: { params: Promise<{ storeSlug: string }> }) { const { storeSlug } = await params; const [store] = await db.select({ id: posStores.id, name: posStores.name, description: posStores.description, currency: posStores.currency, isOpen: posStores.isOpen }).from(posStores).where(eq(posStores.slug, storeSlug)).limit(1); if (!store) return NextResponse.json({ error: "Store not found" }, { status: 404 }); const items = await db.select({ id: posItems.id, name: posItems.name, description: posItems.description, imageUrl: posItems.imageUrl, price: posItems.price, stock: posItems.stockOnHand, trackStock: posItems.trackStock, category: posCategories.name }).from(posItems).leftJoin(posCategories, eq(posItems.categoryId, posCategories.id)).where(and(eq(posItems.storeId, store.id), eq(posItems.available, true), isNull(posItems.deletedAt))).orderBy(asc(posCategories.sortOrder), asc(posItems.name)); return NextResponse.json({ store, items }, { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } }) }

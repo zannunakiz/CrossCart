@@ -224,7 +224,7 @@ function StoreDetailView() {
         </div>
       </div>
 
-      {/* Tabs — same underlined nav as POS so both screens stay identical. */}
+      {/* Tabs — the shared underlined nav, so every store screen looks the same. */}
       <TabUrlSync tab={tab} />
       <TabNav
         items={tabItems}

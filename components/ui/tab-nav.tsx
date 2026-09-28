@@ -16,11 +16,11 @@ export type TabNavItem = {
 }
 
 /**
- * Underlined tab strip shared by POS and Quick Store.
+ * Underlined tab strip shared by the Quick Store screens.
  *
- * Keeping the markup in one place is what makes both screens identical: same
+ * Keeping the markup in one place is what makes every screen identical: same
  * paddings, icon size, hover colour and spring-animated underline.
- * `href` tabs navigate (POS), `value` tabs call `onSelect` (Quick Store).
+ * `href` tabs navigate, `value` tabs call `onSelect`.
  */
 export function TabNav({
   items,

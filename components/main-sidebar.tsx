@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
-  ShoppingCart,
   Store,
   Sun,
   X,
@@ -47,7 +46,6 @@ const navGroups: NavGroup[] = [
     labelKey: "nav.group.apps",
     items: [
       { titleKey: "nav.dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { titleKey: "nav.pos", href: "/pos", icon: ShoppingCart, badgeKey: "nav.badge.live" },
       { titleKey: "nav.quickstore", href: "/quickstore", icon: Store },
     ],
   },
