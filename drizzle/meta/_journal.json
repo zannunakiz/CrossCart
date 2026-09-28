@@ -64,6 +64,27 @@
       "when": 1790506678392,
       "tag": "0008_tricky_mattie_franklin",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790585958662,
+      "tag": "0009_sudden_pixie",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790596954456,
+      "tag": "0010_quickstore_items_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790601625033,
+      "tag": "0011_blushing_shaman",
+      "breakpoints": true
     }
   ]
 }

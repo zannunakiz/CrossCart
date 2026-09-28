@@ -82,7 +82,7 @@ const en = {
   'qs.empty.cta': 'Create Store',
   'qs.open': 'Open',
   'qs.closed': 'Closed',
-  'qs.openLink': 'Open →',
+  'qs.openLink': 'Enter →',
   'qs.loadFailed': 'Failed to load stores',
   'qs.created': 'Store "{name}" created!',
 
@@ -170,7 +170,7 @@ const id: Record<keyof typeof en, string> = {
   'qs.empty.cta': 'Buat Toko',
   'qs.open': 'Buka',
   'qs.closed': 'Tutup',
-  'qs.openLink': 'Buka →',
+  'qs.openLink': 'Masuk →',
   'qs.loadFailed': 'Gagal memuat daftar toko',
   'qs.created': 'Toko "{name}" berhasil dibuat!',
 
@@ -194,8 +194,10 @@ const id: Record<keyof typeof en, string> = {
 
 const phraseId = {
   // ── Common ────────────────────────────────────────────────────────────────
+  Add: 'Tambah',
   Cancel: 'Batal',
   Delete: 'Hapus',
+  'Delete?': 'Hapus?',
   Edit: 'Ubah',
   'Try again': 'Coba lagi',
   Yes: 'Ya',
@@ -204,6 +206,7 @@ const phraseId = {
   Subtotal: 'Subtotal',
   Discounts: 'Diskon',
   Cashier: 'Kasir',
+  'To Cashier': 'Ke Kasir',
   Open: 'Buka',
   Closed: 'Tutup',
   Name: 'Nama',
@@ -251,6 +254,8 @@ const phraseId = {
   'Short description of your store...': 'Deskripsi singkat toko Anda...',
   'Open for orders': 'Buka untuk pesanan',
   'Payment QR (optional)': 'QR Pembayaran (opsional)',
+  'Description (optional)': 'Deskripsi (opsional)',
+  optional: 'opsional',
   'Click to upload (PNG, JPG, max 2 MB)': 'Klik untuk mengunggah (PNG, JPG, maks 2 MB)',
   'Create Store': 'Buat Toko',
 
@@ -266,6 +271,36 @@ const phraseId = {
   'Item updated': 'Item diperbarui',
   '"{name}" added': '"{name}" ditambahkan',
 
+  // ── Items tab — table (search / filter / sort / paging) ───────────────────
+  'Search items…': 'Cari item…',
+  Availability: 'Ketersediaan',
+  All: 'Semua',
+  'Available only': 'Tersedia',
+  'Unavailable only': 'Tidak Tersedia',
+  'Sort by': 'Urutkan',
+  Stock: 'Stok',
+  Sold: 'Terjual',
+  Newest: 'Terbaru',
+  Ascending: 'Naik',
+  Descending: 'Turun',
+  Actions: 'Aksi',
+  Pinned: 'Disematkan',
+  'Edit item': 'Ubah item',
+  'Delete item': 'Hapus item',
+  'Delete Item': 'Hapus Item',
+  'Delete "{name}"? This cannot be undone.': 'Hapus "{name}"? Tindakan ini tidak dapat dibatalkan.',
+  'No items match your filters': 'Tidak ada item yang cocok dengan filter',
+  'Try a different search or reset the filters.':
+    'Coba kata kunci lain atau setel ulang filternya.',
+  'Clear filters': 'Reset filter',
+  // Pager: `{from}–{to} of {total}` reads as "1–10 dari 241".
+  '{from}–{to} of {total}': '{from}–{to} dari {total}',
+  'Rows per page': 'Baris per halaman',
+  '{count} per page': '{count} per halaman',
+  'Page {page} of {pages}': 'Halaman {page} dari {pages}',
+  Previous: 'Sebelumnya',
+  Next: 'Berikutnya',
+
   // ── Item dialog ───────────────────────────────────────────────────────────
   'Item name is required': 'Nama item wajib diisi',
   'Edit Item': 'Ubah Item',
@@ -275,14 +310,11 @@ const phraseId = {
   'e.g. Kopi Susu': 'mis. Kopi Susu',
   'Short description...': 'Deskripsi singkat...',
   Price: 'Harga',
-  Currency: 'Mata Uang',
-  'IDR (Rupiah)': 'IDR (Rupiah)',
-  'USD (Dollar)': 'USD (Dolar)',
   'Stocks (leave blank = unlimited)': 'Stok (kosongkan = tak terbatas)',
   'Discount %': 'Diskon %',
+  'Stocks must be between 0 and {max}': 'Stok harus antara 0 dan {max}',
+  'Discount must be between 0 and 100': 'Diskon harus antara 0 dan 100',
   'Show to customers': 'Tampilkan ke pelanggan',
-  Highlight: 'Unggulan',
-  'Pin to top': 'Sematkan di atas',
   'Save Changes': 'Simpan Perubahan',
 
   // ── Store detail: tab navigation ──────────────────────────────────────────
@@ -304,9 +336,22 @@ const phraseId = {
   'Email Address': 'Alamat Email',
   Role: 'Peran',
   'Admin — manages items & open status': 'Admin — mengelola item & status buka',
-  'Master — full control (settings, members, credentials)':
-    'Master — kendali penuh (pengaturan, anggota, kredensial)',
+  'Master — full control':
+    'Master — kendali penuh',
   'Send Invite': 'Kirim Undangan',
+  Remove: 'Hapus',
+  'Remove Member': 'Hapus Anggota',
+  'Remove "{name}" from this store? Their past sales stay in the history.':
+    'Hapus "{name}" dari toko ini? Riwayat penjualannya tetap tersimpan.',
+  'Change Role': 'Ubah Peran',
+  'Set what {name} can do in this store.': 'Tentukan akses {name} di toko ini.',
+  '{name} is now {role}': '{name} sekarang {role}',
+  Owner: 'Pemilik',
+  You: 'Anda',
+  'Joined {date}': 'Bergabung {date}',
+  'Role updated {date}': 'Peran diubah {date}',
+  'Only the store master can invite, re-role or remove members.':
+    'Hanya master toko yang dapat mengundang, mengubah peran, atau menghapus anggota.',
 
   // ── Store settings tab ────────────────────────────────────────────────────
   'Update failed': 'Gagal memperbarui',
@@ -318,6 +363,9 @@ const phraseId = {
     'Unggah QR pembayaran (PNG, JPG, maks 2 MB)',
   'Save Settings': 'Simpan Pengaturan',
   'Store': 'Toko',
+  'Store Details': 'Detail Toko',
+  'Manage your store profile, status, and payment configuration.':
+    'Kelola profil toko, status, dan konfigurasi pembayaran Anda.',
   'Store Credential': 'Kredensial Toko',
   'Only the store master can change these settings.':
     'Hanya master toko yang dapat mengubah pengaturan ini.',
@@ -325,8 +373,8 @@ const phraseId = {
     'Anda hanya dapat mengubah status buka/tutup — detail toko dan kredensial pembayaran hanya untuk master.',
   'Only the store master can change the payment QR':
     'Hanya master toko yang dapat mengubah QR pembayaran',
-  'Delete this store? It is archived (hidden from everyone) and its sales history is kept for audit. This cannot be undone.':
-    'Hapus toko ini? Toko akan diarsipkan (disembunyikan dari semua orang) dan riwayat penjualannya tetap disimpan untuk audit. Tindakan ini tidak dapat dibatalkan.',
+  'Delete this store? This cannot be undone.':
+    'Hapus toko ini? Tindakan ini tidak dapat dibatalkan.',
   'Permanently delete this store, its items, members and sales history. This cannot be undone.':
     'Hapus permanen toko ini beserta item, anggota, dan riwayat penjualannya. Tindakan ini tidak dapat dibatalkan.',
 
@@ -337,6 +385,47 @@ const phraseId = {
     'Transaksi kasir yang sudah selesai akan muncul di sini.',
   '{count} recorded sales · newest first': '{count} penjualan tercatat · terbaru dulu',
   'Unknown cashier': 'Kasir tidak diketahui',
+
+  // ── History tab — dashboard ───────────────────────────────────────────────
+  Today: 'Hari ini',
+  'Last 7 days': '7 hari terakhir',
+  'Last 30 days': '30 hari terakhir',
+  'This month': 'Bulan ini',
+  'All time': 'Semua waktu',
+  Custom: 'Kustom',
+  From: 'Dari',
+  To: 'Sampai',
+  'All recorded sales': 'Semua penjualan tercatat',
+  Revenue: 'Pendapatan',
+  Sales: 'Penjualan',
+  'Items sold': 'Item terjual',
+  'Average sale': 'Rata-rata penjualan',
+  'Revenue trend': 'Tren pendapatan',
+  'Peak hours': 'Jam tersibuk',
+  'Revenue by hour': 'Pendapatan per jam',
+  'By day': 'Per hari',
+  'By week': 'Per minggu',
+  'By month': 'Per bulan',
+  'Top items': 'Item terlaris',
+  'Best sellers': 'Paling banyak terjual',
+  'Payment methods': 'Metode pembayaran',
+  'QR payment': 'Pembayaran QR',
+  Cash: 'Tunai',
+  'Top cashiers': 'Kasir terbaik',
+  '{count} sale': '{count} penjualan',
+  '{count} sales': '{count} penjualan',
+  'No sales in this range': 'Tidak ada penjualan pada rentang ini',
+  'Pick another date range or ring up a sale in the cashier.':
+    'Pilih rentang tanggal lain atau catat penjualan di kasir.',
+  Transactions: 'Transaksi',
+  'Search receipts…': 'Cari struk…',
+  'All statuses': 'Semua status',
+  Completed: 'Selesai',
+  Voided: 'Dibatalkan',
+  'No receipts match': 'Tidak ada struk yang cocok',
+  'Adjust the search, status or date range.':
+    'Sesuaikan pencarian, status, atau rentang tanggalnya.',
+  Status: 'Status',
 
   // ── Cashier: product search ───────────────────────────────────────────────
   'Search products': 'Cari produk',
@@ -411,6 +500,7 @@ const phraseId = {
     'Tambahkan item ke toko ini sebelum mencatat penjualan.',
   'Add items': 'Tambah item',
   Review: 'Periksa',
+  'Review & pay': 'Periksa & bayar',
 
   // ── Cashier: voice order ──────────────────────────────────────────────────
   'Voice order': 'Pesanan suara',
@@ -503,7 +593,6 @@ const checkoutErrorId: Record<CheckoutErrorCode | 'CHECKOUT_FAILED', string> = {
   PRODUCT_NOT_FOUND: 'Produk tidak ditemukan',
   PRODUCT_UNAVAILABLE: 'Produk tidak tersedia',
   INSUFFICIENT_STOCK: 'Stok tidak cukup',
-  MIXED_CURRENCY: 'Semua item harus memakai mata uang yang sama',
   STORE_NOT_FOUND: 'Toko tidak ditemukan',
   CHECKOUT_FAILED: 'Pembayaran gagal, silakan coba lagi',
 }
@@ -523,15 +612,21 @@ const serverMessageId: Record<string, string> = {
   'Item not found': 'Item tidak ditemukan',
   'Item name is required': 'Nama item wajib diisi',
   'Item name cannot be empty': 'Nama item tidak boleh kosong',
+  'An item with this name already exists': 'Item dengan nama ini sudah ada',
   'Name must be 20 characters or less': 'Nama maksimal 20 karakter',
+  'Description is required': 'Deskripsi wajib diisi',
   'Description must be 100 characters or less': 'Deskripsi maksimal 100 karakter',
   'Description must be 50 characters or less': 'Deskripsi maksimal 50 karakter',
+  'Price must be numbers only': 'Harga harus berupa angka saja',
+  'Stocks must be between 0 and 999': 'Stok harus antara 0 dan 999',
   'discountPercent must be 0-100': 'Diskon harus bernilai 0-100',
   'Email is required': 'Email wajib diisi',
   'Cannot invite yourself': 'Tidak dapat mengundang diri sendiri',
   'No user found with that email': 'Tidak ada pengguna dengan email tersebut',
   'User is already a member of this store': 'Pengguna sudah menjadi anggota toko ini',
   'Member not found': 'Anggota tidak ditemukan',
+  'The store owner is always the master': 'Pemilik toko selalu menjadi master',
+  'You cannot change your own membership': 'Anda tidak dapat mengubah keanggotaan Anda sendiri',
   'Invalid role': 'Peran tidak valid',
   'No file provided': 'Tidak ada file yang dipilih',
   'Upload failed': 'Gagal mengunggah',
@@ -620,4 +715,3 @@ export function useTranslation() {
 
   return { lang, t }
 }
-

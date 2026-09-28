@@ -28,8 +28,15 @@
   --accent-foreground: oklch(0.3791 0.1378 265.5222);
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.9022 0.0052 247.8822);
-  --input: oklch(0.97 0.0029 264.542);
+  /* Light mode has no near-white outlines: the page background is a light grey
+   * and cards are pure white, so an almost-white `--input` / `--border` (the
+   * tweakcn defaults: 0.97 and 0.9022) disappeared on every surface. Both tokens
+   * now resolve to the colour the Quick Store settings form uses — a 45% tint of
+   * `--muted-foreground` — so inputs, selects, dropdowns, pills, outline buttons
+   * and panel dividers share one visible border. Dark mode keeps its own values
+   * (its background is dark, so the light tint is not needed there). */
+  --border: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
+  --input: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
   --ring: oklch(0.6397 0.172 36.4421);
   --chart-1: oklch(0.7156 0.0605 248.6845);
   --chart-2: oklch(0.7875 0.0917 35.9616);

@@ -1,6 +1,9 @@
 /**
  * PUT    /api/quickstore/stores/[storeId]/items/[itemId]  — edit item
  * DELETE /api/quickstore/stores/[storeId]/items/[itemId]  — delete item
+ *
+ * PUT also enforces the per-store name rule: renaming to a name another item
+ * already uses (case-insensitively) answers `409 { error }`.
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -9,8 +12,17 @@ import { and, eq } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { storeItems } from "@/lib/db/schema"
-import { getUserRole } from "@/lib/quickstore/queries"
+import { findStoreItemByName, getUserRole } from "@/lib/quickstore/queries"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import { isUniqueViolation } from "@/lib/quickstore/checkout"
+import {
+  DESCRIPTION_MAX_LENGTH,
+  ITEM_NAME_TAKEN_MESSAGE,
+  NAME_MAX_LENGTH,
+  isPriceInput,
+  parseStockInput,
+  priceToCents,
+} from "@/lib/quickstore/cashier"
 
 export const runtime = "nodejs"
 
@@ -48,45 +60,81 @@ export async function PUT(req: NextRequest, { params }: Params) {
     name,
     description,
     price,
-    currency,
     available,
     stocks,
     discountPercent,
-    highlight,
   } = body as Record<string, unknown>
 
   if (name !== undefined) {
     if (typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Item name cannot be empty" }, { status: 400 })
     }
-    if ((name as string).trim().length > 20) {
-      return NextResponse.json({ error: "Name must be 20 characters or less" }, { status: 400 })
+    if ((name as string).trim().length > NAME_MAX_LENGTH) {
+      return NextResponse.json(
+        { error: `Name must be ${NAME_MAX_LENGTH} characters or less` },
+        { status: 400 }
+      )
     }
   }
-  if (description !== undefined && typeof description === "string" && description.length > 100) {
-    return NextResponse.json({ error: "Description must be 100 characters or less" }, { status: 400 })
+  if (description !== undefined) {
+    if (typeof description !== "string" || description.trim().length === 0) {
+      return NextResponse.json({ error: "Description is required" }, { status: 400 })
+    }
+    if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
+      return NextResponse.json(
+        { error: `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less` },
+        { status: 400 }
+      )
+    }
   }
-  if (typeof discountPercent === "number" && (discountPercent < 0 || discountPercent > 100)) {
+  if (price !== undefined && !isPriceInput(price)) {
+    return NextResponse.json({ error: "Price must be numbers only" }, { status: 400 })
+  }
+  const parsedStocks = stocks === undefined ? null : parseStockInput(stocks)
+  if (parsedStocks === undefined) {
+    return NextResponse.json({ error: "Stocks must be between 0 and 999" }, { status: 400 })
+  }
+  if (
+    typeof discountPercent === "number" &&
+    (!Number.isInteger(discountPercent) || discountPercent < 0 || discountPercent > 100)
+  ) {
     return NextResponse.json({ error: "discountPercent must be 0-100" }, { status: 400 })
+  }
+
+  // Changing the name must not collide with a sibling item — same rule as create
+  // ("Apple" === "aPPle"), compared only when the name actually changes so a
+  // plain price / stock edit of an unchanged name stays free.
+  if (name !== undefined && (name as string).trim() !== existing.name) {
+    if (await findStoreItemByName(storeId, name as string, itemId)) {
+      return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+    }
   }
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() }
   if (name !== undefined) updateData.name = (name as string).trim()
-  if (description !== undefined) updateData.description = description
-  if (price !== undefined) updateData.price = String(price)
-  if (currency !== undefined) updateData.currency = currency
+  if (description !== undefined) updateData.description = (description as string).trim()
+  // Prices are whole numbers: store them as the canonical numeric string.
+  if (price !== undefined) updateData.price = (priceToCents(String(price)) / 100).toFixed(2)
   if (available !== undefined) updateData.available = available
-  if (stocks !== undefined) updateData.stocks = stocks
+  // An explicit null / blank clears the stock back to "unlimited".
+  if (stocks !== undefined) updateData.stocks = parsedStocks
   if (discountPercent !== undefined) updateData.discountPercent = discountPercent
-  if (highlight !== undefined) updateData.highlight = highlight
 
-  const [updated] = await db
-    .update(storeItems)
-    .set(updateData)
-    .where(and(eq(storeItems.id, itemId), eq(storeItems.storeId, storeId)))
-    .returning()
+  try {
+    const [updated] = await db
+      .update(storeItems)
+      .set(updateData)
+      .where(and(eq(storeItems.id, itemId), eq(storeItems.storeId, storeId)))
+      .returning()
 
-  return NextResponse.json(updated)
+    return NextResponse.json(updated)
+  } catch (err) {
+    // Lost the race against a sibling insert/rename of the same name.
+    if (isUniqueViolation(err)) {
+      return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+    }
+    throw err
+  }
 }
 
 // ── DELETE ───────────────────────────────────────────────────────────────────

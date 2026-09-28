@@ -1,21 +1,18 @@
 /**
- * GET /api/quickstore/stores/[storeId]/history
+ * GET /api/quickstore/stores/[storeId]/history/summary
  *
- * One page of receipts in the selected window (newest first, with their lines).
- * Query: `range` (today|7d|30d|month|all|custom), `from`/`to` (`YYYY-MM-DD`,
- * custom only), `status` (all|completed|voided), `q` (receipt # or cashier),
- * `page`, `limit`, `tzOffset` (minutes, so days/hours follow the operator).
- *
- * Answers `{ sales, total, page, pageSize, totalPages }` — the count comes from
- * SQL so the pager never has to fetch the whole history.
+ * The dashboard numbers for one window: totals, revenue series, peak hours,
+ * best sellers, payment mix and cashier ranking — all aggregated in SQL.
+ * Same query contract as `/history` (range, from, to, tzOffset, currency).
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
 
 import { authOptions } from "@/lib/auth"
-import { getStoreHistoryPage, getUserRole } from "@/lib/quickstore/queries"
+import { getStoreHistorySummary, getUserRole } from "@/lib/quickstore/queries"
 import { parseHistoryQuery, rangeInstants } from "@/lib/quickstore/history"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import type { CurrencyType } from "@/lib/db/schema"
 
 export const runtime = "nodejs"
 
@@ -36,21 +33,17 @@ export async function GET(req: NextRequest, { params }: Params) {
   const searchParams = req.nextUrl.searchParams
   const query = parseHistoryQuery(searchParams)
   const tzOffset = Number.parseInt(searchParams.get("tzOffset") ?? "0", 10) || 0
+  const currency = searchParams.get("currency")
 
   try {
-    const page = await getStoreHistoryPage(
+    const summary = await getStoreHistorySummary(
       storeId,
       { ...rangeInstants(query, tzOffset), tzOffset },
-      {
-        search: query.q,
-        status: query.status,
-        page: query.page,
-        pageSize: query.pageSize,
-      }
+      (currency as CurrencyType | null) ?? undefined
     )
-    return NextResponse.json({ range: { from: query.from, to: query.to }, ...page })
+    return NextResponse.json({ range: { from: query.from, to: query.to }, ...summary })
   } catch (error) {
-    console.error("[quickstore/history] failed", error)
+    console.error("[quickstore/history/summary] failed", error)
     return NextResponse.json({ error: "Failed to load history" }, { status: 500 })
   }
 }

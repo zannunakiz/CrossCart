@@ -1,6 +1,18 @@
 /**
  * GET  /api/quickstore/stores/[storeId]/items  — list items (master | admin)
  * POST /api/quickstore/stores/[storeId]/items  — create item (master | admin)
+ *
+ * GET answers two shapes on purpose:
+ *  - no `q` / `availability` / `sort` / `dir` / `page` / `limit` → `StoreItem[]`
+ *    (the whole catalog, A→Z). The cashier and the voice interpreter
+ *    need every row in one shot, so that call stays exactly as it was.
+ *  - any of those params → `{ items, total, page, pageSize, totalPages }`,
+ *    searched / filtered / sorted / paged in SQL so the Items table never
+ *    transfers a whole catalog to render ten rows.
+ *
+ * POST refuses a name that the store already uses (case-insensitive, so
+ * "Apple" === "aPPle") with `409 { error }` — backed by the
+ * `store_items_store_name_unique` index.
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -9,15 +21,29 @@ import { eq } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { storeItems } from "@/lib/db/schema"
-import { getUserRole } from "@/lib/quickstore/queries"
+import {
+  findStoreItemByName,
+  getStoreItemsPage,
+  getUserRole,
+} from "@/lib/quickstore/queries"
+import { isUniqueViolation } from "@/lib/quickstore/checkout"
+import { hasItemListParams, parseItemListQuery } from "@/lib/quickstore/item-list"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import {
+  DESCRIPTION_MAX_LENGTH,
+  ITEM_NAME_TAKEN_MESSAGE,
+  NAME_MAX_LENGTH,
+  isPriceInput,
+  parseStockInput,
+  priceToCents,
+} from "@/lib/quickstore/cashier"
 
 export const runtime = "nodejs"
 
 type Params = { params: Promise<{ storeId: string }> }
 
 // ── GET ──────────────────────────────────────────────────────────────────────
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -29,13 +55,23 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const items = await db.query.storeItems.findMany({
-    where: eq(storeItems.storeId, storeId),
-    orderBy: (i, { desc, asc }) => [desc(i.highlight), asc(i.name)],
-  })
+  const searchParams = req.nextUrl.searchParams
 
-  return NextResponse.json(items)
+  // Unpaged call (cashier / voice): the full catalog, A→Z.
+  if (!hasItemListParams(searchParams)) {
+    const items = await db.query.storeItems.findMany({
+      where: eq(storeItems.storeId, storeId),
+      orderBy: (i, { asc }) => [asc(i.name)],
+    })
+
+    return NextResponse.json(items)
+  }
+
+  // Paged call (Items table): one page of rows + the total for the pager.
+  const page = await getStoreItemsPage(storeId, parseItemListQuery(searchParams))
+  return NextResponse.json(page)
 }
+
 
 // ── POST ─────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest, { params }: Params) {
@@ -61,41 +97,71 @@ export async function POST(req: NextRequest, { params }: Params) {
     name,
     description,
     price,
-    currency,
     available,
     stocks,
     discountPercent,
-    highlight,
   } = body as Record<string, unknown>
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     return NextResponse.json({ error: "Item name is required" }, { status: 400 })
   }
-  if (name.trim().length > 20) {
-    return NextResponse.json({ error: "Name must be 20 characters or less" }, { status: 400 })
+  if (name.trim().length > NAME_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `Name must be ${NAME_MAX_LENGTH} characters or less` },
+      { status: 400 }
+    )
   }
-  if (description && typeof description === "string" && description.length > 100) {
-    return NextResponse.json({ error: "Description must be 100 characters or less" }, { status: 400 })
+  if (typeof description !== "string" || description.trim().length === 0) {
+    return NextResponse.json({ error: "Description is required" }, { status: 400 })
   }
-  if (typeof discountPercent === "number" && (discountPercent < 0 || discountPercent > 100)) {
+  if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less` },
+      { status: 400 }
+    )
+  }
+  if (!isPriceInput(price)) {
+    return NextResponse.json({ error: "Price must be numbers only" }, { status: 400 })
+  }
+  const parsedStocks = parseStockInput(stocks)
+  if (parsedStocks === undefined) {
+    return NextResponse.json({ error: "Stocks must be between 0 and 999" }, { status: 400 })
+  }
+  if (
+    typeof discountPercent === "number" &&
+    (!Number.isInteger(discountPercent) || discountPercent < 0 || discountPercent > 100)
+  ) {
     return NextResponse.json({ error: "discountPercent must be 0-100" }, { status: 400 })
   }
 
-  const [item] = await db
-    .insert(storeItems)
-    .values({
-      storeId,
-      userId: session.user.id,
-      name: (name as string).trim(),
-      description: typeof description === "string" ? description.trim() : undefined,
-      price: String(price ?? "0"),
-      currency: (currency as "USD" | "IDR") ?? "IDR",
-      available: typeof available === "boolean" ? available : true,
-      stocks: typeof stocks === "number" ? stocks : undefined,
-      discountPercent: typeof discountPercent === "number" ? discountPercent : 0,
-      highlight: typeof highlight === "boolean" ? highlight : false,
-    })
-    .returning()
+  // Names are unique per store, case-insensitively ("Apple" === "aPPle"): this
+  // pre-check answers a friendly 409, the unique index is the hard guarantee.
+  if (await findStoreItemByName(storeId, name)) {
+    return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+  }
 
-  return NextResponse.json(item, { status: 201 })
+  try {
+    const [item] = await db
+      .insert(storeItems)
+      .values({
+        storeId,
+        userId: session.user.id,
+        name: (name as string).trim(),
+        description: description.trim(),
+        // Prices are whole numbers: store them as the canonical numeric string.
+        price: (priceToCents(String(price)) / 100).toFixed(2),
+        available: typeof available === "boolean" ? available : true,
+        stocks: parsedStocks ?? undefined,
+        discountPercent: typeof discountPercent === "number" ? discountPercent : 0,
+      })
+      .returning()
+
+    return NextResponse.json(item, { status: 201 })
+  } catch (err) {
+    // Two identical names submitted at the same instant: the index wins.
+    if (isUniqueViolation(err)) {
+      return NextResponse.json({ error: ITEM_NAME_TAKEN_MESSAGE }, { status: 409 })
+    }
+    throw err
+  }
 }

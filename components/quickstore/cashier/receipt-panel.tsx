@@ -169,7 +169,6 @@ export function ReceiptPanel({
 
   const display = completed
     ? {
-        currency: completed.currency,
         subtotalCents: toCents(completed.subtotal),
         discountTotalCents: toCents(completed.discountTotal),
         totalCents: toCents(completed.total),
@@ -183,7 +182,7 @@ export function ReceiptPanel({
       id="checkout-panel"
       data-testid="receipt-panel"
       aria-label={t("Receipt and checkout")}
-      className="border border-border bg-card"
+      className="scroll-mt-20 border border-border bg-card"
     >
       {/* Header */}
       <div className="border-b border-border px-4 py-3">
@@ -221,8 +220,8 @@ export function ReceiptPanel({
         </div>
       </div>
 
-      {/* Lines */}
-      <div className="px-4 py-3">
+      {/* Lines — desktop only: the cart above already lists them on mobile. */}
+      <div className="hidden px-4 py-3 lg:block">
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {t("Nothing to sell yet — add a product to build the receipt.")}
@@ -234,15 +233,15 @@ export function ReceiptPanel({
                 <div className="min-w-0">
                   <p className="truncate font-medium">{row.name}</p>
                   <p className="text-2xs text-muted-foreground">
-                    {row.quantity} × {formatCents(toCents(row.unitPricePaid), display.currency)}
+                    {row.quantity} × {formatCents(toCents(row.unitPricePaid))}
                     {row.discountPercent > 0 &&
                       ` ${t("(list {price})", {
-                        price: formatCents(toCents(row.unitPrice), display.currency),
+                        price: formatCents(toCents(row.unitPrice)),
                       })}`}
                   </p>
                 </div>
                 <span className="shrink-0 font-semibold tabular-nums">
-                  {formatCents(toCents(row.lineTotal), display.currency)}
+                  {formatCents(toCents(row.lineTotal))}
                 </span>
               </li>
             ))}
@@ -256,20 +255,20 @@ export function ReceiptPanel({
       <div className="space-y-1.5 px-4 py-3 text-sm">
         <div className="flex items-center justify-between text-muted-foreground">
           <span>{t("Subtotal")}</span>
-          <span className="tabular-nums">{formatCents(display.subtotalCents, display.currency)}</span>
+          <span className="tabular-nums">{formatCents(display.subtotalCents)}</span>
         </div>
         {display.discountTotalCents > 0 && (
           <div className="flex items-center justify-between text-muted-foreground">
             <span>{t("Discounts")}</span>
             <span className="tabular-nums">
-              −{formatCents(display.discountTotalCents, display.currency)}
+              −{formatCents(display.discountTotalCents)}
             </span>
           </div>
         )}
         <div className="flex items-center justify-between border-t border-border pt-2 text-base font-bold">
           <span>{t("Total")}</span>
           <span className="tabular-nums" data-testid="receipt-total">
-            {formatCents(display.totalCents, display.currency)}
+            {formatCents(display.totalCents)}
           </span>
         </div>
         <p className="text-2xs text-muted-foreground">
@@ -310,8 +309,8 @@ export function ReceiptPanel({
       </div>
 
 
-      {/* Confirmation flow */}
-      <div className="border-t border-border bg-muted/30 p-4">
+      {/* Confirmation flow. `[&_button]:h-9` keeps every action thumb-sized. */}
+      <div className="border-t border-border bg-muted/30 p-4 [&_button]:h-9">
         {completed && (
           <div className="space-y-3" data-testid="checkout-success">
             <p className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">

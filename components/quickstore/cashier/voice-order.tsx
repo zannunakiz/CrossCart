@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useRef, useState } from "react"
-import { Loader2, Mic, Plus, Sparkles, Square, TriangleAlert, X } from "lucide-react"
+import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucide-react"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
@@ -70,6 +70,8 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
   const [phase, setPhase] = useState<Phase>("idle")
   const [result, setResult] = useState<VoiceOrderResult | null>(null)
   const [errorText, setErrorText] = useState<string | null>(null)
+  // Voice is optional: the panel stays a single row until the cashier opens it.
+  const [open, setOpen] = useState(false)
   const stoppingRef = useRef(false)
 
   const speech = useSpeechRecognition(VOICE_SPEECH_LOCALE[language])
@@ -192,14 +194,48 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <section className="border border-border bg-card">
-      {/* Header: title + the language choice made before speaking */}
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="size-4 text-muted-foreground" />
-          {t("Voice order")}
-        </p>
+      {/* Collapsed by default: voice takes one row until the cashier opens it. */}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="voice-order-body"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-muted/50"
+      >
+        <span
+          className={cn(
+            "grid size-7 shrink-0 place-items-center rounded-full",
+            listening
+              ? "animate-pulse bg-destructive/10 text-destructive"
+              : "bg-muted text-muted-foreground"
+          )}
+        >
+          <Mic className="size-3.5" />
+        </span>
 
-        <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1">
+          <span className="block text-xs font-medium">{t("Voice order")}</span>
+          <span className="block truncate text-2xs text-muted-foreground">
+            {listening
+              ? speech.transcript || t("Listening…")
+              : t('Say a product and a quantity, e.g. "tiga pensil, empat pena".')}
+          </span>
+        </span>
+
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+
+      <div
+        id="voice-order-body"
+        className={cn("space-y-3 border-t border-border p-3", !open && "hidden")}
+      >
+        {/* Spoken language — it also drives the speech engine's locale. */}
+        <div className="flex items-center justify-end gap-2">
           <span className="text-2xs text-muted-foreground">{t("Language")}</span>
           <Select
             value={language}
@@ -207,7 +243,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
             disabled={busy || listening || captured}
           >
             <SelectTrigger size="sm" aria-label={t("Voice language")} className="h-7 gap-1.5 text-xs">
-              <SelectValue />
+              <SelectValue>{VOICE_LANGUAGE_LABEL[language]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="EN">{VOICE_LANGUAGE_LABEL.EN}</SelectItem>
@@ -215,9 +251,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
             </SelectContent>
           </Select>
         </div>
-      </header>
 
-      <div className="space-y-3 p-3">
         {/* Mic row */}
         <div className="flex items-center gap-3">
           <Button
@@ -318,7 +352,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
                       >
                         {availability.ok
                           ? t("{price} each", {
-                              price: formatCents(toCents(item.price), item.currency),
+                              price: formatCents(toCents(item.price)),
                             })
                           : availabilityMessage(lang, availability.code, availability.message, {
                               name: item.name,
@@ -328,7 +362,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
                       </span>
                     </span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
-                      {formatCents(toCents(item.price) * line.quantity, item.currency)}
+                      {formatCents(toCents(item.price) * line.quantity)}
                     </span>
                   </li>
                 )

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon } from "lucide-react"
+import { ArrowRight, Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -302,30 +302,24 @@ export default function CashierPage() {
     )
   }
 
-
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 pb-24 lg:pb-0">
       {/*
-       * The store name stays in the navbar breadcrumb; the open/closed state and
-       * the user's role moved here (see `StoreStatusBar`) — no cashier shortcut
-       * because this IS the cashier route.
+       * Mobile: the navbar breadcrumb is desktop-only, so the store name and the
+       * stock refresh sit here. `StoreStatusBar` keeps the open/closed state and
+       * the user's role — no cashier shortcut, this IS the cashier route.
        */}
-      <StoreStatusBar
-        storeId={storeId}
-        open={store.open}
-        role={store.role}
-        showCashier={false}
-      />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          {t("Enter the customer's items, review the receipt, then confirm the payment.")}
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 flex-1 truncate text-lg font-light tracking-tight text-foreground sm:hidden">
+          {store.name}
+        </h1>
 
         <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-2 self-start"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0 text-muted-foreground sm:ml-auto"
+          aria-label={t("Refresh stock")}
+          title={t("Refresh stock")}
           onClick={() => void refreshCatalog()}
           disabled={refreshing}
         >
@@ -334,9 +328,15 @@ export default function CashierPage() {
           ) : (
             <RefreshCw className="size-3.5" />
           )}
-          {t("Refresh stock")}
         </Button>
       </div>
+
+      <StoreStatusBar
+        storeId={storeId}
+        open={store.open}
+        role={store.role}
+        showCashier={false}
+      />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {/* Entry column */}
@@ -369,19 +369,6 @@ export default function CashierPage() {
               emptyHint={t("Search for a product above, or tap a suggestion to add it.")}
             />
           )}
-
-          {/* Mobile shortcut to the checkout panel */}
-          {lines.length > 0 && (
-            <a
-              href="#checkout-panel"
-              className="flex items-center justify-between border border-border bg-card px-4 py-3 text-sm font-semibold lg:hidden"
-            >
-              <span>{t("Total")}</span>
-              <span className="tabular-nums">
-                {formatCents(totals.totalCents, totals.currency)} · {t("Review")} ↓
-              </span>
-            </a>
-          )}
         </div>
 
         {/* Receipt / checkout column */}
@@ -397,6 +384,35 @@ export default function CashierPage() {
           />
         </div>
       </div>
+
+      {/*
+       * Mobile: the running total and the way to the receipt + payment stay in
+       * reach no matter how long the cart is. One tap scrolls to #checkout-panel
+       * (smooth scrolling is enabled globally in globals.css).
+       */}
+      {lines.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-2xs text-muted-foreground">
+                {t(totals.itemCount === 1 ? "{count} item" : "{count} items", {
+                  count: totals.itemCount,
+                })}
+              </p>
+              <p className="text-base font-bold tabular-nums" data-testid="cart-total-bar">
+                {formatCents(totals.totalCents)}
+              </p>
+            </div>
+
+            <a href="#checkout-panel" className="shrink-0">
+              <Button className="h-9 gap-1.5">
+                {t("Review & pay")}
+                <ArrowRight className="size-3.5" />
+              </Button>
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
