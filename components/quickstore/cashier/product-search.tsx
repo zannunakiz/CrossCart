@@ -129,7 +129,7 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
                 </span>
 
                 <span className="shrink-0 text-sm font-semibold tabular-nums">
-                  {formatCents(toCents(item.price), item.currency)}
+                  {formatCents(toCents(item.price))}
                 </span>
               </AutocompleteItem>
             )

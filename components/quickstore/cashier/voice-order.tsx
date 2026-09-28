@@ -352,7 +352,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
                       >
                         {availability.ok
                           ? t("{price} each", {
-                              price: formatCents(toCents(item.price), item.currency),
+                              price: formatCents(toCents(item.price)),
                             })
                           : availabilityMessage(lang, availability.code, availability.message, {
                               name: item.name,
@@ -362,7 +362,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
                       </span>
                     </span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
-                      {formatCents(toCents(item.price) * line.quantity, item.currency)}
+                      {formatCents(toCents(item.price) * line.quantity)}
                     </span>
                   </li>
                 )

@@ -203,27 +203,22 @@ export const storeItems = pgTable("store_items", {
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
 
   name: varchar("name", { length: 20 }).notNull(),
-  description: varchar("description", { length: 100 }),
+  description: varchar("description", { length: 50 }),
 
   /**
-   * Numeric with high precision — covers both USD cents and IDR amounts
-   * without floating-point rounding errors.
+   * Numeric with high precision — the cashier types whole numbers (max 12
+   * digits) and every total is computed in integer cents from this column.
    */
   price: numeric("price", { precision: 18, scale: 2 }).notNull().default("0"),
-
-  currency: currencyEnum("currency").notNull().default("IDR"),
 
   /** Is this item currently available for purchase? */
   available: boolean("available").notNull().default(true),
 
-  /** Inventory stock count. NULL means unlimited / not tracked. */
+  /** Inventory stock count (0-999). NULL means unlimited / not tracked. */
   stocks: integer("stocks"),
 
   /** 0-100 percentage discount applied at checkout. */
   discountPercent: integer("discount_percent").notNull().default(0),
-
-  /** Pin the item to the top of the item list. */
-  highlight: boolean("highlight").notNull().default(false),
 
   /** Running total of how many times this item has been purchased. */
   purchasedAmount: integer("purchased_amount").notNull().default(0),
@@ -233,6 +228,15 @@ export const storeItems = pgTable("store_items", {
 }, (t) => [
   /** Every catalog read is store-scoped (cashier, items tab, voice context). */
   index("store_items_store_idx").on(t.storeId),
+  /** Free stock (NULL) is always allowed; a tracked stock stays within 0-999. */
+  check(
+    "store_items_stocks_range",
+    sql`${t.stocks} is null or (${t.stocks} >= 0 and ${t.stocks} <= 999)`
+  ),
+  check(
+    "store_items_discount_range",
+    sql`${t.discountPercent} >= 0 and ${t.discountPercent} <= 100`
+  ),
 ])
 
 // ─────────────────────────────────────────────────────────────────────────────

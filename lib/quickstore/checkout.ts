@@ -12,7 +12,7 @@
  *   - history + stock move atomically (single transaction, rollback on failure)
  *   - a repeated `clientRequestId` returns the original receipt, never a duplicate
  */
-import type { QsPaymentMethod } from "@/lib/db/schema"
+import type { CurrencyType, QsPaymentMethod } from "@/lib/db/schema"
 import {
   MAX_LINES,
   MAX_QTY_PER_LINE,
@@ -21,9 +21,14 @@ import {
   toCents,
   type CheckoutErrorCode,
   type CheckoutIssue,
-  type CurrencyType,
   type Receipt,
 } from "@/lib/quickstore/cashier"
+
+/**
+ * Currency recorded on a sale. Items no longer carry one (the catalog is
+ * single-currency), but the history column is kept for the stored receipts.
+ */
+const SALE_CURRENCY: CurrencyType = "IDR"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Errors
@@ -55,7 +60,6 @@ export interface LockedItem {
   id: string
   name: string
   price: string
-  currency: CurrencyType
   available: boolean
   /** null = unlimited stock. */
   stocks: number | null
@@ -244,7 +248,6 @@ export interface PreparedLine {
   lineTotalCents: number
   unitPriceCents: number
   unitPricePaidCents: number
-  currency: CurrencyType
 }
 
 /**
@@ -315,7 +318,6 @@ export function prepareCheckoutLines(
       lineTotalCents: unitPricePaidCents * line.quantity,
       unitPriceCents,
       unitPricePaidCents,
-      currency: item.currency,
     })
   }
 
@@ -343,26 +345,10 @@ export function prepareCheckoutLines(
     )
   }
 
-  // A single sale never mixes currencies — that would make the total meaningless.
-  const currencies = new Set(prepared.map((line) => line.currency))
-  if (currencies.size > 1) {
-    throw new CheckoutError(
-      "MIXED_CURRENCY",
-      "This sale mixes currencies — split it into one sale per currency",
-      prepared.map((line) => ({
-        itemId: line.itemId,
-        name: line.name,
-        code: "MIXED_CURRENCY" as CheckoutErrorCode,
-        message: `${line.name} is priced in ${line.currency}`,
-      }))
-    )
-  }
-
   return prepared
 }
 
 export interface PreparedTotals {
-  currency: CurrencyType
   subtotalCents: number
   discountTotalCents: number
   totalCents: number
@@ -385,7 +371,6 @@ export function totalPreparedLines(lines: readonly PreparedLine[]): PreparedTota
   }
 
   return {
-    currency: lines[0]?.currency ?? "IDR",
     subtotalCents,
     discountTotalCents,
     totalCents,
@@ -442,7 +427,7 @@ export async function performCheckout(
       storeId: input.storeId,
       cashierId: input.cashierId,
       cashierName: input.cashierName ?? null,
-      currency: totals.currency,
+      currency: SALE_CURRENCY,
       subtotal: (totals.subtotalCents / 100).toFixed(2),
       discountTotal: (totals.discountTotalCents / 100).toFixed(2),
       total: (totals.totalCents / 100).toFixed(2),

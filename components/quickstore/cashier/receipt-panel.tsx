@@ -169,7 +169,6 @@ export function ReceiptPanel({
 
   const display = completed
     ? {
-        currency: completed.currency,
         subtotalCents: toCents(completed.subtotal),
         discountTotalCents: toCents(completed.discountTotal),
         totalCents: toCents(completed.total),
@@ -234,15 +233,15 @@ export function ReceiptPanel({
                 <div className="min-w-0">
                   <p className="truncate font-medium">{row.name}</p>
                   <p className="text-2xs text-muted-foreground">
-                    {row.quantity} × {formatCents(toCents(row.unitPricePaid), display.currency)}
+                    {row.quantity} × {formatCents(toCents(row.unitPricePaid))}
                     {row.discountPercent > 0 &&
                       ` ${t("(list {price})", {
-                        price: formatCents(toCents(row.unitPrice), display.currency),
+                        price: formatCents(toCents(row.unitPrice)),
                       })}`}
                   </p>
                 </div>
                 <span className="shrink-0 font-semibold tabular-nums">
-                  {formatCents(toCents(row.lineTotal), display.currency)}
+                  {formatCents(toCents(row.lineTotal))}
                 </span>
               </li>
             ))}
@@ -256,20 +255,20 @@ export function ReceiptPanel({
       <div className="space-y-1.5 px-4 py-3 text-sm">
         <div className="flex items-center justify-between text-muted-foreground">
           <span>{t("Subtotal")}</span>
-          <span className="tabular-nums">{formatCents(display.subtotalCents, display.currency)}</span>
+          <span className="tabular-nums">{formatCents(display.subtotalCents)}</span>
         </div>
         {display.discountTotalCents > 0 && (
           <div className="flex items-center justify-between text-muted-foreground">
             <span>{t("Discounts")}</span>
             <span className="tabular-nums">
-              −{formatCents(display.discountTotalCents, display.currency)}
+              −{formatCents(display.discountTotalCents)}
             </span>
           </div>
         )}
         <div className="flex items-center justify-between border-t border-border pt-2 text-base font-bold">
           <span>{t("Total")}</span>
           <span className="tabular-nums" data-testid="receipt-total">
-            {formatCents(display.totalCents, display.currency)}
+            {formatCents(display.totalCents)}
           </span>
         </div>
         <p className="text-2xs text-muted-foreground">

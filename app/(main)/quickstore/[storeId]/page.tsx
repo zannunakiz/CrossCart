@@ -2,8 +2,8 @@
 
 import { History, Loader2, Package, ShoppingCart, Store as StoreIcon, Users } from "lucide-react"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { HistoryTab } from "@/components/quickstore/history-tab"
@@ -16,6 +16,11 @@ import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
 import type { StoreRole, Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import {
+  resolveStoreTab,
+  storeTabUrlParams,
+  type StoreTab,
+} from "@/lib/quickstore/store-tabs"
 
 interface StoreWithRole extends StoreType {
   role: StoreRole
@@ -23,18 +28,35 @@ interface StoreWithRole extends StoreType {
   isOwner?: boolean
 }
 
-/** Store tab first: it is the landing view of every store. */
-type StoreTab = "store" | "items" | "history" | "members"
-
+/**
+ * `useSearchParams` is a Client Component hook, so the view that reads the open
+ * tab is wrapped in a Suspense boundary (see the official docs) — the tab
+ * itself comes from `?tab=…`, which is what makes a refresh stay on it.
+ */
 export default function StoreDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <StoreDetailView />
+    </Suspense>
+  )
+}
+
+function StoreDetailView() {
   const { storeId } = useParams<{ storeId: string }>()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { t } = useTranslation()
   const { setHeader } = useQuickStoreHeader()
 
   const [store, setStore] = useState<StoreWithRole | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<StoreTab>("store")
 
   const fetchStore = useCallback(async () => {
     try {
@@ -116,6 +138,19 @@ export default function StoreDetailPage() {
     tabItems.push({ value: "members", label: t("Members"), icon: Users })
   }
 
+  // The URL owns the open tab; a tab the role cannot see falls back to the
+  // first one they can (a shared link may point at a hidden tab).
+  const allowedTabs = tabItems
+    .map((item) => item.value)
+    .filter((value): value is StoreTab => value !== undefined)
+  const tab = resolveStoreTab(new URLSearchParams(searchParams.toString()), allowedTabs)
+
+  /** Open a tab by rewriting the query string, so the URL stays shareable. */
+  const selectTab = (value: string) => {
+    const params = storeTabUrlParams(new URLSearchParams(searchParams.toString()), value as StoreTab)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
   return (
     <div>
       {/* Mobile: the navbar hides the store name, so the page prints it here —
@@ -158,7 +193,7 @@ export default function StoreDetailPage() {
       <TabNav
         items={tabItems}
         activeValue={tab}
-        onSelect={(value) => setTab(value as StoreTab)}
+        onSelect={selectTab}
         ariaLabel={t("Store navigation")}
         layoutId={`quickstore-tab-${storeId}`}
       />

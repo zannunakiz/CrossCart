@@ -33,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { CurrencyType } from "@/lib/db/schema"
 import { serverText, useTranslation } from "@/lib/i18n"
 import { formatCents, toCents, type Receipt } from "@/lib/quickstore/cashier"
 import {
@@ -41,7 +40,7 @@ import {
   HISTORY_PRESETS,
   dayLabel,
   historyApiParams,
-  historyUrlParams,
+  withHistoryUrlParams,
   parseHistoryQuery,
   tzOffsetMinutes,
   type HistoryStatus,
@@ -62,8 +61,6 @@ interface HistoryPage {
 
 /** What `/history/summary` answers with. */
 interface HistorySummary {
-  currency: CurrencyType
-  currencies: { currency: CurrencyType; sales: number; revenue: string }[]
   totals: { sales: number; items: number; revenue: string; discount: string }
   granularity: ChartGranularity
   series: ChartPoint[]
@@ -121,7 +118,8 @@ export function HistoryTab({ storeId }: Props) {
         ...parseHistoryQuery(new URLSearchParams(queryString)),
         ...patch,
       }
-      const nextQuery = historyUrlParams(next).toString()
+      // Merged over the current params so foreign keys (`tab`, …) survive.
+      const nextQuery = withHistoryUrlParams(new URLSearchParams(queryString), next).toString()
       router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
     },
     [pathname, queryString, router]
@@ -229,12 +227,11 @@ export function HistoryTab({ storeId }: Props) {
     )
   }
 
-  const currency = summary.currency
-  const money = (value: string) => formatCents(toCents(value), currency)
+  const money = (value: string) => formatCents(toCents(value))
   const series = fillSeries(summary.series, summary.granularity)
   const average =
     summary.totals.sales > 0
-      ? formatCents(Math.round(toCents(summary.totals.revenue) / summary.totals.sales), currency)
+      ? formatCents(Math.round(toCents(summary.totals.revenue) / summary.totals.sales))
       : money("0")
 
   const sales = page.sales
@@ -327,21 +324,6 @@ export function HistoryTab({ storeId }: Props) {
         />
       </div>
 
-      {/* Mixed catalogs: revenue is only ever summed inside one currency. */}
-      {summary.currencies.length > 1 && (
-        <div className="flex flex-wrap items-center gap-2 text-2xs text-muted-foreground">
-          <span>{t("Currency")}:</span>
-          {summary.currencies.map((row) => (
-            <Badge
-              key={row.currency}
-              variant={row.currency === currency ? "default" : "outline"}
-              className="text-3xs"
-            >
-              {row.currency} · {row.sales}
-            </Badge>
-          ))}
-        </div>
-      )}
 
 
       {!hasSales ? (
@@ -370,7 +352,6 @@ export function HistoryTab({ storeId }: Props) {
             <RevenueBars
               points={series}
               granularity={summary.granularity}
-              currency={currency}
               lang={lang}
               emptyLabel={t("No sales in this range")}
             />
@@ -379,7 +360,6 @@ export function HistoryTab({ storeId }: Props) {
           <Panel id="history-panel-hours" title={t("Peak hours")} hint={t("Revenue by hour")}>
             <HourStrip
               hours={summary.byHour}
-              currency={currency}
               label={t("No sales in this range")}
             />
           </Panel>
@@ -387,7 +367,6 @@ export function HistoryTab({ storeId }: Props) {
           <Panel id="history-panel-top-items" title={t("Top items")} hint={t("Best sellers")}>
             <SliceBars
               slices={summary.topItems}
-              currency={currency}
               emptyLabel={t("No sales in this range")}
               meta={(slice) => t("{count} sold", { count: slice.quantity ?? 0 })}
             />
@@ -396,7 +375,6 @@ export function HistoryTab({ storeId }: Props) {
           <Panel id="history-panel-payments" title={t("Payment methods")}>
             <PaymentMix
               slices={summary.byPayment}
-              currency={currency}
               emptyLabel={t("No sales in this range")}
               methodLabel={(method) => {
                 const label = PAYMENT_LABELS[method as keyof typeof PAYMENT_LABELS]
@@ -408,7 +386,6 @@ export function HistoryTab({ storeId }: Props) {
           <Panel id="history-panel-cashiers" title={t("Top cashiers")}>
             <SliceBars
               slices={summary.byCashier}
-              currency={currency}
               emptyLabel={t("No sales in this range")}
               meta={(slice) =>
                 t(slice.sales === 1 ? "{count} sale" : "{count} sales", { count: slice.sales })
@@ -504,7 +481,7 @@ export function HistoryTab({ storeId }: Props) {
                     </span>
 
                     <span className="shrink-0 text-sm font-semibold tabular-nums">
-                      {formatCents(toCents(sale.total), sale.currency)}
+                      {formatCents(toCents(sale.total))}
                     </span>
                   </button>
 
@@ -519,12 +496,12 @@ export function HistoryTab({ storeId }: Props) {
                               <span className="text-muted-foreground">
                                 {" · "}
                                 {line.quantity} ×{" "}
-                                {formatCents(toCents(line.unitPricePaid), sale.currency)}
+                                {formatCents(toCents(line.unitPricePaid))}
                                 {line.discountPercent > 0 && ` (−${line.discountPercent}%)`}
                               </span>
                             </span>
                             <span className="shrink-0 tabular-nums">
-                              {formatCents(toCents(line.lineTotal), sale.currency)}
+                              {formatCents(toCents(line.lineTotal))}
                             </span>
                           </li>
                         ))}
@@ -532,12 +509,12 @@ export function HistoryTab({ storeId }: Props) {
 
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-xs">
                         <span className="text-muted-foreground">
-                          {t("Subtotal")} {formatCents(toCents(sale.subtotal), sale.currency)}
+                          {t("Subtotal")} {formatCents(toCents(sale.subtotal))}
                           {toCents(sale.discountTotal) > 0 &&
-                            ` · ${t("Discounts")} −${formatCents(toCents(sale.discountTotal), sale.currency)}`}
+                            ` · ${t("Discounts")} −${formatCents(toCents(sale.discountTotal))}`}
                         </span>
                         <span className="font-semibold">
-                          {t("Total")} {formatCents(toCents(sale.total), sale.currency)}
+                          {t("Total")} {formatCents(toCents(sale.total))}
                         </span>
                       </div>
                     </div>

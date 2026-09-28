@@ -12,10 +12,10 @@
  *
  * Keep it that way: server-side orchestration lives in `lib/quickstore/checkout.ts`.
  */
-import type { CurrencyType, QsPaymentMethod } from "@/lib/db/schema"
+import type { QsPaymentMethod } from "@/lib/db/schema"
 
 /** Re-exported so consumers of the cashier domain need a single import. */
-export type { CurrencyType, QsPaymentMethod }
+export type { QsPaymentMethod }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -33,6 +33,16 @@ export const MAX_LINES = 50
 /** Seconds the Confirm button stays locked to prevent accidental taps. */
 export const COUNTDOWN_SECONDS = 3
 
+/** Prices are typed as whole numbers: 12 digits is the hard ceiling. */
+export const PRICE_MAX_DIGITS = 12
+
+/** Tracked stock ceiling (a blank stock still means unlimited). */
+export const MAX_STOCKS = 999
+
+/** Ceiling of a description / item name, mirrored by the API validators. */
+export const DESCRIPTION_MAX_LENGTH = 50
+export const NAME_MAX_LENGTH = 20
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,12 +54,10 @@ export interface CashierItem {
   description?: string | null
   /** numeric(18,2) comes back from Postgres as a string. */
   price: string | number
-  currency: CurrencyType
   available: boolean
   /** null = unlimited / untracked stock. */
   stocks: number | null
   discountPercent: number
-  highlight: boolean
 }
 
 /** A fully priced line, resolved in the browser for instant receipt previews. */
@@ -57,7 +65,6 @@ export interface SaleLine {
   itemId: string
   name: string
   quantity: number
-  currency: CurrencyType
   unitPriceCents: number
   discountPercent: number
   unitPricePaidCents: number
@@ -68,7 +75,6 @@ export interface SaleLine {
 }
 
 export interface SaleTotals {
-  currency: CurrencyType
   subtotalCents: number
   discountTotalCents: number
   totalCents: number
@@ -86,7 +92,6 @@ export type CheckoutErrorCode =
   | "PRODUCT_NOT_FOUND"
   | "PRODUCT_UNAVAILABLE"
   | "INSUFFICIENT_STOCK"
-  | "MIXED_CURRENCY"
   | "STORE_NOT_FOUND"
 
 /** Per-line problem returned by the server so the UI can highlight the row. */
@@ -116,7 +121,6 @@ export interface Receipt {
   storeId: string
   receiptNumber: string
   status: "completed" | "voided"
-  currency: CurrencyType
   subtotal: string
   discountTotal: string
   total: string
@@ -173,8 +177,8 @@ function isSubsequence(query: string, value: string): boolean {
  * Rank products against a search query and return at most `limit` results.
  *
  * Ordering: closest match first (exact → prefix → word prefix → substring →
- * subsequence), then highlighted items, then sellable items, then A→Z. The hard
- * `limit` is what keeps the suggestion popup small even in big catalogs.
+ * subsequence), then sellable items, then A→Z. The hard `limit` is what keeps
+ * the suggestion popup small even in big catalogs.
  */
 export function rankItems<T extends CashierItem>(
   items: readonly T[],
@@ -194,7 +198,6 @@ export function rankItems<T extends CashierItem>(
 
   scored.sort((a, b) => {
     if (a.score !== b.score) return a.score - b.score
-    if (a.item.highlight !== b.item.highlight) return a.item.highlight ? -1 : 1
     const aSellable = isSellable(a.item) ? 0 : 1
     const bSellable = isSellable(b.item) ? 0 : 1
     if (aSellable !== bSellable) return aSellable - bSellable
@@ -362,12 +365,70 @@ export function fromCents(cents: number): string {
   return `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`
 }
 
-/** Format integer cents for display: `Rp 12.000` (IDR) / `$12.00` (USD). */
-export function formatCents(cents: number, currency: CurrencyType): string {
-  if (currency === "IDR") {
-    return `Rp ${Math.round(cents / 100).toLocaleString("id-ID")}`
-  }
-  return `$${(cents / 100).toFixed(2)}`
+/**
+ * Format integer cents for display: thousands separators, whole amount, no
+ * currency symbol — `100000000` → `1.000.000`.
+ */
+export function formatCents(cents: number): string {
+  return Math.round(cents / 100).toLocaleString("id-ID")
+}
+
+/**
+ * The digits a price input currently holds, in display order.
+ *
+ * The price box only ever accepts numbers: anything else is dropped, and the
+ * value is capped at `PRICE_MAX_DIGITS` digits so the amount can never overflow
+ * `numeric(18,2)`.
+ */
+export function priceDigits(value: string | number): string {
+  return String(value).replace(/\D/g, "").slice(0, PRICE_MAX_DIGITS)
+}
+
+/**
+ * Re-format a price box on every keystroke: digits grouped in threes from the
+ * right, e.g. `"1000"` → `"1.000"`, `"500"` → `"500"`.
+ */
+export function formatPriceInput(value: string | number): string {
+  const digits = priceDigits(value)
+  if (digits === "") return ""
+  return Number(digits).toLocaleString("id-ID")
+}
+
+/** Parse a price box value ("1.000.000") into integer cents. */
+export function priceToCents(value: string | number): number {
+  const digits = priceDigits(value)
+  if (digits === "") return 0
+  return Number(digits) * 100
+}
+
+/**
+ * Strict validator for a submitted price: whole numbers only, at most 12 of
+ * them, with dots allowed every three digits ("1500", "1.500", "1.000.000").
+ * Commas, signs, decimals and any other character are rejected.
+ */
+export function isPriceInput(value: unknown): boolean {
+  const text =
+    typeof value === "number"
+      ? String(value)
+      : typeof value === "string"
+        ? value.trim()
+        : ""
+  if (text === "") return false
+  if (!/^\d{1,3}(\.\d{3})*$|^\d+$/.test(text)) return false
+  const digits = text.replace(/\./g, "")
+  return digits.length >= 1 && digits.length <= PRICE_MAX_DIGITS
+}
+
+/**
+ * Validate a submitted stock value.
+ * Returns `null` for a blank/unlimited stock, the number for a tracked one, and
+ * `undefined` when the value is invalid (not an integer within 0-999).
+ */
+export function parseStockInput(value: unknown): number | null | undefined {
+  if (value === null || value === undefined || value === "") return null
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value), 10)
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > MAX_STOCKS) return undefined
+  return parsed
 }
 
 /** Unit price after the line discount, in cents. */
@@ -387,7 +448,6 @@ export function buildSaleLine(item: CashierItem, quantity: number): SaleLine {
     itemId: item.id,
     name: item.name,
     quantity,
-    currency: item.currency,
     unitPriceCents,
     discountPercent,
     unitPricePaidCents,
@@ -398,9 +458,8 @@ export function buildSaleLine(item: CashierItem, quantity: number): SaleLine {
   }
 }
 
-/** Sum a cart. All values are integer cents; `currency` is the first line's. */
+/** Sum a cart. All values are integer cents. */
 export function computeTotals(lines: readonly SaleLine[]): SaleTotals {
-  const currency: CurrencyType = lines[0]?.currency ?? "IDR"
   let subtotalCents = 0
   let discountTotalCents = 0
   let totalCents = 0
@@ -414,7 +473,6 @@ export function computeTotals(lines: readonly SaleLine[]): SaleTotals {
   }
 
   return {
-    currency,
     subtotalCents,
     discountTotalCents,
     totalCents,

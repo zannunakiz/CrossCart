@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const rows = await db.query.storeItems.findMany({
     where: eq(storeItems.storeId, storeId),
     columns: { id: true, name: true, description: true },
-    orderBy: (i, { desc, asc }) => [desc(i.highlight), asc(i.name)],
+    orderBy: (i, { asc }) => [asc(i.name)],
   })
   const catalog = rows.map((row) => ({
     id: row.id,

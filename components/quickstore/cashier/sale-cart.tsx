@@ -121,7 +121,7 @@ export function SaleCart({
                   className="shrink-0 text-sm font-semibold tabular-nums"
                   data-testid={`line-total-${line.name}`}
                 >
-                  {formatCents(line.lineTotalCents, line.currency)}
+                  {formatCents(line.lineTotalCents)}
                 </span>
               </div>
 
@@ -129,11 +129,11 @@ export function SaleCart({
               <div className="mt-1.5 flex items-center justify-between gap-3">
                 <p className="min-w-0 truncate text-2xs text-muted-foreground">
                   {t("{price} each", {
-                    price: formatCents(line.unitPricePaidCents, line.currency),
+                    price: formatCents(line.unitPricePaidCents),
                   })}
                   {line.discountPercent > 0 && (
                     <span className="ml-1 line-through opacity-60">
-                      {formatCents(line.unitPriceCents, line.currency)}
+                      {formatCents(line.unitPriceCents)}
                     </span>
                   )}
                   {line.stocks != null && ` · ${t("{count} in stock", { count: line.stocks })}`}

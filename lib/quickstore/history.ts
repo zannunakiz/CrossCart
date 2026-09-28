@@ -174,6 +174,23 @@ export function historyUrlParams(query: HistoryQuery): URLSearchParams {
   return params
 }
 
+/**
+ * The dashboard query merged into an existing query string.
+ *
+ * The History tab shares its URL with the store page, so keys this module does
+ * not own (`tab`, …) are kept untouched while the range / filter keys are
+ * rewritten — a shared dashboard link stays on the tab it was opened on.
+ */
+export function withHistoryUrlParams(
+  current: URLSearchParams,
+  query: HistoryQuery
+): URLSearchParams {
+  const params = new URLSearchParams(current)
+  for (const key of HISTORY_PARAM_KEYS) params.delete(key)
+  historyUrlParams(query).forEach((value, key) => params.set(key, value))
+  return params
+}
+
 /** The browser's UTC offset in minutes, clamped to the real-world range. */
 export function tzOffsetMinutes(now: Date = new Date()): number {
   return Math.min(Math.max(-now.getTimezoneOffset(), -720), 840)

@@ -95,3 +95,20 @@ export function itemListUrlParams(query: ItemListQuery): URLSearchParams {
   if (query.pageSize === ITEM_DEFAULT_PAGE_SIZE) params.delete("limit")
   return params
 }
+
+/**
+ * The list query merged into an existing query string.
+ *
+ * The Items tab shares its URL with the store page, so keys this module does not
+ * own (`tab`, …) are kept untouched while the item keys are rewritten — that is
+ * what lets a searched / sorted / paged link stay on the tab it was opened on.
+ */
+export function withItemListUrlParams(
+  current: URLSearchParams,
+  query: ItemListQuery
+): URLSearchParams {
+  const params = new URLSearchParams(current)
+  for (const key of ITEM_LIST_PARAM_KEYS) params.delete(key)
+  itemListUrlParams(query).forEach((value, key) => params.set(key, value))
+  return params
+}

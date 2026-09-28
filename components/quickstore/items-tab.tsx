@@ -12,7 +12,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Star,
   Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -31,12 +30,13 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 import { serverText, useTranslation } from "@/lib/i18n"
+import { discountedUnitCents, formatCents, toCents } from "@/lib/quickstore/cashier"
 import {
   ITEM_AVAILABILITIES,
   ITEM_PAGE_SIZES,
   ITEM_SORT_KEYS,
   itemListApiParams,
-  itemListUrlParams,
+  withItemListUrlParams,
   parseItemListQuery,
   type ItemAvailability,
   type ItemListQuery,
@@ -72,10 +72,7 @@ const AVAILABILITY_LABELS = {
   unavailable: "Unavailable only",
 } as const
 
-const priceText = (item: StoreItem) =>
-  item.currency === "IDR"
-    ? `Rp ${Number(item.price).toLocaleString("id-ID")}`
-    : `$${Number(item.price).toFixed(2)}`
+const priceText = (item: StoreItem) => formatCents(toCents(item.price))
 
 export function ItemsTab({ storeId, role }: Props) {
   const { lang, t } = useTranslation()
@@ -113,7 +110,11 @@ export function ItemsTab({ storeId, role }: Props) {
   const updateQuery = useCallback(
     (patch: Partial<ItemListQuery>) => {
       const next = { ...parseItemListQuery(new URLSearchParams(queryString)), ...patch }
-      const nextQuery = itemListUrlParams(next).toString()
+      // Merged over the current params so foreign keys (`tab`, …) survive.
+      const nextQuery = withItemListUrlParams(
+        new URLSearchParams(queryString),
+        next
+      ).toString()
       router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
     },
     [pathname, queryString, router]
@@ -365,33 +366,32 @@ export function ItemsTab({ storeId, role }: Props) {
       ) : (
         <>
           {/*
-           * Table — the primitive keeps its own horizontal scroll for very small
-           * screens, while the secondary columns fold into the first cell below
-           * their breakpoint so a phone still reads as one clean column.
+           * Table — two columns only: everything about an item (name,
+           * description, price, its discount, stock and sales) lives in the
+           * first cell, the row actions in the second.
            */}
           <div className="overflow-hidden rounded-lg border border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-full min-w-[10rem]">{t("Items")}</TableHead>
-                  <TableHead className="text-right">{t("Price")}</TableHead>
-                  <TableHead className="hidden text-right sm:table-cell">{t("Stock")}</TableHead>
-                  <TableHead className="hidden text-right lg:table-cell">{t("Sold")}</TableHead>
                   <TableHead className="text-right">{t("Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id} id={`item-row-${item.id}`}>
-                    <TableCell className="w-full whitespace-normal">
-                      <div className="flex items-start gap-2">
-                        {item.highlight && (
-                          <Star
-                            className="mt-0.5 size-3.5 shrink-0 fill-amber-400 text-amber-400"
-                            aria-label={t("Pinned")}
-                          />
-                        )}
+                {items.map((item) => {
+                  const priceCents = toCents(item.price)
+                  // A discounted item prints its old price struck through,
+                  // followed by what the customer actually pays.
+                  const discountedCents =
+                    item.discountPercent > 0
+                      ? discountedUnitCents(priceCents, item.discountPercent)
+                      : null
+
+                  return (
+                    <TableRow key={item.id} id={`item-row-${item.id}`}>
+                      <TableCell className="w-full whitespace-normal">
                         <div className="min-w-0">
                           <p className="font-medium text-foreground">{item.name}</p>
                           {item.description && (
@@ -399,6 +399,28 @@ export function ItemsTab({ storeId, role }: Props) {
                               {item.description}
                             </p>
                           )}
+
+                          {/* Price — directly under the name and description. */}
+                          <p className="mt-1 flex flex-wrap items-baseline gap-1.5 tabular-nums">
+                            {discountedCents === null ? (
+                              <span className="text-sm font-semibold text-primary">
+                                {priceText(item)}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="text-2xs text-muted-foreground line-through">
+                                  {priceText(item)}
+                                </span>
+                                <span className="text-sm font-semibold text-primary">
+                                  {formatCents(discountedCents)}
+                                </span>
+                                <Badge variant="secondary" className="text-3xs">
+                                  -{item.discountPercent}%
+                                </Badge>
+                              </>
+                            )}
+                          </p>
+
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <Badge
                               variant={item.available ? "default" : "secondary"}
@@ -406,8 +428,7 @@ export function ItemsTab({ storeId, role }: Props) {
                             >
                               {item.available ? t("Available") : t("Unavailable")}
                             </Badge>
-                            {/* Phone only: stock + sold would cost two columns. */}
-                            <span className="text-2xs text-muted-foreground sm:hidden">
+                            <span className="text-2xs text-muted-foreground">
                               {item.stocks != null
                                 ? t("{count} in stock", { count: item.stocks })
                                 : t("Unlimited stock")}
@@ -416,86 +437,67 @@ export function ItemsTab({ storeId, role }: Props) {
                             </span>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    <TableCell className="text-right">
-                      <span className="font-semibold text-primary tabular-nums">
-                        {priceText(item)}
-                      </span>
-                      {item.discountPercent > 0 && (
-                        <Badge variant="secondary" className="ml-1.5 text-3xs">
-                          -{item.discountPercent}%
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="hidden text-right tabular-nums sm:table-cell">
-                      {item.stocks != null ? item.stocks : "∞"}
-                    </TableCell>
-
-                    <TableCell className="hidden text-right tabular-nums lg:table-cell">
-                      {item.purchasedAmount}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {canUpdate && (
-                          <Button
-                            id={`edit-item-${item.id}`}
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t("Edit item")}
-                            onClick={() => openEdit(item)}
-                          >
-                            <Pencil className="size-3.5" />
-                          </Button>
-                        )}
-                        {canDelete &&
-                          (deleteTarget?.id === item.id ? (
-                            /* Inline confirm: the trash icon swaps itself for "Delete?" + Yes/No. */
-                            <div className="flex items-center justify-end gap-1">
-                              <span className="text-xs font-medium text-destructive">
-                                {t("Delete?")}
-                              </span>
-                              <Button
-                                id={`item-delete-confirm-${item.id}`}
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => void handleDelete()}
-                                disabled={deleting}
-                              >
-                                {deleting && <Loader2 className="mr-1 size-3.5 animate-spin" />}
-                                {t("Yes")}
-                              </Button>
-                              <Button
-                                id={`item-delete-cancel-${item.id}`}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setDeleteTarget(null)}
-                                disabled={deleting}
-                              >
-                                {t("No")}
-                              </Button>
-                            </div>
-                          ) : (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {canUpdate && (
                             <Button
-                              id={`delete-item-${item.id}`}
+                              id={`edit-item-${item.id}`}
                               variant="ghost"
                               size="icon-sm"
-                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              aria-label={t("Delete item")}
-                              onClick={() => setDeleteTarget(item)}
+                              aria-label={t("Edit item")}
+                              onClick={() => openEdit(item)}
                             >
-                              <Trash2 className="size-3.5" />
+                              <Pencil className="size-3.5" />
                             </Button>
-                          ))}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          )}
+                          {canDelete &&
+                            (deleteTarget?.id === item.id ? (
+                              /* Inline confirm: the trash icon swaps itself for "Delete?" + Yes/No. */
+                              <div className="flex items-center justify-end gap-1">
+                                <span className="text-xs font-medium text-destructive">
+                                  {t("Delete?")}
+                                </span>
+                                <Button
+                                  id={`item-delete-confirm-${item.id}`}
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => void handleDelete()}
+                                  disabled={deleting}
+                                >
+                                  {deleting && <Loader2 className="mr-1 size-3.5 animate-spin" />}
+                                  {t("Yes")}
+                                </Button>
+                                <Button
+                                  id={`item-delete-cancel-${item.id}`}
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setDeleteTarget(null)}
+                                  disabled={deleting}
+                                >
+                                  {t("No")}
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                id={`delete-item-${item.id}`}
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                aria-label={t("Delete item")}
+                                onClick={() => setDeleteTarget(item)}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

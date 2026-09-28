@@ -10,7 +10,6 @@
  */
 import { formatCents, toCents } from "@/lib/quickstore/cashier"
 import { dayLabel } from "@/lib/quickstore/history"
-import type { CurrencyType } from "@/lib/db/schema"
 
 export interface ChartPoint {
   /** `YYYY-MM-DD` (day / week start) or `YYYY-MM`. */
@@ -30,13 +29,11 @@ export type ChartGranularity = "day" | "week" | "month"
 
 const CHART_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"]
 
-const money = (value: string, currency: CurrencyType) => formatCents(toCents(value), currency)
+const money = (value: string) => formatCents(toCents(value))
 
-/** Short, axis-friendly amount: `Rp 1,2jt` style is locale noise, so keep it raw. */
-const axisMoney = (value: string, currency: CurrencyType) =>
-  currency === "IDR"
-    ? `Rp ${Math.round(toCents(value) / 100).toLocaleString("id-ID")}`
-    : `$${Number(value).toFixed(0)}`
+/** Short, axis-friendly amount: thousands separators, no decimals, no symbol. */
+const axisMoney = (value: string) =>
+  Math.round(toCents(value) / 100).toLocaleString("id-ID")
 
 /** Bucket label: month keys have no day, week keys label their first day. */
 export function bucketLabel(key: string, granularity: ChartGranularity, lang: string): string {
@@ -102,13 +99,11 @@ function EmptyChart({ label }: { label: string }) {
 export function RevenueBars({
   points,
   granularity,
-  currency,
   lang,
   emptyLabel,
 }: {
   points: ChartPoint[]
   granularity: ChartGranularity
-  currency: CurrencyType
   lang: string
   emptyLabel: string
 }) {
@@ -122,7 +117,7 @@ export function RevenueBars({
   return (
     <div className="space-y-2">
       <p className="text-2xs text-muted-foreground">
-        <span className="font-medium text-foreground">{axisMoney(String(max / 100), currency)}</span>{" "}
+        <span className="font-medium text-foreground">{axisMoney(String(max / 100))}</span>{" "}
         {`· ${points.length}`}
       </p>
 
@@ -138,8 +133,7 @@ export function RevenueBars({
                 key={point.key}
                 className="flex h-full min-w-[0.75rem] flex-1 flex-col justify-end"
                 title={`${bucketLabel(point.key, granularity, lang)} · ${money(
-                  point.revenue,
-                  currency
+                  point.revenue
                 )} · ${point.sales}`}
               >
                 <div
@@ -164,11 +158,9 @@ export function RevenueBars({
 
 export function HourStrip({
   hours,
-  currency,
   label,
 }: {
   hours: { hour: number; sales: number; revenue: string }[]
-  currency: CurrencyType
   label: string
 }) {
   if (hours.length === 0) return <EmptyChart label={label} />
@@ -187,7 +179,7 @@ export function HourStrip({
           <div
             key={row.hour}
             className="flex h-full flex-1 flex-col justify-end"
-            title={`${String(row.hour).padStart(2, "0")}:00 · ${money(row.revenue, currency)} · ${row.sales}`}
+            title={`${String(row.hour).padStart(2, "0")}:00 · ${money(row.revenue)} · ${row.sales}`}
           >
             <div
               className={`w-full rounded-t-[3px] ${
@@ -214,13 +206,11 @@ export function HourStrip({
 
 export function SliceBars({
   slices,
-  currency,
   emptyLabel,
   /** Secondary metric under each bar (units sold, receipts…). */
   meta,
 }: {
   slices: ChartSlice[]
-  currency: CurrencyType
   emptyLabel: string
   meta?: (slice: ChartSlice) => string
 }) {
@@ -237,7 +227,7 @@ export function SliceBars({
               {slice.label || "—"}
             </span>
             <span className="shrink-0 tabular-nums text-muted-foreground">
-              {money(slice.revenue, currency)}
+              {money(slice.revenue)}
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -260,12 +250,10 @@ export function SliceBars({
 
 export function PaymentMix({
   slices,
-  currency,
   emptyLabel,
   methodLabel,
 }: {
   slices: ChartSlice[]
-  currency: CurrencyType
   emptyLabel: string
   /** Localised name of a payment method (`qr`, `cash`, …). */
   methodLabel: (method: string) => string
@@ -301,7 +289,7 @@ export function PaymentMix({
               {Math.round((slice.sales / totalSales) * 100)}%
             </span>
             <span className="shrink-0 tabular-nums font-medium">
-              {money(slice.revenue, currency)}
+              {money(slice.revenue)}
             </span>
           </li>
         ))}

@@ -17,15 +17,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import type { StoreItem } from "@/lib/db/schema"
 import { serverText, useTranslation } from "@/lib/i18n"
+import {
+  DESCRIPTION_MAX_LENGTH,
+  MAX_STOCKS,
+  NAME_MAX_LENGTH,
+  PRICE_MAX_DIGITS,
+  formatCents,
+  formatPriceInput,
+  priceDigits,
+  toCents,
+} from "@/lib/quickstore/cashier"
 
 interface Props {
   open: boolean
@@ -41,12 +44,11 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
 
   const [name, setName] = useState(item?.name ?? "")
   const [description, setDescription] = useState(item?.description ?? "")
-  const [price, setPrice] = useState(item ? String(item.price) : "0")
-  const [currency, setCurrency] = useState<"USD" | "IDR">(item?.currency ?? "IDR")
+  // The price box only ever holds formatted digits: "1000000" → "1.000.000".
+  const [price, setPrice] = useState(item ? formatCents(toCents(item.price)) : "")
   const [available, setAvailable] = useState(item?.available ?? true)
   const [stocks, setStocks] = useState(item?.stocks != null ? String(item.stocks) : "")
   const [discountPercent, setDiscountPercent] = useState(String(item?.discountPercent ?? 0))
-  const [highlight, setHighlight] = useState(item?.highlight ?? false)
   const [submitting, setSubmitting] = useState(false)
 
   /**
@@ -59,41 +61,54 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
     /* eslint-disable react-hooks/set-state-in-effect -- hydrating the form on open */
     setName(item?.name ?? "")
     setDescription(item?.description ?? "")
-    setPrice(item ? String(item.price) : "0")
-    setCurrency(item?.currency ?? "IDR")
+    setPrice(item ? formatCents(toCents(item.price)) : "")
     setAvailable(item?.available ?? true)
     setStocks(item?.stocks != null ? String(item.stocks) : "")
     setDiscountPercent(String(item?.discountPercent ?? 0))
-    setHighlight(item?.highlight ?? false)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, item])
 
   const reset = () => {
     setName("")
     setDescription("")
-    setPrice("0")
-    setCurrency("IDR")
+    setPrice("")
     setAvailable(true)
     setStocks("")
     setDiscountPercent("0")
-    setHighlight(false)
   }
+
+  // ── Validation — every field must be filled before the form can be sent ────
+  // (stock stays optional: blank still means "unlimited")
+  const stockValue = Number.parseInt(stocks, 10)
+  const stockValid =
+    stocks.trim() === "" ||
+    (Number.isInteger(stockValue) && stockValue >= 0 && stockValue <= MAX_STOCKS)
+  const discountValue = Number.parseInt(discountPercent, 10)
+  const discountValid =
+    discountPercent.trim() !== "" &&
+    String(discountValue) === discountPercent.trim() &&
+    discountValue >= 0 &&
+    discountValue <= 100
+  const formValid =
+    name.trim() !== "" &&
+    description.trim() !== "" &&
+    priceDigits(price) !== "" &&
+    stockValid &&
+    discountValid
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return toast.error(t("Item name is required"))
-    if (submitting) return
+    if (!formValid || submitting) return
     setSubmitting(true)
 
     const payload = {
       name: name.trim(),
-      description: description.trim() || undefined,
-      price: parseFloat(price) || 0,
-      currency,
+      description: description.trim(),
+      // Sent as typed ("1.000.000"); the API validates and stores it.
+      price,
       available,
-      stocks: stocks !== "" ? parseInt(stocks) : undefined,
-      discountPercent: parseInt(discountPercent) || 0,
-      highlight,
+      stocks: stocks.trim() === "" ? null : stockValue,
+      discountPercent: discountValue,
     }
 
     try {
@@ -120,7 +135,12 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
+      // Misclick protection: only an explicit action closes this form. An
+      // outside click (`disablePointerDismissal`) or Esc never discards a
+      // half-filled item — the cashier must press Cancel or ✕.
+      disablePointerDismissal
+      onOpenChange={(v, details) => {
+        if (!v && details.reason !== "close-press") return
         if (!submitting) {
           onOpenChange(v)
           if (!v && !isEdit) reset()
@@ -159,59 +179,53 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             <Input
               id="item-name"
               placeholder={t("e.g. Kopi Susu")}
-              maxLength={20}
+              maxLength={NAME_MAX_LENGTH}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={submitting}
             />
-            <p className="text-right text-2xs text-muted-foreground">{name.length}/20</p>
+            <p className="text-right text-2xs text-muted-foreground">
+              {name.length}/{NAME_MAX_LENGTH}
+            </p>
           </div>
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="item-desc">{t("Description")}</Label>
+            <Label htmlFor="item-desc">
+              {t("Description")} <span className="text-destructive">*</span>
+            </Label>
             <Textarea
               id="item-desc"
               placeholder={t("Short description...")}
-              maxLength={100}
+              maxLength={DESCRIPTION_MAX_LENGTH}
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={submitting}
             />
-            <p className="text-right text-2xs text-muted-foreground">{description.length}/100</p>
+            <p className="text-right text-2xs text-muted-foreground">
+              {description.length}/{DESCRIPTION_MAX_LENGTH}
+            </p>
           </div>
 
-          {/* Price + Currency */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="item-price">{t("Price")}</Label>
-              <Input
-                id="item-price"
-                type="number"
-                min="0"
-                step="any"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                disabled={submitting}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="item-currency">{t("Currency")}</Label>
-              <Select
-                value={currency}
-                onValueChange={(v) => setCurrency(v as "USD" | "IDR")}
-                disabled={submitting}
-              >
-                <SelectTrigger id="item-currency">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IDR">{t("IDR (Rupiah)")}</SelectItem>
-                  <SelectItem value="USD">{t("USD (Dollar)")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Price — numbers only, grouped in threes while typing */}
+          <div className="space-y-1.5">
+            <Label htmlFor="item-price">
+              {t("Price")} <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="item-price"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="1.000.000"
+              value={price}
+              onChange={(e) => setPrice(formatPriceInput(e.target.value))}
+              disabled={submitting}
+            />
+            <p className="text-right text-2xs text-muted-foreground">
+              {priceDigits(price).length}/{PRICE_MAX_DIGITS}
+            </p>
           </div>
 
           {/* Stocks + Discount */}
@@ -222,14 +236,23 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
                 id="item-stocks"
                 type="number"
                 min="0"
+                max={MAX_STOCKS}
                 placeholder="∞"
                 value={stocks}
                 onChange={(e) => setStocks(e.target.value)}
+                aria-invalid={!stockValid}
                 disabled={submitting}
               />
+              {!stockValid && (
+                <p className="text-2xs font-medium text-destructive">
+                  {t("Stocks must be between 0 and {max}", { max: MAX_STOCKS })}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="item-discount">{t("Discount %")}</Label>
+              <Label htmlFor="item-discount">
+                {t("Discount %")} <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="item-discount"
                 type="number"
@@ -237,37 +260,29 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
                 max="100"
                 value={discountPercent}
                 onChange={(e) => setDiscountPercent(e.target.value)}
+                aria-invalid={!discountValid}
                 disabled={submitting}
               />
+              {!discountValid && (
+                <p className="text-2xs font-medium text-destructive">
+                  {t("Discount must be between 0 and 100")}
+                </p>
+              )}
             </div>
           </div>
 
           {/* Toggles */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div>
-                <p className="text-xs font-medium">{t("Available")}</p>
-                <p className="text-2xs text-muted-foreground">{t("Show to customers")}</p>
-              </div>
-              <Switch
-                id="item-available"
-                checked={available}
-                onCheckedChange={setAvailable}
-                disabled={submitting}
-              />
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <p className="text-xs font-medium">{t("Available")}</p>
+              <p className="text-2xs text-muted-foreground">{t("Show to customers")}</p>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div>
-                <p className="text-xs font-medium">{t("Highlight")}</p>
-                <p className="text-2xs text-muted-foreground">{t("Pin to top")}</p>
-              </div>
-              <Switch
-                id="item-highlight"
-                checked={highlight}
-                onCheckedChange={setHighlight}
-                disabled={submitting}
-              />
-            </div>
+            <Switch
+              id="item-available"
+              checked={available}
+              onCheckedChange={setAvailable}
+              disabled={submitting}
+            />
           </div>
         </form>
 
@@ -284,7 +299,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             id="item-submit"
             type="submit"
             form="item-form"
-            disabled={submitting || !name.trim()}
+            disabled={submitting || !formValid}
             className="font-bold"
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}

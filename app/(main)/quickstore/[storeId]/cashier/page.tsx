@@ -400,7 +400,7 @@ export default function CashierPage() {
                 })}
               </p>
               <p className="text-base font-bold tabular-nums" data-testid="cart-total-bar">
-                {formatCents(totals.totalCents, totals.currency)}
+                {formatCents(totals.totalCents)}
               </p>
             </div>
 

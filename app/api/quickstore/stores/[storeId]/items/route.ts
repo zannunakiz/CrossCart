@@ -4,7 +4,7 @@
  *
  * GET answers two shapes on purpose:
  *  - no `q` / `availability` / `sort` / `dir` / `page` / `limit` → `StoreItem[]`
- *    (the whole catalog, pinned first). The cashier and the voice interpreter
+ *    (the whole catalog, A→Z). The cashier and the voice interpreter
  *    need every row in one shot, so that call stays exactly as it was.
  *  - any of those params → `{ items, total, page, pageSize, totalPages }`,
  *    searched / filtered / sorted / paged in SQL so the Items table never
@@ -23,6 +23,13 @@ import {
 } from "@/lib/quickstore/queries"
 import { hasItemListParams, parseItemListQuery } from "@/lib/quickstore/item-list"
 import { hasPermission } from "@/lib/quickstore/permissions"
+import {
+  DESCRIPTION_MAX_LENGTH,
+  NAME_MAX_LENGTH,
+  isPriceInput,
+  parseStockInput,
+  priceToCents,
+} from "@/lib/quickstore/cashier"
 
 export const runtime = "nodejs"
 
@@ -43,11 +50,11 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const searchParams = req.nextUrl.searchParams
 
-  // Unpaged call (cashier / voice): the full catalog, pinned items first.
+  // Unpaged call (cashier / voice): the full catalog, A→Z.
   if (!hasItemListParams(searchParams)) {
     const items = await db.query.storeItems.findMany({
       where: eq(storeItems.storeId, storeId),
-      orderBy: (i, { desc, asc }) => [desc(i.highlight), asc(i.name)],
+      orderBy: (i, { asc }) => [asc(i.name)],
     })
 
     return NextResponse.json(items)
@@ -83,23 +90,40 @@ export async function POST(req: NextRequest, { params }: Params) {
     name,
     description,
     price,
-    currency,
     available,
     stocks,
     discountPercent,
-    highlight,
   } = body as Record<string, unknown>
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     return NextResponse.json({ error: "Item name is required" }, { status: 400 })
   }
-  if (name.trim().length > 20) {
-    return NextResponse.json({ error: "Name must be 20 characters or less" }, { status: 400 })
+  if (name.trim().length > NAME_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `Name must be ${NAME_MAX_LENGTH} characters or less` },
+      { status: 400 }
+    )
   }
-  if (description && typeof description === "string" && description.length > 100) {
-    return NextResponse.json({ error: "Description must be 100 characters or less" }, { status: 400 })
+  if (typeof description !== "string" || description.trim().length === 0) {
+    return NextResponse.json({ error: "Description is required" }, { status: 400 })
   }
-  if (typeof discountPercent === "number" && (discountPercent < 0 || discountPercent > 100)) {
+  if (description.trim().length > DESCRIPTION_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `Description must be ${DESCRIPTION_MAX_LENGTH} characters or less` },
+      { status: 400 }
+    )
+  }
+  if (!isPriceInput(price)) {
+    return NextResponse.json({ error: "Price must be numbers only" }, { status: 400 })
+  }
+  const parsedStocks = parseStockInput(stocks)
+  if (parsedStocks === undefined) {
+    return NextResponse.json({ error: "Stocks must be between 0 and 999" }, { status: 400 })
+  }
+  if (
+    typeof discountPercent === "number" &&
+    (!Number.isInteger(discountPercent) || discountPercent < 0 || discountPercent > 100)
+  ) {
     return NextResponse.json({ error: "discountPercent must be 0-100" }, { status: 400 })
   }
 
@@ -109,13 +133,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       storeId,
       userId: session.user.id,
       name: (name as string).trim(),
-      description: typeof description === "string" ? description.trim() : undefined,
-      price: String(price ?? "0"),
-      currency: (currency as "USD" | "IDR") ?? "IDR",
+      description: description.trim(),
+      // Prices are whole numbers: store them as the canonical numeric string.
+      price: (priceToCents(String(price)) / 100).toFixed(2),
       available: typeof available === "boolean" ? available : true,
-      stocks: typeof stocks === "number" ? stocks : undefined,
+      stocks: parsedStocks ?? undefined,
       discountPercent: typeof discountPercent === "number" ? discountPercent : 0,
-      highlight: typeof highlight === "boolean" ? highlight : false,
     })
     .returning()
 
