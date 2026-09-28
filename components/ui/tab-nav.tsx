@@ -44,7 +44,10 @@ export function TabNav({
   return (
     <div className="relative">
       <nav
-        className={cn("flex gap-1 overflow-x-auto border-b pb-0 scrollbar-none", className)}
+        // Full width: the tabs share the row evenly (`flex-1 basis-0`) so there is
+        // never a half-empty strip on the right — on a phone the four store tabs
+        // used to hug the left edge instead of filling the line.
+        className={cn("flex w-full overflow-x-auto border-b pb-0 scrollbar-none", className)}
         aria-label={ariaLabel}
       >
         {items.map((item) => {
@@ -56,7 +59,7 @@ export function TabNav({
           const content = (
             <>
               {Icon && <Icon className="size-3.5 shrink-0" />}
-              {item.label}
+              <span className="truncate">{item.label}</span>
               {isActive && (
                 <motion.span
                   layoutId={layoutId}
@@ -68,7 +71,7 @@ export function TabNav({
           )
 
           const itemClassName = cn(
-            "relative flex shrink-0 cursor-pointer items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors",
+            "relative flex min-w-0 flex-1 basis-0 cursor-pointer items-center justify-center gap-1.5 px-1.5 py-2.5 text-xs font-medium transition-colors sm:px-3",
             isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
           )
 

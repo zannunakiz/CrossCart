@@ -59,10 +59,17 @@ export function MainNavbar() {
    * Breadcrumb for the store routes: `Quick Store › {store name}` — desktop
    * only. On mobile the navbar hides the store name and the page prints it
    * above the cashier / status row instead (see the store pages). The
-   * open/closed badge, role badge and cashier shortcut live in the page content
-   * (see `StoreStatusBar`), not in the navbar.
+   * open/closed state, role and cashier shortcut live in the page content
+   * (see `StoreStatusLine`), not in the navbar.
    */
   const storeHeader = pathname.startsWith("/quickstore/") ? header : null
+
+  /**
+   * The cashier route is the only store child with its own crumb, so the desktop
+   * breadcrumb reads `Quick Store › {store} › Cashier` there and the store name
+   * turns into a link back to the store tabs.
+   */
+  const isCashierRoute = storeHeader !== null && pathname.endsWith("/cashier")
 
   /**
    * `/quickstore` and its child routes (that do not publish a store header)
@@ -98,10 +105,29 @@ export function MainNavbar() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden sm:list-item" />
                 <BreadcrumbItem className="min-w-0">
-                  <BreadcrumbPage className="truncate font-semibold">
-                    {storeHeader.name}
-                  </BreadcrumbPage>
+                  {isCashierRoute ? (
+                    <BreadcrumbLink
+                      render={<Link href={`/quickstore/${storeHeader.storeId}`} />}
+                      className="cursor-pointer truncate"
+                    >
+                      {storeHeader.name}
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage className="truncate font-semibold">
+                      {storeHeader.name}
+                    </BreadcrumbPage>
+                  )}
                 </BreadcrumbItem>
+                {isCashierRoute && (
+                  <>
+                    <BreadcrumbSeparator className="hidden sm:list-item" />
+                    <BreadcrumbItem className="min-w-0">
+                      <BreadcrumbPage className="truncate font-semibold">
+                        {t("Cashier")}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                )}
               </BreadcrumbList>
             </Breadcrumb>
           ) : section ? (

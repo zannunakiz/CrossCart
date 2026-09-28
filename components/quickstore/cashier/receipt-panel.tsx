@@ -1,10 +1,18 @@
 "use client"
 
+import { CheckCircle2, Loader2, QrCode, RefreshCw, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useReducer, useRef, useState } from "react"
-import { CheckCircle2, Loader2, QrCode, RefreshCw, Store, TriangleAlert } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { checkoutErrorText, useTranslation } from "@/lib/i18n"
 import {
@@ -20,7 +28,6 @@ import {
 } from "@/lib/quickstore/cashier"
 
 export interface ReceiptPanelStore {
-  name: string
   paymentQr: string | null
   open: boolean
 }
@@ -70,6 +77,9 @@ export function ReceiptPanel({
   const { lang, t } = useTranslation()
   const [state, dispatch] = useReducer(checkoutReducer, undefined, initialCheckoutState)
   const [clock, setClock] = useState<string>("")
+  // The payment QR lives behind a button: an 80px thumbnail was unreadable, so a
+  // tap opens the code big enough to be scanned.
+  const [qrOpen, setQrOpen] = useState(false)
 
   const signature = useMemo(() => cartSignature(lines), [lines])
   const isEmpty = lines.length === 0
@@ -146,35 +156,30 @@ export function ReceiptPanel({
   const completed = state.phase === "completed" ? state.receipt : null
 
   // Receipt rows come from the server once the sale is recorded, otherwise from
-  // the live cart (so the cashier reviews exactly what will be charged).
+  // the live cart (so the cashier reviews exactly what will be charged). Only
+  // what the two-line receipt prints is mapped: name, how many, line amount.
   const rows = completed
     ? completed.lines.map((line) => ({
-        key: line.id,
-        name: line.name,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        unitPricePaid: line.unitPricePaid,
-        discountPercent: line.discountPercent,
-        lineTotal: line.lineTotal,
-      }))
+      key: line.id,
+      name: line.name,
+      quantity: line.quantity,
+      lineTotal: line.lineTotal,
+    }))
     : lines.map((line) => ({
-        key: line.itemId,
-        name: line.name,
-        quantity: line.quantity,
-        unitPrice: (line.unitPriceCents / 100).toFixed(2),
-        unitPricePaid: (line.unitPricePaidCents / 100).toFixed(2),
-        discountPercent: line.discountPercent,
-        lineTotal: (line.lineTotalCents / 100).toFixed(2),
-      }))
+      key: line.itemId,
+      name: line.name,
+      quantity: line.quantity,
+      lineTotal: (line.lineTotalCents / 100).toFixed(2),
+    }))
 
   const display = completed
     ? {
-        subtotalCents: toCents(completed.subtotal),
-        discountTotalCents: toCents(completed.discountTotal),
-        totalCents: toCents(completed.total),
-        itemCount: completed.itemCount,
-        lineCount: completed.lineCount,
-      }
+      subtotalCents: toCents(completed.subtotal),
+      discountTotalCents: toCents(completed.discountTotal),
+      totalCents: toCents(completed.total),
+      itemCount: completed.itemCount,
+      lineCount: completed.lineCount,
+    }
     : totals
 
   return (
@@ -187,17 +192,15 @@ export function ReceiptPanel({
       {/* Header */}
       <div className="border-b border-border px-4 py-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-sm font-semibold">
-              <Store className="size-3.5 text-muted-foreground" />
-              <span className="truncate">{store.name}</span>
-            </p>
+          <div className="min-w-0 flex-1">
+            {/* Title only: the store name already sits in the page title /
+                breadcrumb, and repeating it here ate the row on a phone. */}
+            <p className="text-sm font-bold">{t("Receipt")}</p>
             <p className="mt-0.5 text-2xs text-muted-foreground">
-              {completed ? t("Receipt") : t("Draft receipt")} ·{" "}
               {completed
                 ? new Date(completed.paidAt).toLocaleString(
-                    lang === "ID" ? "id-ID" : undefined
-                  )
+                  lang === "ID" ? "id-ID" : undefined
+                )
                 : clock || "—"}
             </p>
             {cashierName && (
@@ -208,9 +211,11 @@ export function ReceiptPanel({
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-1">
-            <Badge variant="outline" className="font-mono text-3xs">
-              {completed ? completed.receiptNumber : t("NOT RECORDED")}
-            </Badge>
+            {completed && (
+              <Badge variant="outline" className="font-mono text-3xs">
+                {completed.receiptNumber}
+              </Badge>
+            )}
             {!store.open && (
               <Badge variant="secondary" className="text-3xs">
                 {t("Store closed")}
@@ -220,29 +225,29 @@ export function ReceiptPanel({
         </div>
       </div>
 
-      {/* Lines — desktop only: the cart above already lists them on mobile. */}
-      <div className="hidden px-4 py-3 lg:block">
+      {/* Lines — listed on every screen, so a phone shows the full receipt too. */}
+      <div className="px-4 py-3">
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {t("Nothing to sell yet — add a product to build the receipt.")}
+            {t("Nothing to sell yet.")}
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {rows.map((row) => (
-              <li key={row.key} className="flex items-start justify-between gap-3 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{row.name}</p>
-                  <p className="text-2xs text-muted-foreground">
-                    {row.quantity} × {formatCents(toCents(row.unitPricePaid))}
-                    {row.discountPercent > 0 &&
-                      ` ${t("(list {price})", {
-                        price: formatCents(toCents(row.unitPrice)),
-                      })}`}
-                  </p>
-                </div>
-                <span className="shrink-0 font-semibold tabular-nums">
+              /*
+               * Two lines per product, nothing else:
+               *   row 1 — `Coffee ×2`  (name and how many)
+               *   row 2 — what that line costs, in the small size
+               * The unit price and the discount already live in the cart above,
+               * so repeating them here only made the receipt harder to scan.
+               */
+              <li key={row.key} className="text-sm">
+                <p className="truncate font-medium">
+                  {row.name} (x{row.quantity})
+                </p>
+                <p className="text-2xs text-muted-foreground tabular-nums">
                   {formatCents(toCents(row.lineTotal))}
-                </span>
+                </p>
               </li>
             ))}
           </ul>
@@ -284,29 +289,61 @@ export function ReceiptPanel({
 
       <Separator />
 
-      {/* Payment QR */}
+      {/* Payment QR — the code stays behind a button (see the dialog below). */}
       <div className="flex items-center gap-3 px-4 py-3">
-        {store.paymentQr ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={store.paymentQr}
-            alt={t("Payment QR")}
-            className="size-20 shrink-0 rounded-md border border-border bg-muted object-contain"
-          />
-        ) : (
-          <span className="grid size-20 shrink-0 place-items-center rounded-md border border-dashed border-border text-muted-foreground">
-            <QrCode className="size-6" />
-          </span>
-        )}
-        <div className="text-2xs text-muted-foreground">
+        <div className="min-w-0 flex-1 text-2xs text-muted-foreground">
           <p className="text-xs font-medium text-foreground">{t("Scan to pay")}</p>
           {store.paymentQr ? (
-            <p>{t("Show this QR to the customer, then confirm the payment below.")}</p>
+            <p>{t("Show this QR to the customer.")}</p>
           ) : (
             <p>{t("No payment QR configured — add one in the store settings.")}</p>
           )}
         </div>
+
+        {store.paymentQr && (
+          <Button
+            id="payment-code-btn"
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={() => setQrOpen(true)}
+          >
+            <QrCode className="size-3.5" />
+            {t("Payment Code")}
+          </Button>
+        )}
       </div>
+
+      {/*
+       * The payment code, big enough to scan. Outside clicks never dismiss it —
+       * like every other dialog here, only the ✕ or the Close button does.
+       */}
+      <Dialog open={qrOpen} onOpenChange={setQrOpen} disablePointerDismissal>
+        <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-bold">{t("Payment Code")}</DialogTitle>
+            <DialogDescription>
+              {t("Show this QR to the customer.")}
+            </DialogDescription>
+          </DialogHeader>
+
+          {store.paymentQr && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={store.paymentQr}
+              alt={t("Payment QR")}
+              className="mx-auto w-full max-w-xs rounded-md border border-border bg-muted object-contain"
+            />
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setQrOpen(false)}>
+              {t("Close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
       {/* Confirmation flow. `[&_button]:h-9` keeps every action thumb-sized. */}
@@ -388,7 +425,7 @@ export function ReceiptPanel({
               </Button>
             </div>
             <p className="text-2xs text-muted-foreground">
-              {t("Only “Yes” records the sale and reduces stock.")}
+              {t("This action cannot be undone.")}
             </p>
           </div>
         )}

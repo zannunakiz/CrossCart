@@ -19,7 +19,12 @@ export const ITEM_MAX_PAGE_SIZE = ITEM_PAGE_SIZES[ITEM_PAGE_SIZES.length - 1]
 /** Sortable columns — a whitelist, so the client can never order by raw SQL. */
 export const ITEM_SORT_KEYS = ["name", "price", "stocks", "sold", "newest"] as const
 export type ItemSortKey = (typeof ITEM_SORT_KEYS)[number]
-export const ITEM_DEFAULT_SORT: ItemSortKey = "name"
+export const ITEM_DEFAULT_SORT: ItemSortKey = "newest"
+/**
+ * Direction that pairs with the default sort: the Items table opens on the
+ * newest first, so a freshly added item is always the first row.
+ */
+export const ITEM_DEFAULT_DIR: ItemSortDir = "desc"
 
 export const ITEM_AVAILABILITIES = ["all", "available", "unavailable"] as const
 export type ItemAvailability = (typeof ITEM_AVAILABILITIES)[number]
@@ -89,7 +94,10 @@ export function parseItemListQuery(params: URLSearchParams): ItemListQuery {
     sort: ITEM_SORT_KEYS.includes(sort as ItemSortKey)
       ? (sort as ItemSortKey)
       : ITEM_DEFAULT_SORT,
-    dir: params.get("dir") === "desc" ? "desc" : "asc",
+    // Any missing or unknown value falls back to the direction that belongs to
+    // `ITEM_DEFAULT_SORT` (newest → descending), so a fresh table lists the most
+    // recent additions on top with a clean URL.
+    dir: params.get("dir") === "asc" ? "asc" : ITEM_DEFAULT_DIR,
     page: clampInt(params.get("page"), 1, Number.MAX_SAFE_INTEGER, 1),
     pageSize:
       limit === null || limit.trim() === ""
@@ -104,7 +112,7 @@ export function itemListApiParams(query: ItemListQuery): URLSearchParams {
   if (query.q) params.set("q", query.q)
   if (query.availability !== "all") params.set("availability", query.availability)
   if (query.sort !== ITEM_DEFAULT_SORT) params.set("sort", query.sort)
-  if (query.dir !== "asc") params.set("dir", query.dir)
+  if (query.dir !== ITEM_DEFAULT_DIR) params.set("dir", query.dir)
   params.set("page", String(query.page))
   params.set("limit", String(query.pageSize))
   return params
