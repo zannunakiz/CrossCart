@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowDown,
@@ -101,6 +102,12 @@ export function ItemsTab({ storeId, role }: Props) {
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StoreItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
+  const entrance = (delay = 0) => ({
+    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: shouldReduceMotion ? 0.2 : 0.35, delay },
+  })
   // Wrapper around the table: the row actions live in its horizontally
   // scrollable last column, so the inline confirm has to be scrolled into view.
   const tableRef = useRef<HTMLDivElement>(null)
@@ -310,7 +317,7 @@ export function ItemsTab({ storeId, role }: Props) {
        * only the width of its own content (the Button base class is `shrink-0`),
        * so on a phone the label stays readable next to a full-width search.
        */}
-      <div className="flex items-center gap-2">
+      <motion.div {...entrance()} className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -335,9 +342,9 @@ export function ItemsTab({ storeId, role }: Props) {
             <span>{t("Add")}</span>
           </Button>
         )}
-      </div>
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <motion.div {...entrance(0.05)} className="flex flex-wrap items-center gap-2">
         <Select
           value={query.availability}
           onValueChange={(value) =>
@@ -410,10 +417,10 @@ export function ItemsTab({ storeId, role }: Props) {
         </Button>
 
         {refreshing && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-      </div>
+      </motion.div>
 
       {total === 0 ? (
-        <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-16 text-center">
+        <motion.div {...entrance(0.1)} className="flex flex-col items-center justify-center border border-dashed border-border bg-card py-16 text-center">
           <Package2 className="mb-3 size-10 text-muted-foreground/50" />
           {narrowed ? (
             <>
@@ -433,7 +440,7 @@ export function ItemsTab({ storeId, role }: Props) {
               </p>
             </>
           )}
-        </div>
+        </motion.div>
       ) : (
         <>
           {/*
@@ -441,7 +448,8 @@ export function ItemsTab({ storeId, role }: Props) {
            * description, price, its discount, stock and sales) lives in the
            * first cell, the row actions in the second.
            */}
-          <div
+          <motion.div
+            {...entrance(0.1)}
             ref={tableRef}
             className={cn(
               "overflow-hidden rounded-lg border border-border bg-card transition-opacity",
@@ -469,7 +477,12 @@ export function ItemsTab({ storeId, role }: Props) {
                       : null
 
                   return (
-                    <TableRow key={item.id} id={`item-row-${item.id}`}>
+                    <motion.tr
+                      key={item.id}
+                      id={`item-row-${item.id}`}
+                      {...entrance(Math.min(0.15 + items.indexOf(item) * 0.03, 0.45))}
+                      className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                    >
                       <TableCell className="w-full whitespace-normal">
                         <div className="min-w-0">
                           <p className="font-medium text-foreground">{item.name}</p>
@@ -574,15 +587,15 @@ export function ItemsTab({ storeId, role }: Props) {
                             ))}
                         </div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   )
                 })}
               </TableBody>
             </Table>
-          </div>
+          </motion.div>
 
           {/* Pager — stacked on a phone, a single line from `sm` up. */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <motion.div {...entrance(0.18)} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
               {t("{from}–{to} of {total}", { from, to, total })}
             </p>
@@ -639,7 +652,7 @@ export function ItemsTab({ storeId, role }: Props) {
                 </Button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </>
       )}
 

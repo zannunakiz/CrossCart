@@ -2,6 +2,7 @@
 
 import { ArrowRight, Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon } from "lucide-react"
 import Link from "next/link"
+import { motion, useReducedMotion } from "framer-motion"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -52,6 +53,12 @@ export default function CashierPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
+  const entrance = (delay = 0) => ({
+    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 14 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: shouldReduceMotion ? 0.2 : 0.4, delay },
+  })
 
   /**
    * Idempotency key for THIS sale. It survives retries (so a request whose
@@ -258,15 +265,15 @@ export default function CashierPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <motion.div {...entrance()} className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
+      </motion.div>
     )
   }
 
   if (loadError || !store) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+      <motion.div {...entrance()} className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <StoreIcon className="size-12 text-muted-foreground" />
         <p className="font-semibold">{loadError ?? t("Store not found")}</p>
         <div className="flex gap-2">
@@ -279,13 +286,13 @@ export default function CashierPage() {
             </Button>
           </Link>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   if (!hasPermission(store.role, "sale:create")) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+      <motion.div {...entrance()} className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <ShieldAlert className="size-12 text-muted-foreground" />
         <div>
           <p className="font-semibold">{t("You cannot ring up sales here")}</p>
@@ -298,7 +305,7 @@ export default function CashierPage() {
             {t("Back to store")}
           </Button>
         </Link>
-      </div>
+      </motion.div>
     )
   }
 
@@ -315,7 +322,7 @@ export default function CashierPage() {
        *   row 2 — the status / role line (`STATUS: open • ROLE: admin`).
        * The stock refresh rides along on the title row.
        */}
-      <div className="flex items-center justify-between gap-3">
+      <motion.div {...entrance()} className="flex items-center justify-between gap-3">
         <h1 className="text-4xl md:text-5xl font-light tracking-tight">
           <span className="text-primary">{cashierTitle.slice(0, titleSplit)}</span>
           <span className="text-foreground">{cashierTitle.slice(titleSplit)}</span>
@@ -336,9 +343,11 @@ export default function CashierPage() {
             <RefreshCw className="size-3.5" />
           )}
         </Button>
-      </div>
+      </motion.div>
 
-      <StoreStatusLine open={store.open} role={store.role} />
+      <motion.div {...entrance(0.05)}>
+        <StoreStatusLine open={store.open} role={store.role} />
+      </motion.div>
 
       {/*
        * `min-w-0` on both columns is load-bearing: a grid item's automatic
@@ -350,16 +359,20 @@ export default function CashierPage() {
        */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {/* Entry column */}
-        <div className="min-w-0 space-y-4">
-          <ProductSearch items={items} onSelect={handleSelect} />
+        <motion.div {...entrance(0.1)} className="min-w-0 space-y-4">
+          <motion.div {...entrance(0.14)}>
+            <ProductSearch items={items} onSelect={handleSelect} />
+          </motion.div>
 
           {/* Voice entry — hands the same kind of lines to the cart as search. */}
           {items.length > 0 ? (
-            <VoiceOrder storeId={storeId} items={items} onAdd={handleVoiceAdd} />
+            <motion.div {...entrance(0.18)}>
+              <VoiceOrder storeId={storeId} items={items} onAdd={handleVoiceAdd} />
+            </motion.div>
           ) : null}
 
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-14 text-center">
+            <motion.div {...entrance(0.22)} className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-14 text-center">
               <Package2 className="mb-3 size-10 text-muted-foreground/50" />
               <p className="font-semibold">{t("No products yet")}</p>
               <p className="mt-1 max-w-sm text-sm text-muted-foreground">
@@ -368,21 +381,23 @@ export default function CashierPage() {
               <Link href={`/quickstore/${storeId}`} className="mt-4">
                 <Button size="sm">{t("Add items")}</Button>
               </Link>
-            </div>
+            </motion.div>
           ) : (
-            <SaleCart
-              lines={lines}
-              catalog={items}
-              onQuantityChange={handleQuantityChange}
-              onRemove={handleRemove}
-              onClear={resetSale}
-              emptyHint={t("Search for a product above, or tap a suggestion to add it.")}
-            />
+            <motion.div {...entrance(0.22)}>
+              <SaleCart
+                lines={lines}
+                catalog={items}
+                onQuantityChange={handleQuantityChange}
+                onRemove={handleRemove}
+                onClear={resetSale}
+                emptyHint={t("Search for a product above, or tap a suggestion to add it.")}
+              />
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Receipt / checkout column */}
-        <div className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+        <motion.div {...entrance(0.16)} className="min-w-0 lg:sticky lg:top-4 lg:self-start">
           <ReceiptPanel
             store={{ paymentQr: store.paymentQr, open: store.open }}
             lines={lines}
@@ -392,7 +407,7 @@ export default function CashierPage() {
             onIssues={handleIssues}
             onNewSale={resetSale}
           />
-        </div>
+        </motion.div>
       </div>
 
       {/*
@@ -401,7 +416,7 @@ export default function CashierPage() {
        * (smooth scrolling is enabled globally in globals.css).
        */}
       {lines.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur lg:hidden">
+        <motion.div {...entrance(0.28)} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-2xs text-muted-foreground">
@@ -421,7 +436,7 @@ export default function CashierPage() {
               </Button>
             </a>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   )
