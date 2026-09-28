@@ -17,8 +17,7 @@ import { toast } from "sonner"
 import {
   fillSeries,
   HourStrip,
-  PaymentMix,
-  RevenueBars,
+  RevenueLine,
   SliceBars,
   type ChartGranularity,
   type ChartPoint,
@@ -69,7 +68,6 @@ interface HistorySummary {
   series: ChartPoint[]
   byHour: { hour: number; sales: number; revenue: string }[]
   topItems: ChartSlice[]
-  byPayment: ChartSlice[]
   byCashier: ChartSlice[]
 }
 
@@ -86,11 +84,6 @@ const STATUS_LABELS = {
   all: "All statuses",
   completed: "Completed",
   voided: "Voided",
-} as const
-
-const PAYMENT_LABELS = {
-  qr: "QR payment",
-  cash: "Cash",
 } as const
 
 /**
@@ -428,7 +421,7 @@ export function HistoryTab({ storeId }: Props) {
             )}
             className="lg:col-span-2"
           >
-            <RevenueBars
+            <RevenueLine
               points={series}
               granularity={summary.granularity}
               lang={lang}
@@ -461,18 +454,12 @@ export function HistoryTab({ storeId }: Props) {
             />
           </Panel>
 
-          <Panel variants={rise(reveal(2, 3))} id="history-panel-payments" title={t("Payment methods")}>
-            <PaymentMix
-              slices={summary.byPayment}
-              emptyLabel={t("No sales in this range")}
-              methodLabel={(method) => {
-                const label = PAYMENT_LABELS[method as keyof typeof PAYMENT_LABELS]
-                return label ? t(label) : method
-              }}
-            />
-          </Panel>
-
-          <Panel variants={rise(reveal(2, 4))} id="history-panel-cashiers" title={t("Top cashiers")}>
+          <Panel
+            variants={rise(reveal(2, 3))}
+            id="history-panel-cashiers"
+            title={t("Top cashiers")}
+            className="lg:col-span-2"
+          >
             <SliceBars
               slices={summary.byCashier}
               emptyLabel={t("No sales in this range")}

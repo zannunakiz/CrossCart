@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON body", code: "INVALID_REQUEST" }, { status: 400 })
   }
 
-  const { clientRequestId, lines, paymentMethod, note } = (body ?? {}) as Record<string, unknown>
+  const { clientRequestId, lines, note } = (body ?? {}) as Record<string, unknown>
 
   if (typeof clientRequestId !== "string") {
     return NextResponse.json(
@@ -55,12 +55,6 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (!Array.isArray(lines)) {
     return NextResponse.json(
       { error: "lines must be an array of { itemId, quantity }", code: "INVALID_REQUEST" },
-      { status: 400 }
-    )
-  }
-  if (paymentMethod !== undefined && paymentMethod !== "qr" && paymentMethod !== "cash") {
-    return NextResponse.json(
-      { error: "paymentMethod must be 'qr' or 'cash'", code: "INVALID_REQUEST" },
       { status: 400 }
     )
   }
@@ -76,7 +70,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       cashierName: session.user.name ?? session.user.email ?? null,
       clientRequestId,
       lines: lines as { itemId: string; quantity: number }[],
-      paymentMethod: paymentMethod as "qr" | "cash" | undefined,
       note: note as string | undefined,
     })
 

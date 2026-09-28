@@ -12,11 +12,6 @@
  *
  * Keep it that way: server-side orchestration lives in `lib/quickstore/checkout.ts`.
  */
-import type { QsPaymentMethod } from "@/lib/db/schema"
-
-/** Re-exported so consumers of the cashier domain need a single import. */
-export type { QsPaymentMethod }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,7 +132,6 @@ export interface Receipt {
   total: string
   itemCount: number
   lineCount: number
-  paymentMethod: QsPaymentMethod
   note: string | null
   cashierId: string | null
   cashierName?: string | null
@@ -229,7 +223,6 @@ export interface CheckoutRequestLine {
 export interface CheckoutRequestBody {
   clientRequestId: string
   lines: CheckoutRequestLine[]
-  paymentMethod?: QsPaymentMethod
   note?: string
 }
 

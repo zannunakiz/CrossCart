@@ -57,7 +57,6 @@ export function mapReceiptRow(
     total: header.total,
     itemCount: header.itemCount,
     lineCount: header.lineCount,
-    paymentMethod: header.paymentMethod,
     note: header.note,
     cashierId: header.cashierId,
     // Snapshot first: receipts must keep the name they were issued with, even
@@ -140,7 +139,6 @@ function createCheckoutTx(tx: Tx): CheckoutTx {
           total: values.total,
           lineCount: values.lineCount,
           itemCount: values.itemCount,
-          paymentMethod: values.paymentMethod,
           note: values.note,
           cashierName: values.cashierName,
           clientRequestId: values.clientRequestId,
