@@ -59,6 +59,18 @@ interface Props {
 
 const memberLabel = (member: Member) => member.user.name ?? member.user.email ?? "—"
 
+/**
+ * Role labels, shared by the dropdown options and their trigger.
+ *
+ * Base UI can only read an option's text while the popup is mounted, so a
+ * closed trigger falls back to the raw value ("admin") unless it is told what
+ * to print — and taking both from one constant keeps them from drifting apart.
+ */
+const ROLE_LABELS = {
+  admin: "Admin — manages items & open status",
+  master: "Master — full control (settings, members, credentials)",
+} as const
+
 /** Short local date, e.g. "12 Mar 2026" (or "12 Mar 2026" with the ID locale). */
 function formatDay(value: string, lang: string) {
   return new Date(value).toLocaleDateString(lang === "ID" ? "id-ID" : undefined, {
@@ -393,12 +405,12 @@ function RoleDialog({ member, onOpenChange, storeId, onUpdated }: RoleProps) {
             disabled={submitting}
           >
             <SelectTrigger id="member-role" className="w-full">
-              <SelectValue />
+              <SelectValue>{(value) => t(ROLE_LABELS[value as StoreRole])}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="admin">{t("Admin — manages items & open status")}</SelectItem>
+              <SelectItem value="admin">{t(ROLE_LABELS.admin)}</SelectItem>
               <SelectItem value="master">
-                {t("Master — full control (settings, members, credentials)")}
+                {t(ROLE_LABELS.master)}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -503,12 +515,12 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
               disabled={submitting}
             >
               <SelectTrigger id="invite-role" className="w-full">
-                <SelectValue />
+                <SelectValue>{(value) => t(ROLE_LABELS[value as StoreRole])}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">{t("Admin — manages items & open status")}</SelectItem>
+                <SelectItem value="admin">{t(ROLE_LABELS.admin)}</SelectItem>
                 <SelectItem value="master">
-                  {t("Master — full control (settings, members, credentials)")}
+                  {t(ROLE_LABELS.master)}
                 </SelectItem>
               </SelectContent>
             </Select>

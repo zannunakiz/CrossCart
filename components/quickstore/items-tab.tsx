@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowDown,
@@ -101,6 +101,9 @@ export function ItemsTab({ storeId, role }: Props) {
   const [editingItem, setEditingItem] = useState<StoreItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StoreItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Wrapper around the table: the row actions live in its horizontally
+  // scrollable last column, so the inline confirm has to be scrolled into view.
+  const tableRef = useRef<HTMLDivElement>(null)
 
   // Granular catalog permissions — a role may create without being able to
   // update or delete (and vice versa), so each control is gated separately.
@@ -179,12 +182,31 @@ export function ItemsTab({ storeId, role }: Props) {
     setSearchInput(query.q)
   }, [query.q])
 
-  // Debounced search: typing always restarts from page 1.
+  // Debounced search: typing always restarts from page 1. The delay is long on
+  // purpose — the table queries the server, so the box waits for a real pause
+  // instead of firing a request per keystroke.
   useEffect(() => {
     if (searchInput === query.q) return
-    const id = setTimeout(() => updateQuery({ q: searchInput.trim(), page: 1 }), 350)
+    const id = setTimeout(() => updateQuery({ q: searchInput.trim(), page: 1 }), 2000)
     return () => clearTimeout(id)
   }, [searchInput, query.q, updateQuery])
+
+  /*
+   * Canonicalise the query string. A hand-typed or shared link may carry values
+   * this table does not know — `limit=99999` (above the offered page sizes),
+   * `limit=abc`, a leftover `page=1` — and `parseItemListQuery` collapses them
+   * silently. Rewriting the URL to what is actually rendered keeps the address
+   * bar, the dropdowns and the request in agreement. `apiQuery` is unchanged by
+   * a reorder, so this never triggers an extra request.
+   */
+  useEffect(() => {
+    const normalized = withItemListUrlParams(
+      new URLSearchParams(queryString),
+      query
+    ).toString()
+    if (normalized === queryString) return
+    updateQuery({})
+  }, [queryString, query, updateQuery])
 
   // ── Row actions ────────────────────────────────────────────────────────────
   const openCreate = () => {
@@ -196,6 +218,27 @@ export function ItemsTab({ storeId, role }: Props) {
     setEditingItem(item)
     setDialogOpen(true)
   }
+
+  /**
+   * The confirm replaces the trash icon inside the table's last column. On a
+   * phone that column sits past the right edge — the operator would have to
+   * scroll sideways to reach Yes/No, which is exactly the "absurd" part — so
+   * the table slides to its far right as soon as the confirm opens. The effect
+   * runs after the wider cell is committed, and it is a no-op on a wide screen
+   * where the table does not scroll at all.
+   */
+  useEffect(() => {
+    if (!deleteTarget) return
+    const container = tableRef.current?.querySelector<HTMLElement>(
+      '[data-slot="table-container"]'
+    )
+    // Smooth, unless the OS was told to reduce motion.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    container?.scrollTo({
+      left: container.scrollWidth,
+      behavior: reduceMotion ? "auto" : "smooth",
+    })
+  }, [deleteTarget])
 
   const handleSaved = (saved: StoreItem) => {
     toast.success(editingItem ? t("Item updated") : t('"{name}" added', { name: saved.name }))
@@ -262,10 +305,12 @@ export function ItemsTab({ storeId, role }: Props) {
   return (
     <div className="space-y-4">
       {/*
-       * Toolbar — mobile first: the search takes the full width on a phone (with
-       * the add button as an icon next to it) and the filters wrap underneath.
+       * Toolbar — the search box and the add button share one row at every
+       * breakpoint: the input takes the remaining width and the button keeps
+       * only the width of its own content (the Button base class is `shrink-0`),
+       * so on a phone the label stays readable next to a full-width search.
        */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -280,9 +325,14 @@ export function ItemsTab({ storeId, role }: Props) {
         </div>
 
         {canCreate && (
-          <Button id="add-item-btn" className="gap-1.5" onClick={openCreate} aria-label={t("Add Item")}>
+          <Button
+            id="add-item-btn"
+            className="gap-1.5"
+            onClick={openCreate}
+            aria-label={t("Add Item")}
+          >
             <Plus className="size-4" />
-            <span className="hidden sm:inline">{t("Add Item")}</span>
+            <span>{t("Add")}</span>
           </Button>
         )}
       </div>
@@ -300,7 +350,15 @@ export function ItemsTab({ storeId, role }: Props) {
             className="min-w-[8.5rem] flex-1 sm:flex-none"
             aria-label={t("Availability")}
           >
-            <SelectValue />
+            {/*
+             * The label is rendered from the value instead of relying on the
+             * popup's items: Base UI can only read an item's text while the
+             * popup is mounted, so a closed trigger used to fall back to the
+             * raw value ("all") instead of the localized option.
+             */}
+            <SelectValue>
+              {(value) => t(AVAILABILITY_LABELS[value as ItemAvailability])}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {ITEM_AVAILABILITIES.map((value) => (
@@ -321,7 +379,7 @@ export function ItemsTab({ storeId, role }: Props) {
             className="min-w-[8.5rem] flex-1 sm:flex-none"
             aria-label={t("Sort by")}
           >
-            <SelectValue />
+            <SelectValue>{(value) => t(SORT_LABELS[value as ItemSortKey])}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {ITEM_SORT_KEYS.map((value) => (
@@ -384,6 +442,7 @@ export function ItemsTab({ storeId, role }: Props) {
            * first cell, the row actions in the second.
            */}
           <div
+            ref={tableRef}
             className={cn(
               "overflow-hidden rounded-lg border border-border bg-card transition-opacity",
               // Rows of the previous page while the requested one loads.
@@ -539,7 +598,9 @@ export function ItemsTab({ storeId, role }: Props) {
                   className="min-w-[7.5rem]"
                   aria-label={t("Rows per page")}
                 >
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) => t("{count} per page", { count: value })}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {ITEM_PAGE_SIZES.map((size) => (

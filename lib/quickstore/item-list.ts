@@ -9,8 +9,12 @@
 
 /** Page sizes the table offers (and the API accepts). */
 export const ITEM_PAGE_SIZES = [10, 25, 50] as const
-export const ITEM_DEFAULT_PAGE_SIZE = 10
-export const ITEM_MAX_PAGE_SIZE = 100
+export const ITEM_DEFAULT_PAGE_SIZE = ITEM_PAGE_SIZES[0]
+/**
+ * Ceiling for the paged endpoint: a hand-typed `limit` above it is clamped
+ * here, and `ITEM_PAGE_SIZES` is what the table may actually ask for.
+ */
+export const ITEM_MAX_PAGE_SIZE = ITEM_PAGE_SIZES[ITEM_PAGE_SIZES.length - 1]
 
 /** Sortable columns — a whitelist, so the client can never order by raw SQL. */
 export const ITEM_SORT_KEYS = ["name", "price", "stocks", "sold", "newest"] as const
@@ -57,10 +61,25 @@ function clampInt(raw: string | null, min: number, max: number, fallback: number
   return Math.min(Math.max(Math.trunc(parsed), min), max)
 }
 
+/**
+ * Coerce a hand-typed `limit` into one of the offered sizes.
+ *
+ * The table only knows 10 / 25 / 50, so anything else — `limit=99999`,
+ * `limit=7`, or garbage like `limit=abc` — collapses to the largest offered
+ * size (50). That keeps the dropdown, the request and the URL in agreement.
+ */
+function normalizePageSize(raw: string): number {
+  const parsed = Number.parseInt(raw, 10)
+  return (ITEM_PAGE_SIZES as readonly number[]).includes(parsed)
+    ? parsed
+    : ITEM_MAX_PAGE_SIZE
+}
+
 /** Read a query string into a fully populated, clamped query object. */
 export function parseItemListQuery(params: URLSearchParams): ItemListQuery {
   const sort = params.get("sort")
   const availability = params.get("availability")
+  const limit = params.get("limit")
 
   return {
     q: (params.get("q") ?? "").trim(),
@@ -72,7 +91,10 @@ export function parseItemListQuery(params: URLSearchParams): ItemListQuery {
       : ITEM_DEFAULT_SORT,
     dir: params.get("dir") === "desc" ? "desc" : "asc",
     page: clampInt(params.get("page"), 1, Number.MAX_SAFE_INTEGER, 1),
-    pageSize: clampInt(params.get("limit"), 1, ITEM_MAX_PAGE_SIZE, ITEM_DEFAULT_PAGE_SIZE),
+    pageSize:
+      limit === null || limit.trim() === ""
+        ? ITEM_DEFAULT_PAGE_SIZE
+        : normalizePageSize(limit),
   }
 }
 

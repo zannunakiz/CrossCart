@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -120,6 +120,37 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
     priceDigits(price) !== "" &&
     stockValid &&
     discountValid
+
+  /*
+   * "Save Changes" only means something once something actually changed: an
+   * edit dialog opened, read and closed again must not fire a PUT. Every field
+   * is compared against the item exactly as it was hydrated into the form — the
+   * price through the same formatter — so formatting alone is never a change.
+   * Add mode has nothing to compare against, so it always counts as changed.
+   */
+  const pristine = useMemo(
+    () =>
+      item
+        ? {
+            name: item.name,
+            description: item.description ?? "",
+            price: formatCents(toCents(item.price)),
+            available: item.available,
+            stocks: item.stocks != null ? String(item.stocks) : "",
+            discountPercent: String(item.discountPercent ?? 0),
+          }
+        : null,
+    [item]
+  )
+
+  const changed =
+    pristine === null ||
+    name !== pristine.name ||
+    description !== pristine.description ||
+    price !== pristine.price ||
+    available !== pristine.available ||
+    stocks !== pristine.stocks ||
+    discountPercent !== pristine.discountPercent
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -246,50 +277,31 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             </p>
           </div>
 
-          {/* Price — numbers only, grouped in threes while typing */}
-          <div className="space-y-1.5">
-            <Label htmlFor="item-price">
-              {t("Price")} <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="item-price"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="1.000.000"
-              value={price}
-              onChange={(e) => setPrice(formatPriceInput(e.target.value))}
-              disabled={submitting}
-            />
-            <p className="text-right text-2xs text-muted-foreground">
-              {priceDigits(price).length}/{PRICE_MAX_DIGITS}
-            </p>
-          </div>
-
-          {/* Stocks + Discount */}
+          {/*
+           * Price + Discount share one row (both are per-unit numbers), and the
+           * stock box gets a full row of its own below them.
+           */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Price — numbers only, grouped in threes while typing */}
             <div className="space-y-1.5">
-              <Label htmlFor="item-stocks">{t("Stocks (leave blank = unlimited)")}</Label>
+              <Label htmlFor="item-price">
+                {t("Price")} <span className="text-destructive">*</span>
+              </Label>
               <Input
-                id="item-stocks"
-                // Text + digit filter (not `type="number"`, which ignores
-                // `maxLength`): 3 digits, because 999 is the ceiling. A blank
-                // value still means "unlimited".
+                id="item-price"
+                type="text"
                 inputMode="numeric"
                 autoComplete="off"
-                maxLength={MAX_STOCK_DIGITS}
-                placeholder="∞"
-                value={stocks}
-                onChange={(e) => setStocks(limitDigits(e.target.value, MAX_STOCK_DIGITS))}
-                aria-invalid={!stockValid}
+                placeholder="1.000.000"
+                value={price}
+                onChange={(e) => setPrice(formatPriceInput(e.target.value))}
                 disabled={submitting}
               />
-              {!stockValid && (
-                <p className="text-2xs font-medium text-destructive">
-                  {t("Stocks must be between 0 and {max}", { max: MAX_STOCKS })}
-                </p>
-              )}
+              <p className="text-right text-2xs text-muted-foreground">
+                {priceDigits(price).length}/{PRICE_MAX_DIGITS}
+              </p>
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="item-discount">
                 {t("Discount %")} <span className="text-destructive">*</span>
@@ -312,6 +324,30 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Stocks — full width; a blank box still means "unlimited". */}
+          <div className="space-y-1.5">
+            <Label htmlFor="item-stocks">{t("Stocks (leave blank = unlimited)")}</Label>
+            <Input
+              id="item-stocks"
+              // Text + digit filter (not `type="number"`, which ignores
+              // `maxLength`): 3 digits, because 999 is the ceiling. A blank
+              // value still means "unlimited".
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={MAX_STOCK_DIGITS}
+              placeholder="∞"
+              value={stocks}
+              onChange={(e) => setStocks(limitDigits(e.target.value, MAX_STOCK_DIGITS))}
+              aria-invalid={!stockValid}
+              disabled={submitting}
+            />
+            {!stockValid && (
+              <p className="text-2xs font-medium text-destructive">
+                {t("Stocks must be between 0 and {max}", { max: MAX_STOCKS })}
+              </p>
+            )}
           </div>
 
           {/* Toggles */}
@@ -342,7 +378,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             id="item-submit"
             type="submit"
             form="item-form"
-            disabled={submitting || !formValid}
+            disabled={submitting || !formValid || !changed}
             className="font-bold"
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}

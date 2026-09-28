@@ -435,7 +435,12 @@ export function HistoryTab({ storeId }: Props) {
             onValueChange={(value) => updateQuery({ status: value as HistoryStatus, page: 1 })}
           >
             <SelectTrigger id="history-status" className="w-full sm:w-40" aria-label={t("Status")}>
-              <SelectValue />
+              {/*
+               * The label is rendered from the value: Base UI can only read an
+               * option's text while the popup is mounted, so a closed trigger
+               * would otherwise fall back to the raw value ("all").
+               */}
+              <SelectValue>{(value) => t(STATUS_LABELS[value as HistoryStatus])}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {(["all", "completed", "voided"] as const).map((value) => (
@@ -563,7 +568,9 @@ export function HistoryTab({ storeId }: Props) {
                   className="min-w-[7.5rem]"
                   aria-label={t("Rows per page")}
                 >
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) => t("{count} per page", { count: value })}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {HISTORY_PAGE_SIZES.map((size) => (

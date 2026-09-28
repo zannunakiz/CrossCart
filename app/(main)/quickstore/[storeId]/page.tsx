@@ -17,6 +17,7 @@ import type { StoreRole, Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
 import { hasPermission } from "@/lib/quickstore/permissions"
 import {
+  parseStoreTab,
   resolveStoreTab,
   storeTabUrlParams,
   type StoreTab,
@@ -26,6 +27,33 @@ interface StoreWithRole extends StoreType {
   role: StoreRole
   /** True when the signed-in user is the store creator (owner). */
   isOwner?: boolean
+}
+
+/**
+ * Mirrors a `?tab=` the page refuses to render back into the URL.
+ *
+ * A hand-typed or stale link can ask for a tab that does not exist
+ * (`?tab=blabla`) or one this role may not open. The page already falls back to
+ * a real tab, but the address bar kept the old value — so the URL is rewritten
+ * to the tab that is actually on screen. Nothing is written when the param is
+ * simply missing, so a plain `/quickstore/[id]` link stays clean.
+ *
+ * A component of its own so the effect runs unconditionally even though the
+ * page returns early while it is still loading.
+ */
+function TabUrlSync({ tab }: { tab: StoreTab }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    const requested = parseStoreTab(params)
+    if (requested === null || requested === tab) return
+    router.replace(`${pathname}?${storeTabUrlParams(params, tab).toString()}`, { scroll: false })
+  }, [searchParams, pathname, router, tab])
+
+  return null
 }
 
 /**
@@ -173,7 +201,7 @@ function StoreDetailView() {
             <Link href={`/quickstore/${store.id}/cashier`} id="open-cashier-btn">
               <Button size="sm" className="gap-1.5">
                 <ShoppingCart className="size-3.5" />
-                <span>{t("Cashier")}</span>
+                <span>{t("To Cashier")}</span>
               </Button>
             </Link>
           )}
@@ -197,6 +225,7 @@ function StoreDetailView() {
       </div>
 
       {/* Tabs — same underlined nav as POS so both screens stay identical. */}
+      <TabUrlSync tab={tab} />
       <TabNav
         items={tabItems}
         activeValue={tab}

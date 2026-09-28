@@ -149,7 +149,10 @@ export default function QuickStorePage() {
               <Link
                 href={`/quickstore/${store.id}`}
                 id={`store-card-${store.id}`}
-                className="group relative flex h-full flex-col justify-between border border-border bg-card p-5 transition-colors hover:border-foreground"
+                // The highlighted border is a hover affordance from `lg` up;
+                // below that (tablet + phone, where there is no hover) it is
+                // simply always on, so the card never looks inert.
+                className="group relative flex h-full flex-col justify-between border border-border bg-card p-5 transition-colors hover:border-foreground max-lg:border-foreground"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -192,7 +195,9 @@ export default function QuickStorePage() {
                       }
                     )}
                   </span>
-                  <span className="shrink-0 font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                  {/* Fades in on hover at `lg`+; permanently visible on the
+                      touch layouts below it, so the entry point is obvious. */}
+                  <span className="shrink-0 font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100 max-lg:opacity-100">
                     {t("qs.openLink")}
                   </span>
                 </div>

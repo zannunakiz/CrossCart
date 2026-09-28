@@ -26,6 +26,24 @@ interface Props {
   onCreated: (store: Store) => void
 }
 
+/**
+ * Prints a "Label (optional)" string with the trailing parenthetical muted.
+ *
+ * The whole label still comes from one `t()` key ("Payment QR (optional)",
+ * "Description (optional)"), so the dictionary stays the single source of
+ * truth and the tag is translated with it — only its visual weight is split.
+ */
+function OptionalLabel({ text }: { text: string }) {
+  const match = text.match(/^(.*?)\s*(\(.*\))$/)
+  if (!match) return <>{text}</>
+  return (
+    <>
+      {match[1]}{" "}
+      <span className="font-light text-muted-foreground">{match[2]}</span>
+    </>
+  )
+}
+
 export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
   const { lang, t } = useTranslation()
   const [name, setName] = useState("")
@@ -97,25 +115,21 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
     }
   }
 
-  // Helper untuk memisah teks "(optional)" agar tetap menggunakan key t() yang sah
-  const renderQrLabel = () => {
-    const fullText = t("Payment QR (optional)")
-    const match = fullText.match(/^(.*?)\s*(\(.*\))$/)
-    if (match) {
-      return (
-        <>
-          {match[1]}{" "}
-          <span className="font-light text-muted-foreground">
-            {match[2]}
-          </span>
-        </>
-      )
-    }
-    return fullText
-  }
-
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }}>
+    <Dialog
+      open={open}
+      // Misclick protection: only an explicit action closes this form. An
+      // outside click (`disablePointerDismissal`) or Esc never discards a
+      // half-filled store — the operator must press Cancel or ✕.
+      disablePointerDismissal
+      onOpenChange={(v, details) => {
+        if (!v && details.reason !== "close-press") return
+        if (!submitting) {
+          onOpenChange(v)
+          if (!v) reset()
+        }
+      }}
+    >
       {/* Ukuran dialog: ruang longgar di LUAR kiri-kanan (bukan padding dalam).
           - <sm : lebar = viewport - 3rem (1.5rem kosong tiap sisi)
           - >=sm: lebar maksimum 28rem, jadi gutter ikut melebar di layar besar */}
@@ -148,7 +162,9 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
 
           {/* Description */}
           <div className="space-y-1.5">
-            <Label htmlFor="store-description">{t("Description")}</Label>
+            <Label htmlFor="store-description">
+              <OptionalLabel text={t("Description (optional)")} />
+            </Label>
             <Textarea
               id="store-description"
               placeholder={t("Short description of your store...")}
@@ -180,7 +196,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
           {/* QR Upload */}
           <div className="space-y-1.5">
             <Label htmlFor="store-qr">
-              {renderQrLabel()}
+              <OptionalLabel text={t("Payment QR (optional)")} />
             </Label>
             <label
               htmlFor="store-qr"

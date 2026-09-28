@@ -82,7 +82,7 @@ const en = {
   'qs.empty.cta': 'Create Store',
   'qs.open': 'Open',
   'qs.closed': 'Closed',
-  'qs.openLink': 'Open →',
+  'qs.openLink': 'Enter →',
   'qs.loadFailed': 'Failed to load stores',
   'qs.created': 'Store "{name}" created!',
 
@@ -170,7 +170,7 @@ const id: Record<keyof typeof en, string> = {
   'qs.empty.cta': 'Buat Toko',
   'qs.open': 'Buka',
   'qs.closed': 'Tutup',
-  'qs.openLink': 'Buka →',
+  'qs.openLink': 'Masuk →',
   'qs.loadFailed': 'Gagal memuat daftar toko',
   'qs.created': 'Toko "{name}" berhasil dibuat!',
 
@@ -194,6 +194,7 @@ const id: Record<keyof typeof en, string> = {
 
 const phraseId = {
   // ── Common ────────────────────────────────────────────────────────────────
+  Add: 'Tambah',
   Cancel: 'Batal',
   Delete: 'Hapus',
   'Delete?': 'Hapus?',
@@ -205,6 +206,7 @@ const phraseId = {
   Subtotal: 'Subtotal',
   Discounts: 'Diskon',
   Cashier: 'Kasir',
+  'To Cashier': 'Ke Kasir',
   Open: 'Buka',
   Closed: 'Tutup',
   Name: 'Nama',
@@ -252,6 +254,7 @@ const phraseId = {
   'Short description of your store...': 'Deskripsi singkat toko Anda...',
   'Open for orders': 'Buka untuk pesanan',
   'Payment QR (optional)': 'QR Pembayaran (opsional)',
+  'Description (optional)': 'Deskripsi (opsional)',
   optional: 'opsional',
   'Click to upload (PNG, JPG, max 2 MB)': 'Klik untuk mengunggah (PNG, JPG, maks 2 MB)',
   'Create Store': 'Buat Toko',
@@ -272,8 +275,8 @@ const phraseId = {
   'Search items…': 'Cari item…',
   Availability: 'Ketersediaan',
   All: 'Semua',
-  'Available only': 'Hanya tersedia',
-  'Unavailable only': 'Hanya tidak tersedia',
+  'Available only': 'Tersedia',
+  'Unavailable only': 'Tidak Tersedia',
   'Sort by': 'Urutkan',
   Stock: 'Stok',
   Sold: 'Terjual',

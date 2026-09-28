@@ -243,7 +243,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
             disabled={busy || listening || captured}
           >
             <SelectTrigger size="sm" aria-label={t("Voice language")} className="h-7 gap-1.5 text-xs">
-              <SelectValue />
+              <SelectValue>{VOICE_LANGUAGE_LABEL[language]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="EN">{VOICE_LANGUAGE_LABEL.EN}</SelectItem>
