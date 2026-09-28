@@ -8,7 +8,7 @@ import type { StoreRole } from "@/lib/db/schema"
  * Data the QuickStore detail pages publish to the app navbar so the breadcrumb
  * (`quickstore › {store}`) can be rendered there instead of a per-page header.
  * The open/closed state and role are shown in the page content instead — see
- * `StoreStatusBar`. Works for both `/quickstore/[storeId]` and its child routes
+ * `StoreStatusLine`. Works for both `/quickstore/[storeId]` and its child routes
  * such as `/quickstore/[storeId]/cashier`.
  */
 export interface QuickStoreHeader {

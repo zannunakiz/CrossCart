@@ -84,8 +84,10 @@ function AutocompleteItem({ className, ...props }: AutocompletePrimitive.Item.Pr
   return (
     <AutocompletePrimitive.Item
       data-slot="autocomplete-item"
+      // `text-xs` is the row default: the popup is a dense "type → tap" list, so
+      // its type sits one step below the surrounding screen at every viewport.
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+        "relative flex w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-xs outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
         className
       )}
       {...props}
@@ -97,7 +99,10 @@ function AutocompleteEmpty({ className, ...props }: AutocompletePrimitive.Empty.
   return (
     <AutocompletePrimitive.Empty
       data-slot="autocomplete-empty"
-      className={cn("px-3 py-4 text-sm text-muted-foreground", className)}
+      // Base UI keeps this element mounted even while there are matches (only its
+      // children are dropped), so `empty:hidden` stops its padding from showing up
+      // as a blank strip above the suggestion list.
+      className={cn("px-3 py-4 text-xs text-muted-foreground empty:hidden", className)}
       {...props}
     />
   )

@@ -71,6 +71,12 @@ const ROLE_LABELS = {
   master: "Master — full control",
 } as const
 
+/**
+ * Shape of the address an invite may be sent to. Deliberately simple — the API
+ * stays the authority; this only keeps an obvious typo from being submitted.
+ */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 /** Short local date, e.g. "12 Mar 2026" (or "12 Mar 2026" with the ID locale). */
 function formatDay(value: string, lang: string) {
   return new Date(value).toLocaleDateString(lang === "ID" ? "id-ID" : undefined, {
@@ -147,8 +153,8 @@ export function MembersTab({ storeId, role }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar — mobile first: the invite button keeps its icon-only form on
-          a phone so the count and the action share one line. */}
+      {/* Toolbar — the invite button keeps its label on a phone too: an icon-only
+          action hid what it did. */}
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {t(members.length === 1 ? "{count} member" : "{count} members", {
@@ -159,12 +165,12 @@ export function MembersTab({ storeId, role }: Props) {
           <Button
             id="invite-member-btn"
             size="sm"
-            className="gap-1.5"
+            className="shrink-0 gap-1.5"
             onClick={() => setInviteOpen(true)}
             aria-label={t("Invite Member")}
           >
             <UserPlus className="size-4" />
-            <span className="hidden sm:inline">{t("Invite Member")}</span>
+            <span>{t("Invite Member")}</span>
           </Button>
         )}
       </div>
@@ -204,8 +210,10 @@ export function MembersTab({ storeId, role }: Props) {
                       <p className="truncate text-sm font-semibold text-foreground">
                         {member.user.name ?? "—"}
                       </p>
-                      {isSelf && !member.isOwner && (
-                        <Badge variant="outline" className="text-3xs">
+                      {/* The owner sees it too: "You" marks whichever row is the
+                          signed-in user, owner or not. */}
+                      {isSelf && (
+                        <Badge variant="outline" className="ms-1 text-3xs">
                           {t("You")}
                         </Badge>
                       )}
@@ -299,6 +307,7 @@ export function MembersTab({ storeId, role }: Props) {
         onOpenChange={(open) => {
           if (!open && !removing) setRemoveTarget(null)
         }}
+        disablePointerDismissal
       >
         <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-sm">
           <DialogHeader>
@@ -382,7 +391,13 @@ function RoleDialog({ member, onOpenChange, storeId, onUpdated }: RoleProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!submitting) onOpenChange(v) }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!submitting) onOpenChange(v)
+      }}
+      disablePointerDismissal
+    >
       <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-bold">{t("Change Role")}</DialogTitle>
@@ -451,11 +466,17 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
   const [memberRole, setMemberRole] = useState<StoreRole>("admin")
   const [submitting, setSubmitting] = useState(false)
 
+  const trimmedEmail = email.trim()
+  // The Send button only unlocks for something that looks like an address, so an
+  // obvious typo cannot be submitted (the API answers "No user found…" instead).
+  const emailValid = EMAIL_PATTERN.test(trimmedEmail)
+
   const reset = () => { setEmail(""); setMemberRole("admin") }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return toast.error(t("Email is required"))
+    if (!trimmedEmail) return toast.error(t("Email is required"))
+    if (!emailValid) return toast.error(t("Enter a valid email address"))
     if (submitting) return
     setSubmitting(true)
 
@@ -463,7 +484,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
       const res = await fetch(`/api/quickstore/stores/${storeId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), memberRole }),
+        body: JSON.stringify({ email: trimmedEmail, memberRole }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const member = (await res.json()) as Member
@@ -478,7 +499,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!submitting) { onOpenChange(v); if (!v) reset() } }} disablePointerDismissal>
       {/* Same dialog sizing as Create New Store / Add Item. */}
       <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-sm">
         <DialogHeader>
@@ -499,9 +520,15 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
               placeholder="user@example.com"
               autoComplete="email"
               value={email}
+              aria-invalid={trimmedEmail !== "" && !emailValid}
               onChange={(e) => setEmail(e.target.value)}
               disabled={submitting}
             />
+            {trimmedEmail !== "" && !emailValid && (
+              <p className="text-2xs font-medium text-destructive">
+                {t("Enter a valid email address")}
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="invite-role">{t("Role")}</Label>
@@ -537,7 +564,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
             type="submit"
             form="invite-form"
             className="font-bold"
-            disabled={submitting || !email.trim()}
+            disabled={submitting || !emailValid}
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
             {t("Send Invite")}

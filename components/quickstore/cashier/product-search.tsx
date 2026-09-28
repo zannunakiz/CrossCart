@@ -17,6 +17,7 @@ import {
   MAX_SUGGESTIONS,
   availabilityLabel,
   checkAvailability,
+  discountedUnitCents,
   formatCents,
   rankItems,
   toCents,
@@ -36,7 +37,8 @@ interface Props {
  * Suggestions are ranked client-side and hard-limited to `MAX_SUGGESTIONS`
  * (3) entries, so the popup stays small even in large catalogs. Products that
  * cannot be sold (unavailable / out of stock) are still listed — with the
- * reason — but cannot be selected.
+ * reason — but cannot be selected. Each row is just name + payable price: no
+ * image block, no description, no strike-through, no discount percentage.
  */
 export function ProductSearch({ items, onSelect, disabled = false }: Props) {
   const { lang, t } = useTranslation()
@@ -106,30 +108,41 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
                 data-testid={`product-suggestion-${item.name}`}
                 disabled={!sellable}
                 onClick={() => handlePick(item)}
-                className="items-center gap-3 py-2.5"
+                className="items-center gap-2 py-2.5"
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-xs font-bold uppercase text-muted-foreground">
-                  {item.name.slice(0, 2)}
-                </span>
-
+                {/* No leading image / avatar block — the row stays a compact
+                    name → price line. */}
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium">{item.name}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    {/* One type step down from the rest of the screen: the popup
+                        lists up to three products, and `text-xs` keeps all three
+                        rows visible above the keyboard on a phone. */}
+                    <span className="min-w-0 truncate text-xs font-medium">{item.name}</span>
                     {item.stocks == null ? null : (
                       <Badge variant="outline" className="shrink-0 text-3xs">
                         {t("{count} left", { count: item.stocks })}
                       </Badge>
                     )}
                   </span>
-                  <span className="mt-0.5 block text-2xs text-muted-foreground">
-                    {sellable
-                      ? item.description || t("Tap to add to the sale")
-                      : availabilityText(lang, availability.code, availabilityLabel(availability.code))}
-                  </span>
+                  {/* No description: the row is just the name (with its stock
+                      badge) and the price. A sub-line appears only when the
+                      product cannot be sold, to say why. */}
+                  {sellable ? null : (
+                    <span className="mt-0.5 block text-2xs text-muted-foreground">
+                      {availabilityText(
+                        lang,
+                        availability.code,
+                        availabilityLabel(availability.code)
+                      )}
+                    </span>
+                  )}
                 </span>
 
-                <span className="shrink-0 text-sm font-semibold tabular-nums">
-                  {formatCents(toCents(item.price))}
+                {/* The price already carries the discount — no strike-through and
+                    no percentage: the cashier only needs what will be charged.
+                    Same `text-xs` step as the name above. */}
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-primary">
+                  {formatCents(discountedUnitCents(toCents(item.price), item.discountPercent))}
                 </span>
               </AutocompleteItem>
             )

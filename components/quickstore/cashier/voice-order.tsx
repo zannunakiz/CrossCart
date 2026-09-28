@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState } from "react"
-import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucide-react"
 import { cn } from "cn"
+import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucide-react"
+import { useCallback, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -187,44 +187,53 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
     setErrorText(null)
     setPhase("idle")
     speech.reset()
-    },
+  },
     [busy, speech]
   )
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <section className="border border-border bg-card">
+    <section className="overflow-hidden border border-primary/30 bg-card">
       {/* Collapsed by default: voice takes one row until the cashier opens it. */}
       <button
         type="button"
         aria-expanded={open}
         aria-controls="voice-order-body"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-muted/50"
+        className="flex w-full cursor-pointer items-center gap-2.5 bg-primary/5 px-3.5 py-3 text-left transition-colors hover:bg-primary/10"
       >
         <span
           className={cn(
-            "grid size-7 shrink-0 place-items-center rounded-full",
+            "grid size-8 shrink-0 place-items-center rounded-full",
             listening
               ? "animate-pulse bg-destructive/10 text-destructive"
-              : "bg-muted text-muted-foreground"
+              : "bg-primary text-primary-foreground shadow-sm"
           )}
         >
-          <Mic className="size-3.5" />
+          <Mic className="size-4" />
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block text-xs font-medium">{t("Voice order")}</span>
-          <span className="block truncate text-2xs text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+              {t("Voice order")}
+            </span>
+            {!listening && (
+              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-3xs font-medium text-primary">
+                {t("Tap to speak")}
+              </span>
+            )}
+          </span>
+          <span className="mt-0.5 block truncate text-2xs text-muted-foreground">
             {listening
               ? speech.transcript || t("Listening…")
-              : t('Say a product and a quantity, e.g. "tiga pensil, empat pena".')}
+              : t('Say e.g. "three pencils, four pens".')}
           </span>
         </span>
 
         <ChevronDown
           className={cn(
-            "size-4 shrink-0 text-muted-foreground transition-transform",
+            "size-4 shrink-0 text-primary transition-transform",
             open && "rotate-180"
           )}
         />
@@ -292,7 +301,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {t('Say a product and a quantity, e.g. "tiga pensil, empat pena".')}
+                {t('Say e.g. "three pencils, four pens".')}
               </p>
             )}
           </div>
@@ -352,13 +361,13 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
                       >
                         {availability.ok
                           ? t("{price} each", {
-                              price: formatCents(toCents(item.price)),
-                            })
+                            price: formatCents(toCents(item.price)),
+                          })
                           : availabilityMessage(lang, availability.code, availability.message, {
-                              name: item.name,
-                              stocks: availability.orderable ?? 0,
-                              max: MAX_QTY_PER_LINE,
-                            })}
+                            name: item.name,
+                            stocks: availability.orderable ?? 0,
+                            max: MAX_QTY_PER_LINE,
+                          })}
                       </span>
                     </span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums">

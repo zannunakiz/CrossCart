@@ -147,6 +147,13 @@ const phraseId = {
   'To Cashier': 'Ke Kasir',
   Open: 'Buka',
   Closed: 'Tutup',
+  Close: 'Tutup',
+  // The `STATUS: open • ROLE: admin` line prints the state inline (green / red)
+  // instead of as a badge — these are the lower-case words it uses.
+  open: 'buka',
+  closed: 'tutup',
+  'STATUS:': 'STATUS:',
+  'ROLE:': 'PERAN:',
   Name: 'Nama',
   Description: 'Deskripsi',
   'Store Name': 'Nama Toko',
@@ -268,6 +275,7 @@ const phraseId = {
     'Undang kolaborator untuk membantu mengelola toko ini.',
   '{name} invited as {role}': '{name} diundang sebagai {role}',
   'Email is required': 'Email wajib diisi',
+  'Enter a valid email address': 'Masukkan alamat email yang valid',
   'Invite failed': 'Gagal mengundang',
   'Invite a registered user to collaborate on this store.':
     'Undang pengguna terdaftar untuk berkolaborasi di toko ini.',
@@ -371,7 +379,6 @@ const phraseId = {
   'Start typing to search products': 'Mulai mengetik untuk mencari produk',
   'No product matches "{query}"': 'Tidak ada produk yang cocok dengan "{query}"',
   '{count} left': 'sisa {count}',
-  'Tap to add to the sale': 'Ketuk untuk menambahkan ke penjualan',
   'Product no longer exists': 'Produk sudah tidak ada',
 
   // ── Cashier: sale cart ────────────────────────────────────────────────────
@@ -379,7 +386,7 @@ const phraseId = {
   'Search for a product above to start the sale.':
     'Cari produk di atas untuk memulai penjualan.',
   'Search for a product above, or tap a suggestion to add it.':
-    'Cari produk di atas, atau ketuk saran untuk menambahkannya.',
+    'Cari produk di atas, atau tekan saran untuk menambahkannya.',
   Clear: 'Kosongkan',
   '{price} each': '{price} / item',
   'Decrease quantity of {name}': 'Kurangi jumlah {name}',
@@ -391,11 +398,11 @@ const phraseId = {
   // ── Cashier: receipt panel ────────────────────────────────────────────────
   'Receipt and checkout': 'Struk dan pembayaran',
   Receipt: 'Struk',
-  'Draft receipt': 'Draf struk',
   'Cashier: {name}': 'Kasir: {name}',
   'Scan to pay': 'Pindai untuk membayar',
-  'Show this QR to the customer, then confirm the payment below.':
-    'Tunjukkan QR ini ke pelanggan, lalu konfirmasi pembayaran di bawah.',
+  'Payment Code': 'Kode Pembayaran',
+  'Show this QR to the customer.':
+    'Tunjukkan QR ini ke pelanggan.',
   'No payment QR configured — add one in the store settings.':
     'Belum ada QR pembayaran — tambahkan di pengaturan toko.',
   'Sale recorded': 'Penjualan tercatat',
@@ -408,17 +415,16 @@ const phraseId = {
     'Periksa struk, lalu konfirmasi untuk memulai pengaman 3 detik.',
   'Confirm once the customer has paid.': 'Konfirmasi setelah pelanggan membayar.',
   'Customer Paid?': 'Pelanggan Sudah Bayar?',
-  'Only “Yes” records the sale and reduces stock.':
-    'Hanya “Ya” yang mencatat penjualan dan mengurangi stok.',
+  'This action cannot be undone.':
+    'Aksi ini tidak dapat dikembalikan.',
   'Recording sale…': 'Mencatat penjualan…',
   'Checkout failed': 'Pembayaran gagal',
   'Nothing has been recorded. Fix the items above and confirm again.':
     'Tidak ada yang tercatat. Perbaiki item di atas lalu konfirmasi lagi.',
   'Back to confirm': 'Kembali ke konfirmasi',
-  'NOT RECORDED': 'BELUM TERCATAT',
   'Store closed': 'Toko tutup',
-  'Nothing to sell yet — add a product to build the receipt.':
-    'Belum ada yang dijual — tambahkan produk untuk membuat struk.',
+  'Nothing to sell yet.':
+    'Belum ada yang ditambahkan.',
   '(list {price})': '(harga {price})',
 
   // ── Cashier page ──────────────────────────────────────────────────────────
@@ -448,8 +454,9 @@ const phraseId = {
   'Stop and interpret': 'Hentikan & proses',
   'Listening…': 'Mendengarkan…',
   'Interpreting the order…': 'Memproses pesanan…',
-  'Say a product and a quantity, e.g. "tiga pensil, empat pena".':
-    'Sebutkan produk dan jumlahnya, mis. "tiga pensil, empat pena".',
+  'Say e.g. "three pencils, four pens".':
+    'Sebutkan mis. "tiga pensil, empat pena".',
+  'Tap to speak': 'tekan untuk bicara',
   Discard: 'Buang',
   'Press the mic to interpret it.': 'Tekan mikrofon untuk memprosesnya.',
   'Detected items': 'Item terdeteksi',

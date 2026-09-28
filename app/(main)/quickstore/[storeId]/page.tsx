@@ -10,6 +10,7 @@ import { HistoryTab } from "@/components/quickstore/history-tab"
 import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
+import { StoreStatusLine } from "@/components/quickstore/store-status-line"
 import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
 import { Button } from "@/components/ui/button"
 import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
@@ -194,11 +195,19 @@ function StoreDetailView() {
         {store.name}
       </h1>
 
-      {/* Full width row: Cashier button di kiri, Status & Role di kanan */}
-      <div className="mb-4 flex w-full items-center justify-between gap-3 text-xs text-muted-foreground">
+      {/* Full width row: Cashier button di kiri, Status & Role di kanan.
+          `#open-cashier-btn` is the single, stable hook for QA/automation (it used
+          to exist twice, via the old badge bar) and opens the register in its own
+          tab, so the store tabs stay where they are. */}
+      <div className="mb-4 flex w-full flex-wrap items-center justify-between gap-3">
         <div>
           {canCreateSale && (
-            <Link href={`/quickstore/${store.id}/cashier`} id="open-cashier-btn">
+            <Link
+              href={`/quickstore/${store.id}/cashier`}
+              id="open-cashier-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Button size="sm" className="gap-1.5">
                 <ShoppingCart className="size-3.5" />
                 <span>{t("To Cashier")}</span>
@@ -207,21 +216,7 @@ function StoreDetailView() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div>
-            STATUS:{" "}
-            <span className={store.open ? "font-medium text-emerald-600 dark:text-emerald-400" : "font-medium text-rose-600 dark:text-rose-400"}>
-              {store.open ? "open" : "closed"}
-            </span>
-          </div>
-          <span>•</span>
-          <div>
-            ROLE:{" "}
-            <span className="font-medium text-foreground">
-              {store.role.toLowerCase()}
-            </span>
-          </div>
-        </div>
+        <StoreStatusLine open={store.open} role={store.role} />
       </div>
 
       {/* Tabs — the shared underlined nav, so every store screen looks the same. */}

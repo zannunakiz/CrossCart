@@ -1,20 +1,19 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { ArrowRight, Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowRight, Loader2, Package2, RefreshCw, ShieldAlert, Store as StoreIcon } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
 import { ProductSearch } from "@/components/quickstore/cashier/product-search"
 import { ReceiptPanel } from "@/components/quickstore/cashier/receipt-panel"
 import { SaleCart } from "@/components/quickstore/cashier/sale-cart"
 import { VoiceOrder } from "@/components/quickstore/cashier/voice-order"
-import { StoreStatusBar } from "@/components/quickstore/store-status-bar"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
+import { StoreStatusLine } from "@/components/quickstore/store-status-line"
+import { Button } from "@/components/ui/button"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
-import { hasPermission } from "@/lib/quickstore/permissions"
 import { checkoutErrorText, serverText, useTranslation } from "@/lib/i18n"
 import {
   addLine,
@@ -30,6 +29,7 @@ import {
   type Receipt,
   type SaleLine,
 } from "@/lib/quickstore/cashier"
+import { hasPermission } from "@/lib/quickstore/permissions"
 
 interface StoreWithRole {
   id: string
@@ -302,22 +302,29 @@ export default function CashierPage() {
     )
   }
 
+  // The screen title carries the primary colour on its first half, exactly like
+  // the "Quick Store" heading on the store list.
+  const cashierTitle = t("Cashier")
+  const titleSplit = Math.ceil(cashierTitle.length / 2)
+
   return (
     <div className="space-y-4 pb-24 lg:pb-0">
       {/*
-       * Mobile: the navbar breadcrumb is desktop-only, so the store name and the
-       * stock refresh sit here. `StoreStatusBar` keeps the open/closed state and
-       * the user's role — no cashier shortcut, this IS the cashier route.
+       * Two rows before the content, same shape as the store detail page:
+       *   row 1 — the title ("Cashier" / "Kasir"), split-colour and light weight;
+       *   row 2 — the status / role line (`STATUS: open • ROLE: admin`).
+       * The stock refresh rides along on the title row.
        */}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 flex-1 truncate text-lg font-light tracking-tight text-foreground sm:hidden">
-          {store.name}
+        <h1 className="text-4xl md:text-5xl font-light tracking-tight">
+          <span className="text-primary">{cashierTitle.slice(0, titleSplit)}</span>
+          <span className="text-foreground">{cashierTitle.slice(titleSplit)}</span>
         </h1>
 
         <Button
           variant="ghost"
           size="icon-sm"
-          className="shrink-0 text-muted-foreground sm:ml-auto"
+          className="shrink-0 text-muted-foreground"
           aria-label={t("Refresh stock")}
           title={t("Refresh stock")}
           onClick={() => void refreshCatalog()}
@@ -331,16 +338,19 @@ export default function CashierPage() {
         </Button>
       </div>
 
-      <StoreStatusBar
-        storeId={storeId}
-        open={store.open}
-        role={store.role}
-        showCashier={false}
-      />
+      <StoreStatusLine open={store.open} role={store.role} />
 
+      {/*
+       * `min-w-0` on both columns is load-bearing: a grid item's automatic
+       * minimum size is its min-content width, and the voice panel's truncated
+       * (nowrap) hint line made that 368px. On a 375px phone the page only has
+       * 343px for the grid, so the single mobile column pushed the whole screen
+       * sideways (worse on a 360px Galaxy A55). Letting the columns shrink keeps
+       * the layout at the container width and lets truncation ellipsize instead.
+       */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {/* Entry column */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <ProductSearch items={items} onSelect={handleSelect} />
 
           {/* Voice entry — hands the same kind of lines to the cart as search. */}
@@ -372,9 +382,9 @@ export default function CashierPage() {
         </div>
 
         {/* Receipt / checkout column */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-4 lg:self-start">
           <ReceiptPanel
-            store={{ name: store.name, paymentQr: store.paymentQr, open: store.open }}
+            store={{ paymentQr: store.paymentQr, open: store.open }}
             lines={lines}
             totals={totals}
             onSubmit={submitSale}
@@ -416,4 +426,3 @@ export default function CashierPage() {
     </div>
   )
 }
-

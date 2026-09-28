@@ -79,7 +79,10 @@ export function SaleCart({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+          // Destructive text colour only: the trash glyph and the label inherit
+          // `currentColor`, so both turn red together (same treatment as the
+          // sign-out button in the sidebar).
+          className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={onClear}
           disabled={disabled}
         >
@@ -106,85 +109,106 @@ export function SaleCart({
 
           return (
             <li key={line.itemId} className="px-3.5 py-3" data-testid={`cart-line-${line.name}`}>
-              {/* Line 1 — the product, and what the line costs. */}
-              <div className="flex items-baseline justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate text-sm font-medium">{line.name}</p>
-                  {line.discountPercent > 0 && (
-                    <Badge variant="secondary" className="shrink-0 text-3xs">
-                      -{line.discountPercent}%
-                    </Badge>
-                  )}
-                </div>
+              {/* Row 1 — the product name. */}
+              <p className="truncate text-sm font-medium">{line.name}</p>
 
+              {/* Row 2 — what the line costs: the discounted total first, with the
+                  original amount struck through and the discount badge, exactly
+                  like the price line in the Items tab. */}
+              <p className="mt-0.5 flex flex-wrap items-baseline gap-1.5 tabular-nums">
                 <span
-                  className="shrink-0 text-sm font-semibold tabular-nums"
+                  className="text-sm font-semibold text-primary"
                   data-testid={`line-total-${line.name}`}
                 >
                   {formatCents(line.lineTotalCents)}
                 </span>
-              </div>
-
-              {/* Line 2 — unit price, then the stepper (minus at 1 removes the line). */}
-              <div className="mt-1.5 flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-2xs text-muted-foreground">
-                  {t("{price} each", {
-                    price: formatCents(line.unitPricePaidCents),
-                  })}
-                  {line.discountPercent > 0 && (
-                    <span className="ml-1 line-through opacity-60">
-                      {formatCents(line.unitPriceCents)}
+                {line.discountPercent > 0 && (
+                  <>
+                    <span className="text-2xs text-muted-foreground line-through">
+                      {formatCents(line.unitPriceCents * line.quantity)}
                     </span>
-                  )}
-                  {line.stocks != null && ` · ${t("{count} in stock", { count: line.stocks })}`}
+                    <Badge variant="secondary" className="text-3xs">
+                      -{line.discountPercent}%
+                    </Badge>
+                  </>
+                )}
+              </p>
+
+              {/* Row 3 — the price per item, struck through when discounted. */}
+              <p className="mt-0.5 flex flex-wrap items-baseline gap-1.5 text-2xs text-muted-foreground tabular-nums">
+                <span>
+                  {t("{price} each", { price: formatCents(line.unitPricePaidCents) })}
+                </span>
+                {line.discountPercent > 0 && (
+                  <span className="line-through opacity-60">
+                    {formatCents(line.unitPriceCents)}
+                  </span>
+                )}
+              </p>
+
+              {/* Row 4 — the stock and the amount control. The stepper is a touch
+                  smaller on a phone so the row never wraps. */}
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-2xs text-muted-foreground">
+                  {line.stocks != null
+                    ? t("{count} in stock", { count: line.stocks })
+                    : t("Unlimited stock")}
                 </p>
 
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      className="size-8"
-                      aria-label={t("Decrease quantity of {name}", { name: line.name })}
-                      disabled={disabled}
-                      onClick={() => {
-                        clearDraft(line.itemId)
-                        if (item) onQuantityChange(item, line.quantity - 1)
-                        else onRemove(line.itemId)
-                      }}
-                    >
-                      <Minus className="size-3.5" />
-                    </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="size-7 sm:size-8"
+                    aria-label={t("Decrease quantity of {name}", { name: line.name })}
+                    disabled={disabled}
+                    onClick={() => {
+                      clearDraft(line.itemId)
+                      if (item) onQuantityChange(item, line.quantity - 1)
+                      else onRemove(line.itemId)
+                    }}
+                  >
+                    <Minus className="size-3 sm:size-3.5" />
+                  </Button>
 
-                    <Input
-                      aria-label={t("Quantity of {name}", { name: line.name })}
-                      inputMode="numeric"
-                      className="h-8 w-12 text-center tabular-nums"
-                      value={draft ?? String(line.quantity)}
-                      aria-invalid={draftInvalid}
-                      disabled={disabled}
-                      onChange={(event) => {
-                        const raw = event.target.value
-                        const parsed = parseQuantity(raw)
-                        setDrafts((prev) => ({ ...prev, [line.itemId]: raw }))
-                        if (parsed !== null && item) onQuantityChange(item, parsed)
-                      }}
-                      onBlur={() => clearDraft(line.itemId)}
-                    />
+                  <Input
+                    aria-label={t("Quantity of {name}", { name: line.name })}
+                    inputMode="numeric"
+                    className="h-7 w-10 text-center text-xs tabular-nums sm:h-8 sm:w-12 sm:text-sm"
+                    value={draft ?? String(line.quantity)}
+                    aria-invalid={draftInvalid}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      const raw = event.target.value
+                      const parsed = parseQuantity(raw)
+                      // A quantity above the stock is impossible: typing "30" with
+                      // 4 left snaps the box (and the cart) to 4 instead of keeping
+                      // an unusable value on screen.
+                      const clamped =
+                        parsed === null || !item ? null : clampQuantity(parsed, item)
+                      setDrafts((prev) => ({
+                        ...prev,
+                        [line.itemId]: clamped !== null && clamped !== parsed ? String(clamped) : raw,
+                      }))
+                      if (clamped !== null && item) onQuantityChange(item, clamped)
+                    }}
+                    onBlur={() => clearDraft(line.itemId)}
+                  />
 
-                    <Button
-                      variant="outline"
-                      size="icon-sm"
-                      className="size-8"
-                      aria-label={t("Increase quantity of {name}", { name: line.name })}
-                      disabled={disabled || capped || !availability.ok}
-                      onClick={() => {
-                        clearDraft(line.itemId)
-                        if (item) onQuantityChange(item, line.quantity + 1)
-                      }}
-                    >
-                      <Plus className="size-3.5" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    className="size-7 sm:size-8"
+                    aria-label={t("Increase quantity of {name}", { name: line.name })}
+                    disabled={disabled || capped || !availability.ok}
+                    onClick={() => {
+                      clearDraft(line.itemId)
+                      if (item) onQuantityChange(item, line.quantity + 1)
+                    }}
+                  >
+                    <Plus className="size-3 sm:size-3.5" />
+                  </Button>
+                </div>
               </div>
 
               {(!availability.ok || draftInvalid) && (
