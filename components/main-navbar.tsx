@@ -151,12 +151,14 @@ export function MainNavbar() {
               </BreadcrumbList>
             </Breadcrumb>
           ) : (
-            <>
-              <span className="hidden text-xs text-muted-foreground sm:inline-block">/</span>
-              <h1 className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline-block">
-                {t(currentTitleKey ?? "nav.dashboard")}
-              </h1>
-            </>
+            /*
+             * Section roots that own no child route (the dashboard) print their
+             * label on its own: the sidebar toggle is a control, not a crumb, so
+             * there is no "/" prefix in front of it.
+             */
+            <h1 className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline-block">
+              {t(currentTitleKey ?? "nav.dashboard")}
+            </h1>
           )}
         </div>
       </div>

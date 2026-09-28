@@ -28,6 +28,10 @@ const en = {
   'nav.sidebarNav': 'Sidebar navigation',
   'nav.theme.dark': 'Dark',
   'nav.theme.light': 'Light',
+  // Store block the sidebar adds while a `/quickstore/[storeId]` route is open.
+  'nav.group.store': 'Store',
+  'nav.group.storeTabs': 'Tabs',
+  'nav.openCashierNewTab': 'Open the cashier in a new tab',
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
   'dash.title': 'Overview Dashboard',
@@ -85,9 +89,12 @@ const id: Record<keyof typeof en, string> = {
   'nav.sidebarNav': 'Navigasi sidebar',
   'nav.theme.dark': 'Gelap',
   'nav.theme.light': 'Terang',
+  'nav.group.store': 'Toko',
+  'nav.group.storeTabs': 'Tab',
+  'nav.openCashierNewTab': 'Buka kasir di tab baru',
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
-  'dash.title': 'Dasbor Ikhtisar',
+  'dash.title': 'Dasbor',
   'dash.subtitle': 'Semua yang toko mikro Anda butuhkan — item, penjualan, dan tim.',
   'dash.app.quickstore.title': 'Quick Store',
   'dash.app.quickstore.subtitle': 'Kelola toko online mikro & stok Anda',

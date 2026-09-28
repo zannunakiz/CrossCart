@@ -6,11 +6,32 @@
  * the same view — and the Items/History tabs (which mirror their own filters in
  * the very same query string) keep the tab they were opened on.
  *
- * Pure module — no server imports, safe in a Client Component.
+ * Pure module — no server imports, safe in a Client Component (and in the app
+ * shell's sidebar, which renders the same tab list as the store page).
  */
+
+import type { StoreRole } from "@/lib/db/schema"
+import { hasPermission, type Permission } from "@/lib/quickstore/permissions"
 
 export const STORE_TABS = ["store", "items", "history", "members"] as const
 export type StoreTab = (typeof STORE_TABS)[number]
+
+/**
+ * Permission that unlocks each tab. Tab order and gating live here (not in the
+ * page or in the sidebar drawer) so the URL, the page's tab strip and the
+ * sidebar's tab list can never disagree about what a role may open.
+ */
+export const STORE_TAB_PERMISSIONS: Record<StoreTab, Permission> = {
+  store: "store:view",
+  items: "item:view",
+  history: "sale:view",
+  members: "member:view",
+}
+
+/** The tabs this role may open, in tab-strip order. */
+export function allowedStoreTabs(role: StoreRole | null | undefined): StoreTab[] {
+  return STORE_TABS.filter((tab) => hasPermission(role, STORE_TAB_PERMISSIONS[tab]))
+}
 
 /** Query key that owns the active tab. */
 export const STORE_TAB_PARAM = "tab"
