@@ -30,9 +30,12 @@ export default async function MainLayout({
           {/* Overlapping sidebar drawer: slides in, overlaps content, dims the rest */}
           <MainSidebar />
 
-          {/* Content area keeps the same layout whether the sidebar is open or closed */}
-          <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8">
-            <div className="mx-auto max-w-7xl">{children}</div>
+          {/* Content area keeps the same layout whether the sidebar is open or closed.
+              It is a full-height flex column, so pages fill it with `flex-1` instead
+              of guessing `100vh` math — that guess used to overflow by exactly the
+              padding height and force a needless vertical scrollbar on /dashboard. */}
+          <main className="flex flex-1 flex-col overflow-x-hidden p-4 sm:p-6 lg:p-8">
+            <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">{children}</div>
           </main>
         </div>
       </QuickStoreHeaderProvider>

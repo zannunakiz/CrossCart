@@ -28,17 +28,15 @@ import {
 
 const routeTitleKeys: Record<string, TranslationKey> = {
   "/dashboard": "nav.dashboard",
-  "/pos": "nav.pos",
   "/quickstore": "nav.quickstore",
 }
 
 /**
  * Section roots that are rendered as a single-crumb breadcrumb in the navbar
  * (same component/style as `quickstore › {store}`), showing only the section
- * label — `/pos` → "POS System" and `/quickstore` → "Quick Store".
+ * label — e.g. `/quickstore` → "Quick Store".
  */
 const sectionBreadcrumbs: { prefix: string; titleKey: TranslationKey }[] = [
-  { prefix: "/pos", titleKey: "nav.pos" },
   { prefix: "/quickstore", titleKey: "nav.quickstore" },
 ]
 
@@ -67,8 +65,8 @@ export function MainNavbar() {
   const storeHeader = pathname.startsWith("/quickstore/") ? header : null
 
   /**
-   * `/pos`, `/quickstore` and their child routes (that do not publish a store
-   * header) fall back to a one-item breadcrumb with the section label.
+   * `/quickstore` and its child routes (that do not publish a store header)
+   * fall back to a one-item breadcrumb with the section label.
    */
   const section = sectionBreadcrumbs.find(
     ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`)
