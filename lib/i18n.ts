@@ -252,6 +252,7 @@ const phraseId = {
   'Short description of your store...': 'Deskripsi singkat toko Anda...',
   'Open for orders': 'Buka untuk pesanan',
   'Payment QR (optional)': 'QR Pembayaran (opsional)',
+  optional: 'opsional',
   'Click to upload (PNG, JPG, max 2 MB)': 'Klik untuk mengunggah (PNG, JPG, maks 2 MB)',
   'Create Store': 'Buat Toko',
 
@@ -359,6 +360,9 @@ const phraseId = {
     'Unggah QR pembayaran (PNG, JPG, maks 2 MB)',
   'Save Settings': 'Simpan Pengaturan',
   'Store': 'Toko',
+  'Store Details': 'Detail Toko',
+  'Manage your store profile, status, and payment configuration.':
+    'Kelola profil toko, status, dan konfigurasi pembayaran Anda.',
   'Store Credential': 'Kredensial Toko',
   'Only the store master can change these settings.':
     'Hanya master toko yang dapat mengubah pengaturan ini.',
@@ -707,4 +711,3 @@ export function useTranslation() {
 
   return { lang, t }
 }
-

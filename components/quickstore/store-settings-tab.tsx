@@ -6,6 +6,13 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -133,7 +140,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
   }
 
   return (
-    <div className="max-w-lg">
+    <div className="w-full">
       {/* Read-only explanation for roles without any store update permission. */}
       {!canEditAnything && (
         <p className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
@@ -148,159 +155,173 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-1.5">
-          <Label htmlFor="settings-name">
-            {t("Store Name")} <span className="text-destructive">*</span>
-          </Label>
-          {/* The outline comes from `--input` — in light mode that token IS the
-              strengthened colour this form used to hard-code. */}
-          <Input
-            id="settings-name"
-            maxLength={20}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={submitting || !allowDetails}
-          />
-          <p className="text-right text-2xs text-muted-foreground">{name.length}/20</p>
+      {/* Grid container: 1 kolom di mobile, 2 kolom di desktop (lg) */}
+      <div className="space-y-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8 lg:space-y-0">
+        {/* Kolom Kiri / Utama: Form Settings dalam Card */}
+        <div className="lg:col-span-7">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("Store Details")}</CardTitle>
+              <CardDescription>
+                {t("Manage your store profile, status, and payment configuration.")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-1.5">
+                  <Label htmlFor="settings-name">
+                    {t("Store Name")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="settings-name"
+                    maxLength={20}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={submitting || !allowDetails}
+                  />
+                  <p className="text-right text-2xs text-muted-foreground">{name.length}/20</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="settings-description">{t("Description")}</Label>
+                  <Textarea
+                    id="settings-description"
+                    maxLength={50}
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={submitting || !allowDetails}
+                  />
+                  <p className="text-right text-2xs text-muted-foreground">{description.length}/50</p>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div>
+                    <p className="text-sm font-medium">{t("Open for Orders")}</p>
+                    <p className="text-xs text-muted-foreground">{t("Customers can browse and buy")}</p>
+                  </div>
+                  <Switch
+                    id="settings-open"
+                    checked={open}
+                    onCheckedChange={setOpen}
+                    disabled={submitting || !allowStatus}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="settings-qr">{t("Payment QR Code")}</Label>
+                    <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {t("Store Credential")}
+                    </span>
+                  </div>
+                  <label
+                    htmlFor={allowCredential ? "settings-qr" : undefined}
+                    className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-5 transition-colors ${allowCredential ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-60"
+                      }`}
+                  >
+                    {qrPreview ? (
+                      <div className="flex flex-col items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={qrPreview} alt={t("Payment QR")} className="h-28 w-28 object-contain rounded-lg" />
+                        <span className="text-xs text-muted-foreground">
+                          {allowCredential
+                            ? t("Click to change")
+                            : t("Only the store master can change the payment QR")}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <UploadCloud className="size-7 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {allowCredential
+                            ? t("Upload payment QR (PNG, JPG, max 2 MB)")
+                            : t("Only the store master can change the payment QR")}
+                        </span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id="settings-qr"
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={handleQrChange}
+                    disabled={submitting || !allowCredential}
+                  />
+                </div>
+
+                {canEditAnything && (
+                  <Button
+                    id="settings-save-btn"
+                    type="submit"
+                    disabled={!canSave}
+                    className="w-full sm:w-auto"
+                  >
+                    {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                    {t("Save Changes")}
+                  </Button>
+                )}
+              </form>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="settings-description">{t("Description")}</Label>
-          <Textarea
-            id="settings-description"
-            maxLength={50}
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={submitting || !allowDetails}
-          />
-          <p className="text-right text-2xs text-muted-foreground">{description.length}/50</p>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-border p-4">
-          <div>
-            <p className="text-sm font-medium">{t("Open for Orders")}</p>
-            <p className="text-xs text-muted-foreground">{t("Customers can browse and buy")}</p>
+        {/* Kolom Kanan: Danger zone (master or store owner only) dalam Card */}
+        {canDelete && (
+          <div className="lg:col-span-5">
+            <Card className="border-destructive/40 bg-destructive/5">
+              <CardHeader>
+                <CardTitle className="text-destructive">{t("Delete Store")}</CardTitle>
+                <CardDescription>
+                  {t("Delete this store? This cannot be undone.")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {confirmDelete ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-destructive">{t("Delete?")}</span>
+                    <Button
+                      id="settings-delete-store-confirm"
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => void handleDelete()}
+                      disabled={deleting}
+                    >
+                      {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                      {t("Yes")}
+                    </Button>
+                    <Button
+                      id="settings-delete-store-cancel"
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={deleting}
+                    >
+                      {t("No")}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    id="settings-delete-store-btn"
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="size-4" />
+                    {t("Delete Store")}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           </div>
-          <Switch
-            id="settings-open"
-            checked={open}
-            onCheckedChange={setOpen}
-            disabled={submitting || !allowStatus}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <Label htmlFor="settings-qr">{t("Payment QR Code")}</Label>
-            <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("Store Credential")}
-            </span>
-          </div>
-          <label
-            htmlFor={allowCredential ? "settings-qr" : undefined}
-            className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-5 transition-colors ${
-              allowCredential ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-60"
-            }`}
-          >
-            {qrPreview ? (
-              <div className="flex flex-col items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrPreview} alt={t("Payment QR")} className="h-28 w-28 object-contain rounded-lg" />
-                <span className="text-xs text-muted-foreground">
-                  {allowCredential
-                    ? t("Click to change")
-                    : t("Only the store master can change the payment QR")}
-                </span>
-              </div>
-            ) : (
-              <>
-                <UploadCloud className="size-7 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {allowCredential
-                    ? t("Upload payment QR (PNG, JPG, max 2 MB)")
-                    : t("Only the store master can change the payment QR")}
-                </span>
-              </>
-            )}
-          </label>
-          <input
-            id="settings-qr"
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handleQrChange}
-            disabled={submitting || !allowCredential}
-          />
-        </div>
-
-        {canEditAnything && (
-          /* Enabled only with unsaved changes and a valid required name. */
-          <Button
-            id="settings-save-btn"
-            type="submit"
-            disabled={!canSave}
-            className="w-full sm:w-auto"
-          >
-            {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {t("Save Changes")}
-          </Button>
         )}
-      </form>
-
-      {/* Danger zone — master or the store owner only. */}
-      {canDelete && (
-        <div className="mt-6 space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-          <div>
-            <p className="text-sm font-medium text-destructive">{t("Delete Store")}</p>
-            <p className="text-xs text-muted-foreground">
-              {t(
-                "Delete this store? This cannot be undone."
-              )}
-            </p>
-          </div>
-          {confirmDelete ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-destructive">{t("Delete?")}</span>
-              <Button
-                id="settings-delete-store-confirm"
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => void handleDelete()}
-                disabled={deleting}
-              >
-                {deleting && <Loader2 className="mr-2 size-4 animate-spin" />}
-                {t("Yes")}
-              </Button>
-              <Button
-                id="settings-delete-store-cancel"
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-              >
-                {t("No")}
-              </Button>
-            </div>
-          ) : (
-            <Button
-              id="settings-delete-store-btn"
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="gap-2"
-              onClick={() => setConfirmDelete(true)}
-              disabled={deleting}
-            >
-              <Trash2 className="size-4" />
-              {t("Delete Store")}
-            </Button>
-          )}
-        </div>
-      )}
+      </div>
     </div>
   )
 }
