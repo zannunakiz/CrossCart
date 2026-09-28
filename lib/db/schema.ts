@@ -102,9 +102,6 @@ export const currencyEnum = pgEnum("currency_type", ["USD", "IDR"])
  */
 export const qsSaleStatusEnum = pgEnum("qs_sale_status", ["completed", "voided"])
 
-/** How the customer paid. */
-export const qsPaymentMethodEnum = pgEnum("qs_payment_method", ["qr", "cash"])
-
 // ─────────────────────────────────────────────────────────────────────────────
 // QuickStore — stores
 // ─────────────────────────────────────────────────────────────────────────────
@@ -295,8 +292,6 @@ export const qsHistory = pgTable(
     /** Total units sold (denormalised for fast reporting). */
     itemCount: integer("item_count").notNull(),
 
-    paymentMethod: qsPaymentMethodEnum("payment_method").notNull().default("qr"),
-
     /** Optional cashier note (max 140 chars). */
     note: varchar("note", { length: 140 }),
 
@@ -389,7 +384,6 @@ export type NewQsHistoryItem = typeof qsHistoryItems.$inferInsert
 export type StoreRole = (typeof storeRoleEnum.enumValues)[number]
 export type CurrencyType = (typeof currencyEnum.enumValues)[number]
 export type QsSaleStatus = (typeof qsSaleStatusEnum.enumValues)[number]
-export type QsPaymentMethod = (typeof qsPaymentMethodEnum.enumValues)[number]
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Drizzle Relations (enables db.query…findMany({ with: { … } }))

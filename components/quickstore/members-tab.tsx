@@ -3,6 +3,7 @@
 import { Info, Loader2, Pencil, Trash2, UserPlus } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useCallback, useEffect, useState } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -95,6 +96,12 @@ export function MembersTab({ storeId, role }: Props) {
   const [roleTarget, setRoleTarget] = useState<Member | null>(null)
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null)
   const [removing, setRemoving] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
+  const entrance = (delay = 0) => ({
+    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: shouldReduceMotion ? 0.2 : 0.35, delay },
+  })
 
   // Each capability is gated on its own permission, so the RBAC matrix stays
   // the single source of truth — a non-master (admin) gets a read-only list.
@@ -155,7 +162,7 @@ export function MembersTab({ storeId, role }: Props) {
     <div className="space-y-4">
       {/* Toolbar — the invite button keeps its label on a phone too: an icon-only
           action hid what it did. */}
-      <div className="flex items-center justify-between gap-3">
+      <motion.div {...entrance()} className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {t(members.length === 1 ? "{count} member" : "{count} members", {
             count: members.length,
@@ -173,18 +180,18 @@ export function MembersTab({ storeId, role }: Props) {
             <span>{t("Invite Member")}</span>
           </Button>
         )}
-      </div>
+      </motion.div>
 
       {/* Non-masters keep full read access, just no controls. */}
       {!canManage && (
-        <p className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <motion.p {...entrance(0.05)} className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           <Info className="mt-px size-3.5 shrink-0" />
           {t("Only the store master can invite, re-role or remove members.")}
-        </p>
+        </motion.p>
       )}
 
       <div className="space-y-2">
-        {members.map((member) => {
+        {members.map((member, index) => {
           const isSelf = member.userId === currentUserId
           // The owner is always master; nobody edits or removes themselves.
           const editable = canManage && !member.isOwner && !isSelf
@@ -192,9 +199,10 @@ export function MembersTab({ storeId, role }: Props) {
             new Date(member.updatedAt).getTime() - new Date(member.createdAt).getTime() > 1000
 
           return (
-            <div
+            <motion.div
               key={member.id}
               id={`member-row-${member.id}`}
+              {...entrance(Math.min(0.1 + index * 0.04, 0.45))}
               className="rounded-lg border border-border bg-card p-3"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -266,7 +274,7 @@ export function MembersTab({ storeId, role }: Props) {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           )
         })}
       </div>

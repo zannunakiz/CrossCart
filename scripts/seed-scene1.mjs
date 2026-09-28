@@ -236,7 +236,6 @@ function buildScene(rand, now) {
       total: money(lines.reduce((sum, line) => sum + line.totalCents, 0)),
       lineCount: lines.length,
       itemCount: lines.reduce((sum, line) => sum + line.quantity, 0),
-      paymentMethod: rand() < 0.5 ? 'qr' : 'cash',
       clientRequestId: `seed-scene1-${String(n).padStart(4, '0')}`,
       paidAt,
       lines,
@@ -395,9 +394,9 @@ async function insertScene(client, scene) {
   await client.query(
     `insert into qs_history
        (id, store_id, cashier_id, cashier_name, receipt_number, status, currency,
-        subtotal, discount_total, total, line_count, item_count, payment_method,
-        note, client_request_id, paid_at, created_at)
-     values ${placeholders(scene.receipts.length, 17)}`,
+        subtotal, discount_total, total, line_count, item_count, note,
+        client_request_id, paid_at, created_at)
+     values ${placeholders(scene.receipts.length, 16)}`,
     scene.receipts.flatMap((receipt) => [
       receipt.id,
       store.id,
@@ -411,7 +410,6 @@ async function insertScene(client, scene) {
       receipt.total,
       receipt.lineCount,
       receipt.itemCount,
-      receipt.paymentMethod,
       null,
       receipt.clientRequestId,
       receipt.paidAt,

@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2, ShoppingCart, Store as StoreIcon } from "lucide-react"
+import { ExternalLink, Loader2, ShoppingCart, Store as StoreIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
@@ -9,10 +9,10 @@ import { toast } from "sonner"
 import { HistoryTab } from "@/components/quickstore/history-tab"
 import { ItemsTab } from "@/components/quickstore/items-tab"
 import { MembersTab } from "@/components/quickstore/members-tab"
-import { STORE_TAB_UI } from "@/components/quickstore/store-tab-ui"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
-import { StoreStatusLine } from "@/components/quickstore/store-status-line"
 import { StoreSettingsTab } from "@/components/quickstore/store-settings-tab"
+import { StoreStatusLine } from "@/components/quickstore/store-status-line"
+import { STORE_TAB_UI } from "@/components/quickstore/store-tab-ui"
 import { Button } from "@/components/ui/button"
 import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
 import type { StoreRole, Store as StoreType } from "@/lib/db/schema"
@@ -205,9 +205,10 @@ function StoreDetailView() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button size="sm" className="gap-1.5">
+              <Button size="sm" className="gap-1.5 p-4 ">
                 <ShoppingCart className="size-3.5" />
                 <span>{t("To Cashier")}</span>
+                <ExternalLink className="size-3" />
               </Button>
             </Link>
           )}

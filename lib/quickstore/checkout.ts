@@ -12,7 +12,7 @@
  *   - history + stock move atomically (single transaction, rollback on failure)
  *   - a repeated `clientRequestId` returns the original receipt, never a duplicate
  */
-import type { CurrencyType, QsPaymentMethod } from "@/lib/db/schema"
+import type { CurrencyType } from "@/lib/db/schema"
 import {
   MAX_LINES,
   MAX_QTY_PER_LINE,
@@ -81,7 +81,6 @@ export interface SaleHeaderInput {
   total: string
   lineCount: number
   itemCount: number
-  paymentMethod: QsPaymentMethod
   note: string | null
   clientRequestId: string
   paidAt: Date
@@ -128,7 +127,6 @@ export interface CheckoutInput {
   cashierName?: string | null
   clientRequestId: string
   lines: { itemId: string; quantity: number }[]
-  paymentMethod?: QsPaymentMethod
   note?: string | null
 }
 
@@ -227,7 +225,6 @@ export function normalizeCheckoutInput(input: CheckoutInput) {
   const note = input.note?.trim()
   return {
     clientRequestId: input.clientRequestId.trim(),
-    paymentMethod: input.paymentMethod ?? ("qr" as QsPaymentMethod),
     note: note ? note.slice(0, 140) : null,
     lines: merged,
   }
@@ -433,7 +430,6 @@ export async function performCheckout(
       total: (totals.totalCents / 100).toFixed(2),
       lineCount: totals.lineCount,
       itemCount: totals.itemCount,
-      paymentMethod: normalized.paymentMethod,
       note: normalized.note,
       clientRequestId: normalized.clientRequestId,
       paidAt: now,

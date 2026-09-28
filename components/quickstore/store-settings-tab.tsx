@@ -1,6 +1,7 @@
 "use client"
 
 import { Loader2, Trash2, UploadCloud } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -48,6 +49,12 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
   // Inline confirm: the Delete Store button swaps itself for "Delete?" + Yes/No.
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
+  const entrance = (delay = 0) => ({
+    initial: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: shouldReduceMotion ? 0.2 : 0.35, delay },
+  })
 
   // Field-level permissions: a role may hold some of these but not others
   // (e.g. admins can flip open/close but may not touch details or the QR).
@@ -143,22 +150,22 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
     <div className="w-full">
       {/* Read-only explanation for roles without any store update permission. */}
       {!canEditAnything && (
-        <p className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <motion.p {...entrance()} className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           {t("Only the store master can change these settings.")}
-        </p>
+        </motion.p>
       )}
       {canEditAnything && !allowDetails && (
-        <p className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+        <motion.p {...entrance()} className="mb-5 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           {t(
             "You can change the open status only — store details and the payment credential are master-only."
           )}
-        </p>
+        </motion.p>
       )}
 
       {/* Grid container: 1 kolom di mobile, 2 kolom di desktop (lg) */}
       <div className="space-y-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8 lg:space-y-0">
         {/* Kolom Kiri / Utama: Form Settings dalam Card */}
-        <div className="lg:col-span-7">
+        <motion.div {...entrance(0.05)} className="lg:col-span-7">
           <Card>
             <CardHeader>
               <CardTitle>{t("Store Details")}</CardTitle>
@@ -267,11 +274,11 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
               </form>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
         {/* Kolom Kanan: Danger zone (master or store owner only) dalam Card */}
         {canDelete && (
-          <div className="lg:col-span-5">
+          <motion.div {...entrance(0.12)} className="lg:col-span-5">
             <Card className="border-destructive/40 bg-destructive/5">
               <CardHeader>
                 <CardTitle className="text-destructive">{t("Delete Store")}</CardTitle>
@@ -321,7 +328,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
                 )}
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

@@ -112,7 +112,6 @@ export interface HistorySummary {
   series: HistoryPoint[]
   byHour: { hour: number; sales: number; revenue: string }[]
   topItems: HistorySlice[]
-  byPayment: HistorySlice[]
   byCashier: HistorySlice[]
 }
 
@@ -166,8 +165,7 @@ function bucketSql(granularity: HistoryGranularity, tzOffset: number) {
 
 /**
  * Everything the history dashboard needs for one window, as six parallel
- * aggregations: totals per currency, revenue series, hours, items, payment
- * methods and cashiers.
+ * aggregations: totals per currency, revenue series, hours, items and cashiers.
  */
 export async function getStoreHistorySummary(
   storeId: string,
@@ -201,7 +199,7 @@ export async function getStoreHistorySummary(
   const bucket = bucketSql(granularity, scope.tzOffset)
   const hourOfDay = sql<number>`extract(hour from ${qsHistory.paidAt} + ${bucket.shift})::int`
 
-  const [totals, series, byHour, topItems, byPayment, byCashier] = await Promise.all([
+  const [totals, series, byHour, topItems, byCashier] = await Promise.all([
     db
       .select({
         sales: count(),
@@ -242,17 +240,6 @@ export async function getStoreHistorySummary(
 
     db
       .select({
-        label: qsHistory.paymentMethod,
-        revenue: moneySum(qsHistory.total),
-        sales: count(),
-      })
-      .from(qsHistory)
-      .where(where)
-      .groupBy(qsHistory.paymentMethod)
-      .orderBy(desc(count())),
-
-    db
-      .select({
         label: sql<string>`coalesce(${qsHistory.cashierName}, '')`,
         revenue: moneySum(qsHistory.total),
         sales: count(),
@@ -279,7 +266,6 @@ export async function getStoreHistorySummary(
     series,
     byHour,
     topItems: topItems.map((row) => ({ ...row })),
-    byPayment: byPayment.map((row) => ({ ...row, quantity: 0 })),
     byCashier: byCashier.map((row) => ({ ...row, quantity: 0 })),
   }
 }
