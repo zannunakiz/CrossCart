@@ -56,6 +56,20 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
   const allowCredential = canEditStoreCredential(role) || isOwner
   const canEditAnything = allowDetails || allowStatus || allowCredential
 
+  /**
+   * Save is only offered when this role really changed something AND every
+   * required field it may edit is valid. The comparison uses the values the API
+   * last returned (`store`), so a saved form turns "clean" again on its own.
+   */
+  const detailsDirty =
+    allowDetails &&
+    (name.trim() !== store.name || description.trim() !== (store.description ?? ""))
+  const statusDirty = allowStatus && open !== store.open
+  const credentialDirty = allowCredential && qrFile !== null
+  const isDirty = detailsDirty || statusDirty || credentialDirty
+  const isNameValid = !allowDetails || name.trim().length > 0
+  const canSave = canEditAnything && isDirty && isNameValid && !submitting
+
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -65,9 +79,12 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!canEditAnything || submitting) return
+    // Nothing to save (disabled button, or Enter in a field) → no request.
+    if (!canSave) {
+      if (allowDetails && !isNameValid) toast.error(t("Store name is required"))
+      return
+    }
     // Only the fields this role may change are sent — the API re-checks anyway.
-    if (allowDetails && !name.trim()) return toast.error(t("Store name is required"))
     setSubmitting(true)
 
     try {
@@ -143,9 +160,12 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
           <Label htmlFor="settings-name">
             {t("Store Name")} <span className="text-destructive">*</span>
           </Label>
+          {/* Light mode: `--input` sits too close to the page background, so the
+              outline is strengthened here (dark mode keeps the token). */}
           <Input
             id="settings-name"
             maxLength={20}
+            className="border-muted-foreground/45 dark:border-input"
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={submitting || !allowDetails}
@@ -159,6 +179,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
             id="settings-description"
             maxLength={50}
             rows={3}
+            className="border-muted-foreground/45 dark:border-input"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={submitting || !allowDetails}
@@ -166,7 +187,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
           <p className="text-right text-2xs text-muted-foreground">{description.length}/50</p>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border p-4">
+        <div className="flex items-center justify-between rounded-lg border border-muted-foreground/45 p-4 dark:border-border">
           <div>
             <p className="text-sm font-medium">{t("Open for Orders")}</p>
             <p className="text-xs text-muted-foreground">{t("Customers can browse and buy")}</p>
@@ -188,7 +209,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
           </div>
           <label
             htmlFor={allowCredential ? "settings-qr" : undefined}
-            className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-5 transition-colors ${
+            className={`flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-muted-foreground/45 bg-muted/30 p-5 transition-colors dark:border-border ${
               allowCredential ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-60"
             }`}
           >
@@ -224,14 +245,15 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
         </div>
 
         {canEditAnything && (
+          /* Enabled only with unsaved changes and a valid required name. */
           <Button
             id="settings-save-btn"
             type="submit"
-            disabled={submitting || (allowDetails && !name.trim())}
+            disabled={!canSave}
             className="w-full sm:w-auto"
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
-            {t("Save Settings")}
+            {t("Save Changes")}
           </Button>
         )}
       </form>

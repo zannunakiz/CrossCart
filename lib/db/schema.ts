@@ -171,6 +171,12 @@ export const storeMembers = pgTable(
     invitedBy: text("invited_by").references(() => users.id, { onDelete: "set null" }),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+
+    /**
+     * Last time this membership changed (role change). `createdAt` is when the
+     * member joined, so the pair gives the member list a full small audit trail.
+     */
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     /** A user can only have one role per store. */

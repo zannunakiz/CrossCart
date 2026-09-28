@@ -58,9 +58,11 @@ export function MainNavbar() {
   const currentTitleKey = routeTitleKeys[pathname]
 
   /**
-   * Breadcrumb for the store routes: `Quick Store › {store name}`. The
+   * Breadcrumb for the store routes: `Quick Store › {store name}` — desktop
+   * only. On mobile the navbar hides the store name and the page prints it
+   * above the cashier / status row instead (see the store pages). The
    * open/closed badge, role badge and cashier shortcut live in the page content
-   * now (see `StoreStatusBar`), not in the navbar.
+   * (see `StoreStatusBar`), not in the navbar.
    */
   const storeHeader = pathname.startsWith("/quickstore/") ? header : null
 
@@ -87,7 +89,8 @@ export function MainNavbar() {
 
         <div className="flex items-center gap-2">
           {storeHeader ? (
-            <Breadcrumb className="min-w-0">
+            /* `sm:` and up only — mobile shows the store name in the page body. */
+            <Breadcrumb className="hidden min-w-0 sm:block">
               <BreadcrumbList>
                 {/* The brand logo already links out on mobile, so the crumb is desktop-only. */}
                 <BreadcrumbItem className="hidden sm:inline-flex">

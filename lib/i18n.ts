@@ -266,6 +266,36 @@ const phraseId = {
   'Item updated': 'Item diperbarui',
   '"{name}" added': '"{name}" ditambahkan',
 
+  // ── Items tab — table (search / filter / sort / paging) ───────────────────
+  'Search items…': 'Cari item…',
+  Availability: 'Ketersediaan',
+  All: 'Semua',
+  'Available only': 'Hanya tersedia',
+  'Unavailable only': 'Hanya tidak tersedia',
+  'Sort by': 'Urutkan',
+  Stock: 'Stok',
+  Sold: 'Terjual',
+  Newest: 'Terbaru',
+  Ascending: 'Naik',
+  Descending: 'Turun',
+  Actions: 'Aksi',
+  Pinned: 'Disematkan',
+  'Edit item': 'Ubah item',
+  'Delete item': 'Hapus item',
+  'Delete Item': 'Hapus Item',
+  'Delete "{name}"? This cannot be undone.': 'Hapus "{name}"? Tindakan ini tidak dapat dibatalkan.',
+  'No items match your filters': 'Tidak ada item yang cocok dengan filter',
+  'Try a different search or reset the filters.':
+    'Coba kata kunci lain atau setel ulang filternya.',
+  'Clear filters': 'Reset filter',
+  // Pager: `{from}–{to} of {total}` reads as "1–10 dari 241".
+  '{from}–{to} of {total}': '{from}–{to} dari {total}',
+  'Rows per page': 'Baris per halaman',
+  '{count} per page': '{count} per halaman',
+  'Page {page} of {pages}': 'Halaman {page} dari {pages}',
+  Previous: 'Sebelumnya',
+  Next: 'Berikutnya',
+
   // ── Item dialog ───────────────────────────────────────────────────────────
   'Item name is required': 'Nama item wajib diisi',
   'Edit Item': 'Ubah Item',
@@ -307,6 +337,19 @@ const phraseId = {
   'Master — full control (settings, members, credentials)':
     'Master — kendali penuh (pengaturan, anggota, kredensial)',
   'Send Invite': 'Kirim Undangan',
+  Remove: 'Hapus',
+  'Remove Member': 'Hapus Anggota',
+  'Remove "{name}" from this store? Their past sales stay in the history.':
+    'Hapus "{name}" dari toko ini? Riwayat penjualannya tetap tersimpan.',
+  'Change Role': 'Ubah Peran',
+  'Set what {name} can do in this store.': 'Tentukan akses {name} di toko ini.',
+  '{name} is now {role}': '{name} sekarang {role}',
+  Owner: 'Pemilik',
+  You: 'Anda',
+  'Joined {date}': 'Bergabung {date}',
+  'Role updated {date}': 'Peran diubah {date}',
+  'Only the store master can invite, re-role or remove members.':
+    'Hanya master toko yang dapat mengundang, mengubah peran, atau menghapus anggota.',
 
   // ── Store settings tab ────────────────────────────────────────────────────
   'Update failed': 'Gagal memperbarui',
@@ -337,6 +380,47 @@ const phraseId = {
     'Transaksi kasir yang sudah selesai akan muncul di sini.',
   '{count} recorded sales · newest first': '{count} penjualan tercatat · terbaru dulu',
   'Unknown cashier': 'Kasir tidak diketahui',
+
+  // ── History tab — dashboard ───────────────────────────────────────────────
+  Today: 'Hari ini',
+  'Last 7 days': '7 hari terakhir',
+  'Last 30 days': '30 hari terakhir',
+  'This month': 'Bulan ini',
+  'All time': 'Semua waktu',
+  Custom: 'Kustom',
+  From: 'Dari',
+  To: 'Sampai',
+  'All recorded sales': 'Semua penjualan tercatat',
+  Revenue: 'Pendapatan',
+  Sales: 'Penjualan',
+  'Items sold': 'Item terjual',
+  'Average sale': 'Rata-rata penjualan',
+  'Revenue trend': 'Tren pendapatan',
+  'Peak hours': 'Jam tersibuk',
+  'Revenue by hour': 'Pendapatan per jam',
+  'By day': 'Per hari',
+  'By week': 'Per minggu',
+  'By month': 'Per bulan',
+  'Top items': 'Item terlaris',
+  'Best sellers': 'Paling banyak terjual',
+  'Payment methods': 'Metode pembayaran',
+  'QR payment': 'Pembayaran QR',
+  Cash: 'Tunai',
+  'Top cashiers': 'Kasir terbaik',
+  '{count} sale': '{count} penjualan',
+  '{count} sales': '{count} penjualan',
+  'No sales in this range': 'Tidak ada penjualan pada rentang ini',
+  'Pick another date range or ring up a sale in the cashier.':
+    'Pilih rentang tanggal lain atau catat penjualan di kasir.',
+  Transactions: 'Transaksi',
+  'Search receipts…': 'Cari struk…',
+  'All statuses': 'Semua status',
+  Completed: 'Selesai',
+  Voided: 'Dibatalkan',
+  'No receipts match': 'Tidak ada struk yang cocok',
+  'Adjust the search, status or date range.':
+    'Sesuaikan pencarian, status, atau rentang tanggalnya.',
+  Status: 'Status',
 
   // ── Cashier: product search ───────────────────────────────────────────────
   'Search products': 'Cari produk',
@@ -411,6 +495,7 @@ const phraseId = {
     'Tambahkan item ke toko ini sebelum mencatat penjualan.',
   'Add items': 'Tambah item',
   Review: 'Periksa',
+  'Review & pay': 'Periksa & bayar',
 
   // ── Cashier: voice order ──────────────────────────────────────────────────
   'Voice order': 'Pesanan suara',
@@ -532,6 +617,8 @@ const serverMessageId: Record<string, string> = {
   'No user found with that email': 'Tidak ada pengguna dengan email tersebut',
   'User is already a member of this store': 'Pengguna sudah menjadi anggota toko ini',
   'Member not found': 'Anggota tidak ditemukan',
+  'The store owner is always the master': 'Pemilik toko selalu menjadi master',
+  'You cannot change your own membership': 'Anda tidak dapat mengubah keanggotaan Anda sendiri',
   'Invalid role': 'Peran tidak valid',
   'No file provided': 'Tidak ada file yang dipilih',
   'Upload failed': 'Gagal mengunggah',

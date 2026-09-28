@@ -64,9 +64,9 @@ export default function StoreDetailPage() {
   }, [fetchStore])
 
   /**
-   * The navbar renders this store's breadcrumb (`Quick Store › {name} {status}
-   * {role}`) for every route under `/quickstore/[storeId]`, so the page itself
-   * no longer needs a title, description or badge header.
+   * The navbar renders this store's breadcrumb (`Quick Store › {name}`) for
+   * every route under `/quickstore/[storeId]` on desktop only, so the page
+   * itself only prints the name on mobile (above the cashier / status row).
    */
   useEffect(() => {
     if (!store) return
@@ -118,6 +118,12 @@ export default function StoreDetailPage() {
 
   return (
     <div>
+      {/* Mobile: the navbar hides the store name, so the page prints it here —
+          right above the cashier / status row. Light weight on purpose. */}
+      <h1 className="mb-2 truncate text-xl font-light tracking-tight text-foreground sm:hidden">
+        {store.name}
+      </h1>
+
       {/* Full width row: Cashier button di kiri, Status & Role di kanan */}
       <div className="mb-4 flex w-full items-center justify-between gap-3 text-xs text-muted-foreground">
         <div>

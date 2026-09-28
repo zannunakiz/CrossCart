@@ -183,7 +183,7 @@ export function ReceiptPanel({
       id="checkout-panel"
       data-testid="receipt-panel"
       aria-label={t("Receipt and checkout")}
-      className="border border-border bg-card"
+      className="scroll-mt-20 border border-border bg-card"
     >
       {/* Header */}
       <div className="border-b border-border px-4 py-3">
@@ -221,8 +221,8 @@ export function ReceiptPanel({
         </div>
       </div>
 
-      {/* Lines */}
-      <div className="px-4 py-3">
+      {/* Lines — desktop only: the cart above already lists them on mobile. */}
+      <div className="hidden px-4 py-3 lg:block">
         {rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {t("Nothing to sell yet — add a product to build the receipt.")}
@@ -310,8 +310,8 @@ export function ReceiptPanel({
       </div>
 
 
-      {/* Confirmation flow */}
-      <div className="border-t border-border bg-muted/30 p-4">
+      {/* Confirmation flow. `[&_button]:h-9` keeps every action thumb-sized. */}
+      <div className="border-t border-border bg-muted/30 p-4 [&_button]:h-9">
         {completed && (
           <div className="space-y-3" data-testid="checkout-success">
             <p className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">

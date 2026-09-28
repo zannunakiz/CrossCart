@@ -1,6 +1,14 @@
 /**
  * GET  /api/quickstore/stores/[storeId]/items  — list items (master | admin)
  * POST /api/quickstore/stores/[storeId]/items  — create item (master | admin)
+ *
+ * GET answers two shapes on purpose:
+ *  - no `q` / `availability` / `sort` / `dir` / `page` / `limit` → `StoreItem[]`
+ *    (the whole catalog, pinned first). The cashier and the voice interpreter
+ *    need every row in one shot, so that call stays exactly as it was.
+ *  - any of those params → `{ items, total, page, pageSize, totalPages }`,
+ *    searched / filtered / sorted / paged in SQL so the Items table never
+ *    transfers a whole catalog to render ten rows.
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
@@ -9,7 +17,11 @@ import { eq } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { storeItems } from "@/lib/db/schema"
-import { getUserRole } from "@/lib/quickstore/queries"
+import {
+  getStoreItemsPage,
+  getUserRole,
+} from "@/lib/quickstore/queries"
+import { hasItemListParams, parseItemListQuery } from "@/lib/quickstore/item-list"
 import { hasPermission } from "@/lib/quickstore/permissions"
 
 export const runtime = "nodejs"
@@ -17,7 +29,7 @@ export const runtime = "nodejs"
 type Params = { params: Promise<{ storeId: string }> }
 
 // ── GET ──────────────────────────────────────────────────────────────────────
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -29,13 +41,23 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const items = await db.query.storeItems.findMany({
-    where: eq(storeItems.storeId, storeId),
-    orderBy: (i, { desc, asc }) => [desc(i.highlight), asc(i.name)],
-  })
+  const searchParams = req.nextUrl.searchParams
 
-  return NextResponse.json(items)
+  // Unpaged call (cashier / voice): the full catalog, pinned items first.
+  if (!hasItemListParams(searchParams)) {
+    const items = await db.query.storeItems.findMany({
+      where: eq(storeItems.storeId, storeId),
+      orderBy: (i, { desc, asc }) => [desc(i.highlight), asc(i.name)],
+    })
+
+    return NextResponse.json(items)
+  }
+
+  // Paged call (Items table): one page of rows + the total for the pager.
+  const page = await getStoreItemsPage(storeId, parseItemListQuery(searchParams))
+  return NextResponse.json(page)
 }
+
 
 // ── POST ─────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest, { params }: Params) {

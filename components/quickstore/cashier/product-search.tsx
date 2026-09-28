@@ -75,13 +75,13 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
       itemToStringValue={(item) => item.name}
     >
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <AutocompleteInput
           ref={inputRef}
           id="product-search-input"
           aria-label={t("Search products")}
           placeholder={t("Type a product name…")}
-          className="h-10 pl-8"
+          className="h-11 pl-9"
           disabled={disabled}
           autoComplete="off"
         />
@@ -106,7 +106,7 @@ export function ProductSearch({ items, onSelect, disabled = false }: Props) {
                 data-testid={`product-suggestion-${item.name}`}
                 disabled={!sellable}
                 onClick={() => handlePick(item)}
-                className="items-start gap-3 py-2"
+                className="items-center gap-3 py-2.5"
               >
                 <span className="grid size-8 shrink-0 place-items-center rounded-md bg-muted text-xs font-bold uppercase text-muted-foreground">
                   {item.name.slice(0, 2)}

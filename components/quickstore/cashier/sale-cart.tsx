@@ -58,9 +58,9 @@ export function SaleCart({
 
   if (lines.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-14 text-center">
-        <span className="mb-3 grid size-12 place-items-center rounded-full bg-muted text-muted-foreground">
-          <ShoppingCart className="size-6" />
+      <div className="flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-10 text-center">
+        <span className="mb-3 grid size-11 place-items-center rounded-full bg-muted text-muted-foreground">
+          <ShoppingCart className="size-5" />
         </span>
         <p className="font-semibold">{t("Cart is empty")}</p>
         <p className="mt-1 max-w-xs text-sm text-muted-foreground">
@@ -72,10 +72,9 @@ export function SaleCart({
 
   return (
     <div className="border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-2">
         <p className="text-xs font-medium text-muted-foreground">
-          {t(itemCount === 1 ? "{count} item" : "{count} items", { count: itemCount })} ·{" "}
-          {t(lines.length === 1 ? "{count} line" : "{count} lines", { count: lines.length })}
+          {t(itemCount === 1 ? "{count} item" : "{count} items", { count: itemCount })}
         </p>
         <Button
           variant="ghost"
@@ -106,35 +105,45 @@ export function SaleCart({
           const capped = item ? clampQuantity(line.quantity + 1, item) === line.quantity : false
 
           return (
-            <li key={line.itemId} className="px-4 py-3" data-testid={`cart-line-${line.name}`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium">{line.name}</p>
-                    {line.discountPercent > 0 && (
-                      <Badge variant="secondary" className="shrink-0 text-3xs">
-                        -{line.discountPercent}%
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-2xs text-muted-foreground">
-                    {t("{price} each", {
-                      price: formatCents(line.unitPricePaidCents, line.currency),
-                    })}
-                    {line.discountPercent > 0 && (
-                      <span className="ml-1 line-through opacity-60">
-                        {formatCents(line.unitPriceCents, line.currency)}
-                      </span>
-                    )}
-                    {line.stocks != null && ` · ${t("{count} in stock", { count: line.stocks })}`}
-                  </p>
+            <li key={line.itemId} className="px-3.5 py-3" data-testid={`cart-line-${line.name}`}>
+              {/* Line 1 — the product, and what the line costs. */}
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-sm font-medium">{line.name}</p>
+                  {line.discountPercent > 0 && (
+                    <Badge variant="secondary" className="shrink-0 text-3xs">
+                      -{line.discountPercent}%
+                    </Badge>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
+                <span
+                  className="shrink-0 text-sm font-semibold tabular-nums"
+                  data-testid={`line-total-${line.name}`}
+                >
+                  {formatCents(line.lineTotalCents, line.currency)}
+                </span>
+              </div>
+
+              {/* Line 2 — unit price, then the stepper (minus at 1 removes the line). */}
+              <div className="mt-1.5 flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-2xs text-muted-foreground">
+                  {t("{price} each", {
+                    price: formatCents(line.unitPricePaidCents, line.currency),
+                  })}
+                  {line.discountPercent > 0 && (
+                    <span className="ml-1 line-through opacity-60">
+                      {formatCents(line.unitPriceCents, line.currency)}
+                    </span>
+                  )}
+                  {line.stocks != null && ` · ${t("{count} in stock", { count: line.stocks })}`}
+                </p>
+
+                  <div className="flex shrink-0 items-center gap-1">
                     <Button
                       variant="outline"
                       size="icon-sm"
+                      className="size-8"
                       aria-label={t("Decrease quantity of {name}", { name: line.name })}
                       disabled={disabled}
                       onClick={() => {
@@ -149,7 +158,7 @@ export function SaleCart({
                     <Input
                       aria-label={t("Quantity of {name}", { name: line.name })}
                       inputMode="numeric"
-                      className="h-7 w-14 text-center tabular-nums"
+                      className="h-8 w-12 text-center tabular-nums"
                       value={draft ?? String(line.quantity)}
                       aria-invalid={draftInvalid}
                       disabled={disabled}
@@ -165,6 +174,7 @@ export function SaleCart({
                     <Button
                       variant="outline"
                       size="icon-sm"
+                      className="size-8"
                       aria-label={t("Increase quantity of {name}", { name: line.name })}
                       disabled={disabled || capped || !availability.ok}
                       onClick={() => {
@@ -175,29 +185,10 @@ export function SaleCart({
                       <Plus className="size-3.5" />
                     </Button>
                   </div>
-
-                  <span
-                    className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums"
-                    data-testid={`line-total-${line.name}`}
-                  >
-                    {formatCents(line.lineTotalCents, line.currency)}
-                  </span>
-
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("Remove {name} from the sale", { name: line.name })}
-                    className="text-muted-foreground hover:text-destructive"
-                    disabled={disabled}
-                    onClick={() => onRemove(line.itemId)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
               </div>
 
               {(!availability.ok || draftInvalid) && (
-                <p className="mt-2 text-2xs font-medium text-destructive">
+                <p className="mt-1.5 text-2xs font-medium text-destructive">
                   {draftInvalid
                     ? t("Quantity must be a whole number of at least 1")
                     : availabilityMessage(lang, availability.code, availability.message, {

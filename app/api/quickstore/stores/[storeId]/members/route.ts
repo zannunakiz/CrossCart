@@ -1,14 +1,18 @@
 /**
  * GET    /api/quickstore/stores/[storeId]/members  — list members
  * POST   /api/quickstore/stores/[storeId]/members  — invite member by email
+ *
+ * The store owner is always the master (see `getUserRole`) even when they have
+ * no `store_members` row, so the list always answers with them first, flagged
+ * `isOwner` — that row can never be re-roled or removed.
  */
 import { getServerSession } from "next-auth"
 import { NextRequest, NextResponse } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 
 import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { storeMembers, users } from "@/lib/db/schema"
+import { storeMembers, stores, users } from "@/lib/db/schema"
 import type { StoreRole } from "@/lib/db/schema"
 import { getUserRole } from "@/lib/quickstore/queries"
 import { hasPermission } from "@/lib/quickstore/permissions"
@@ -16,6 +20,8 @@ import { hasPermission } from "@/lib/quickstore/permissions"
 export const runtime = "nodejs"
 
 type Params = { params: Promise<{ storeId: string }> }
+
+const USER_COLUMNS = { id: true, name: true, email: true, image: true } as const
 
 // ── GET ──────────────────────────────────────────────────────────────────────
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -30,13 +36,50 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const members = await db.query.storeMembers.findMany({
-    where: eq(storeMembers.storeId, storeId),
-    with: { user: { columns: { id: true, name: true, email: true, image: true } } },
-    orderBy: (m, { asc }) => [asc(m.createdAt)],
+  const [store, rows] = await Promise.all([
+    db.query.stores.findFirst({
+      where: and(eq(stores.id, storeId), isNull(stores.deletedAt)),
+      columns: { userId: true, createdAt: true },
+      with: { owner: { columns: USER_COLUMNS } },
+    }),
+    db.query.storeMembers.findMany({
+      where: eq(storeMembers.storeId, storeId),
+      with: { user: { columns: USER_COLUMNS } },
+      orderBy: (m, { asc }) => [asc(m.createdAt)],
+    }),
+  ])
+
+  if (!store) {
+    return NextResponse.json({ error: "Store not found" }, { status: 404 })
+  }
+
+  const others = rows.filter((row) => row.userId !== store.userId)
+  // The owner row (real row when they were also invited, synthetic when not).
+  const ownerRow = rows.find((row) => row.userId === store.userId)
+  const owner = ownerRow
+    ? { ...ownerRow, role: "master" as StoreRole, isOwner: true }
+    : {
+        id: `owner-${store.userId}`,
+        storeId,
+        userId: store.userId,
+        role: "master" as StoreRole,
+        invitedBy: null,
+        createdAt: store.createdAt,
+        updatedAt: store.createdAt,
+        isOwner: true,
+        user: store.owner,
+      }
+
+  // Masters first (after the owner), then by the order they joined.
+  const sorted = others.sort((a, b) => {
+    if (a.role !== b.role) return a.role === "master" ? -1 : 1
+    return a.createdAt.getTime() - b.createdAt.getTime()
   })
 
-  return NextResponse.json(members)
+  return NextResponse.json([
+    owner,
+    ...sorted.map((row) => ({ ...row, isOwner: false as const })),
+  ])
 }
 
 // ── POST ─────────────────────────────────────────────────────────────────────
@@ -70,7 +113,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Find user by email
   const targetUser = await db.query.users.findFirst({
     where: eq(users.email, email.toLowerCase().trim()),
-    columns: { id: true, name: true, email: true },
+    columns: { id: true, name: true, email: true, image: true },
   })
   if (!targetUser) {
     return NextResponse.json(
@@ -84,14 +127,20 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Cannot invite yourself" }, { status: 400 })
   }
 
-  // Check if already a member
-  const existing = await db.query.storeMembers.findFirst({
-    where: and(
-      eq(storeMembers.storeId, storeId),
-      eq(storeMembers.userId, targetUser.id)
-    ),
-  })
-  if (existing) {
+  // Check if already a member (the owner counts as one, implicitly).
+  const [store, existing] = await Promise.all([
+    db.query.stores.findFirst({
+      where: eq(stores.id, storeId),
+      columns: { userId: true },
+    }),
+    db.query.storeMembers.findFirst({
+      where: and(
+        eq(storeMembers.storeId, storeId),
+        eq(storeMembers.userId, targetUser.id)
+      ),
+    }),
+  ])
+  if (existing || store?.userId === targetUser.id) {
     return NextResponse.json({ error: "User is already a member of this store" }, { status: 409 })
   }
 
@@ -105,5 +154,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     })
     .returning()
 
-  return NextResponse.json({ ...member, user: targetUser }, { status: 201 })
+  return NextResponse.json({ ...member, isOwner: false, user: targetUser }, { status: 201 })
 }
+

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -49,8 +49,14 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
   const [highlight, setHighlight] = useState(item?.highlight ?? false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Sync fields when item prop changes
-  useState(() => {
+  /**
+   * Re-hydrate the draft every time the dialog opens: the table reuses one
+   * dialog instance for every row, so without this a previous item (or a
+   * cancelled draft) could leak into the next open.
+   */
+  useEffect(() => {
+    if (!open) return
+    /* eslint-disable react-hooks/set-state-in-effect -- hydrating the form on open */
     setName(item?.name ?? "")
     setDescription(item?.description ?? "")
     setPrice(item ? String(item.price) : "0")
@@ -59,7 +65,8 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
     setStocks(item?.stocks != null ? String(item.stocks) : "")
     setDiscountPercent(String(item?.discountPercent ?? 0))
     setHighlight(item?.highlight ?? false)
-  })
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, item])
 
   const reset = () => {
     setName("")
@@ -120,15 +127,24 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
         }
       }}
     >
-      <DialogContent className="max-w-lg">
+      {/* Same dialog sizing as the "Create New Store" dialog: breathing room
+          outside the box on phones, 28rem capped from `sm` up. */}
+      <DialogContent className="max-w-[calc(100%-3rem)] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEdit ? t("Edit Item") : t("Add New Item")}</DialogTitle>
+          <DialogTitle className="font-bold">
+            {isEdit ? t("Edit Item") : t("Add New Item")}
+          </DialogTitle>
           <DialogDescription>
             {isEdit ? t("Update item details.") : t("Add a new item to your store.")}
           </DialogDescription>
         </DialogHeader>
 
-        <form id="item-form" onSubmit={handleSubmit} className="space-y-4">
+        {/* The body scrolls, the header and the footer stay put on a phone. */}
+        <form
+          id="item-form"
+          onSubmit={handleSubmit}
+          className="max-h-[52dvh] space-y-4 overflow-y-auto pr-1 sm:max-h-[60dvh]"
+        >
           {/* Name */}
           <div className="space-y-1.5">
             <Label htmlFor="item-name">
@@ -263,6 +279,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
             type="submit"
             form="item-form"
             disabled={submitting || !name.trim()}
+            className="font-bold"
           >
             {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
             {isEdit ? t("Save Changes") : t("Add Item")}
