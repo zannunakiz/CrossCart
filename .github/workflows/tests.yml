@@ -1,0 +1,41 @@
+name: TESTS
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    name: TESTS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Build-time placeholders only: no job below ever connects to a database
+    # (tests are pure mocks), but Next.js reads these keys while compiling.
+    env:
+      DATABASE_URI: "postgres://postgres:postgres@localhost:5432/crosscart"
+      NEXTAUTH_SECRET: "ci-build-placeholder-secret"
+      NEXTAUTH_URL: "http://localhost:3000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: lint
+        run: npm run lint
+
+      - name: build
+        run: npm run build
+
+      - name: unit test
+        run: npm run test:unit
+
+      - name: RBAC test
+        run: npm run test:rbac

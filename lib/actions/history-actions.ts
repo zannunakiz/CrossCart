@@ -64,7 +64,7 @@ export async function listStoreHistory(
       }
     )
     return ok(jsonSafe({ range: { from: query.from, to: query.to }, ...page }))
-  } catch (error) {
+  } catch {
     // console.error("[quickstore/history] failed", error)
     return fail("Failed to load history", { status: 500 })
   }
@@ -96,7 +96,7 @@ export async function getHistorySummary(
       (currency as CurrencyType | null) ?? undefined
     )
     return ok(jsonSafe({ range: { from: query.from, to: query.to }, ...summary }))
-  } catch (error) {
+  } catch {
     // console.error("[quickstore/history/summary] failed", error)
     return fail("Failed to load history", { status: 500 })
   }
