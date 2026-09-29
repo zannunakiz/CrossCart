@@ -377,6 +377,22 @@ const phraseId = {
     'Sesuaikan pencarian, status, atau rentang tanggalnya.',
   Status: 'Status',
 
+  // ── History: CSV export ───────────────────────────────────────────────────
+  'Export CSV': 'Ekspor CSV',
+  'Exporting…': 'Mengekspor…',
+  Date: 'Tanggal',
+  Item: 'Item',
+  Quantity: 'Jumlah',
+  'Unit price': 'Harga satuan',
+  'Line total': 'Total baris',
+  'Receipts exported': 'Struk berhasil diekspor',
+  'Receipt exported': 'Struk berhasil diekspor',
+  'No receipts to export': 'Tidak ada struk untuk diekspor',
+  'Failed to export receipts': 'Gagal mengekspor struk',
+  'Export PNG': 'Ekspor PNG',
+  'Receipt image exported': 'Gambar struk berhasil diunduh',
+  'Failed to export the receipt image': 'Gagal membuat gambar struk',
+
   // ── Cashier: product search ───────────────────────────────────────────────
   'Search products': 'Cari produk',
   'Type a product name…': 'Ketik nama produk…',
