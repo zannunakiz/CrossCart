@@ -5,6 +5,8 @@ import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucid
 import { useCallback, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import type { ActionResult } from "@/lib/actions/result"
+import { interpretVoiceOrder } from "@/lib/actions/voice-actions"
 import {
   Select,
   SelectContent,
@@ -24,9 +26,7 @@ import { useSpeechRecognition, type SpeechErrorCode } from "@/lib/quickstore/spe
 import {
   VOICE_LANGUAGE_LABEL,
   VOICE_SPEECH_LOCALE,
-  isVoiceOrderFailure,
   type VoiceLanguage,
-  type VoiceOrderApiResponse,
   type VoiceOrderResult,
 } from "@/lib/quickstore/voice-order"
 
@@ -36,7 +36,21 @@ interface Props {
   /** Called with the reviewed lines once the cashier confirms. */
   onAdd: (lines: readonly { item: CashierItem; quantity: number }[]) => void
   disabled?: boolean
+  /**
+   * How a transcript becomes order lines. Left out, the panel uses the
+   * OpenRouter Server Action exactly as the cashier does; the demo page passes a
+   * local mock so the same UI works with no account, no database and no network.
+   */
+  interpretOrder?: VoiceInterpreter
 }
+
+/** Transcript → validated order lines (the seam the demo page swaps in). */
+export type VoiceInterpreter = (
+  storeId: string,
+  transcript: string,
+  language: VoiceLanguage
+) => Promise<ActionResult<VoiceOrderResult>>
+
 
 type Phase = "idle" | "listening" | "stopping" | "parsing" | "review"
 
@@ -61,7 +75,13 @@ const SPEECH_ERROR_PHRASE: Record<SpeechErrorCode, TranslationKey> = {
  * over the picked product. Controls are disabled while the microphone or a
  * request is in flight, so a line can never be added twice.
  */
-export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
+export function VoiceOrder({
+  storeId,
+  items,
+  onAdd,
+  disabled = false,
+  interpretOrder = interpretVoiceOrder,
+}: Props) {
   const { lang, t } = useTranslation()
 
   // Independent from the UI language: the cashier explicitly picks the spoken
@@ -105,24 +125,17 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
 
       setPhase("parsing")
       try {
-        const res = await fetch(`/api/quickstore/stores/${storeId}/voice`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: spoken, language }),
-        })
-        const payload = (await res.json().catch(() => null)) as VoiceOrderApiResponse | null
+        const res = await interpretOrder(storeId, spoken, language)
 
-        if (!payload || isVoiceOrderFailure(payload)) {
+        if (!res.ok) {
           setResult(null)
           setPhase("idle")
-          setErrorText(
-            serverText(lang, payload?.error ?? "Voice interpretation failed, please try again")
-          )
+          setErrorText(serverText(lang, res.error))
           return
         }
 
-        setResult(payload)
-        if (payload.status === "ok") {
+        setResult(res.data)
+        if (res.data.status === "ok") {
           setPhase("review")
           return
         }
@@ -137,7 +150,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
         setErrorText(serverText(lang, "Voice interpretation failed, please try again"))
       }
     },
-    [lang, language, storeId, t]
+    [interpretOrder, lang, language, storeId, t]
   )
 
   // ── Microphone ─────────────────────────────────────────────────────────────

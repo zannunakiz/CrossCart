@@ -10,8 +10,8 @@
  *   - `extractJsonObject`           — defensive JSON extraction from model text
  *   - `mapVoiceOrderResult`         — validation + catalog resolution (ids only)
  *
- * The HTTP call to OpenRouter lives in the API route
- * (`app/api/quickstore/stores/[storeId]/voice/route.ts`).
+ * The HTTP call to OpenRouter lives in the `interpretVoiceOrder` Server Action
+ * (see `lib/actions/voice-actions.ts`).
  *
  * IMPORTANT: the model may never invent products. Every line it returns must
  * reference an id that exists in the store catalog; anything else is dropped
@@ -286,8 +286,137 @@ function normalizeConfidence(value: unknown): number {
 }
 
 /**
+ * Words that carry no product identity, so they are dropped before comparing.
+ */
+const FILLER_WORDS = new Set([
+  "dan",
+  "and",
+  "the",
+  "a",
+  "an",
+  "of",
+  "with",
+  "plus",
+  "yang",
+  "nya",
+  "untuk",
+])
+
+/** Levenshtein distance between two short words (two rolling rows). */
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0
+  if (a === "" || b === "") return a.length + b.length
+
+  const previous: number[] = []
+  for (let j = 0; j <= b.length; j += 1) previous.push(j)
+
+  for (let i = 1; i <= a.length; i += 1) {
+    const current: number[] = [i]
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      current.push(Math.min(current[j - 1] + 1, previous[j] + 1, previous[j - 1] + cost))
+    }
+    previous.length = 0
+    previous.push(...current)
+  }
+
+  return previous[b.length]
+}
+
+/**
+ * Do these two words mean the same product word? An exact hit, a word one or two
+ * edits away ("mi" → "mie", a speech engine's typo), or a prefix of it.
+ */
+function sameWord(spokenWord: string, catalogWord: string): boolean {
+  if (spokenWord === catalogWord) return true
+
+  const tolerance = Math.max(spokenWord.length, catalogWord.length) <= 4 ? 1 : 2
+  if (Math.abs(spokenWord.length - catalogWord.length) <= tolerance) {
+    if (editDistance(spokenWord, catalogWord) <= tolerance) return true
+  }
+
+  // Prefixes: "goreng" for "gorengan", "coklat" for "cokelat".
+  return (
+    (spokenWord.length >= 3 && catalogWord.startsWith(spokenWord)) ||
+    (catalogWord.length >= 3 && spokenWord.startsWith(catalogWord))
+  )
+}
+
+/** The words of a name, lower-cased — filler and bare numbers mean nothing. */
+function words(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word !== "" && !/^\d+$/.test(word) && !FILLER_WORDS.has(word))
+}
+
+/** Is `a` a better match than `b`? Both arrays are ranked from front to back. */
+function ranksHigher(a: readonly number[], b: readonly number[]): boolean {
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) return a[index] > b[index]
+  }
+  return false
+}
+
+/**
+ * The assumption pass — the last resort before a spoken product is written off as
+ * "not in this store", so a name the speaker shortened or the engine misheard
+ * ("mi jawa" → "Mie Goreng Jawa", "susu" → "Susu Kental Manis") still lands on a
+ * real row instead of being dropped.
+ *
+ * Every heard word has to land on a *different* word of the product name (exactly,
+ * one or two edits away, or as a prefix of it) and at least 60% of them must.
+ * Candidates are ranked by how much of what was heard they explain, then by
+ * whether their own first word was heard, then by how few extra words their name
+ * carries, and finally by catalog order.
+ *
+ * Returns null when nothing is close enough: no product was said, and inventing
+ * one would put the wrong thing on a receipt.
+ */
+export function assumeCatalogItem<T extends { id: string; name: string }>(
+  spoken: string,
+  catalog: readonly T[]
+): T | null {
+  const heard = words(spoken)
+  if (heard.length === 0) return null
+
+  let best: { item: T; score: number[] } | null = null
+
+  for (const item of catalog) {
+    const nameWords = words(item.name)
+    if (nameWords.length === 0) continue
+
+    const remaining = [...nameWords]
+    let matched = 0
+    for (const word of heard) {
+      const index = remaining.findIndex((candidate) => sameWord(word, candidate))
+      if (index === -1) continue
+      remaining.splice(index, 1)
+      matched += 1
+    }
+
+    const coverage = matched / heard.length
+    // Half a phrase right is noise, not a product.
+    if (matched === 0 || coverage < 0.6) continue
+
+    const score = [
+      coverage,
+      sameWord(heard[0], nameWords[0]) ? 1 : 0,
+      matched / nameWords.length,
+      -nameWords.length,
+    ]
+    if (best === null || ranksHigher(score, best.score)) best = { item, score }
+  }
+
+  return best === null ? null : best.item
+}
+
+/**
  * Resolve a model reference to a real catalog row.
- * Exact id first (the contract), then a loose name match as a safety net.
+ *
+ * Exact id first (the contract), then easier name matches as a safety net, and
+ * finally the assumption pass above — so the answer is always a row that really
+ * exists, never a name the model made up.
  */
 export function resolveCatalogItem(
   reference: { itemId?: unknown; name?: unknown },
@@ -309,12 +438,13 @@ export function resolveCatalogItem(
   if (exact) return exact
 
   // Containment fallback ("Pencil HB" spoken as "pencil").
-  return (
-    catalog.find((item) => {
-      const itemKey = normalizeKey(item.name)
-      return itemKey.length >= 3 && (itemKey.includes(key) || key.includes(itemKey))
-    }) ?? null
-  )
+  const contained = catalog.find((item) => {
+    const itemKey = normalizeKey(item.name)
+    return itemKey.length >= 3 && (itemKey.includes(key) || key.includes(itemKey))
+  })
+  if (contained) return contained
+
+  return assumeCatalogItem(name, catalog)
 }
 
 /**

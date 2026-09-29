@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { CreateStoreDialog } from "@/components/quickstore/create-store-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { listStores } from "@/lib/actions/store-actions"
 import type { Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
 
@@ -39,10 +40,9 @@ export default function QuickStorePage() {
 
   const fetchStores = useCallback(async () => {
     try {
-      const res = await fetch("/api/quickstore/stores")
-      if (!res.ok) throw new Error("Failed to fetch stores")
-      const data = await res.json()
-      setStores(data)
+      const res = await listStores()
+      if (!res.ok) throw new Error(res.error)
+      setStores(res.data)
     } catch {
       toast.error(t("qs.loadFailed"))
     } finally {

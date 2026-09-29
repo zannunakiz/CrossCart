@@ -26,8 +26,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { UserAvatar } from "@/components/user-avatar"
+import {
+  inviteStoreMember,
+  listStoreMembers,
+  removeStoreMember,
+  updateStoreMemberRole,
+} from "@/lib/actions/member-actions"
 import type { StoreRole } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import { hasPermission } from "@/lib/quickstore/permissions"
 
 interface MemberUser {
@@ -114,9 +120,9 @@ export function MembersTab({ storeId, role }: Props) {
 
   const fetchMembers = useCallback(async () => {
     try {
-      const res = await fetch(`/api/quickstore/stores/${storeId}/members`)
-      if (!res.ok) throw new Error()
-      setMembers((await res.json()) as Member[])
+      const res = await listStoreMembers(storeId)
+      if (!res.ok) throw new Error(res.error)
+      setMembers(res.data as unknown as Member[])
     } catch {
       toast.error(t("Failed to load members"))
     } finally {
@@ -135,16 +141,13 @@ export function MembersTab({ storeId, role }: Props) {
 
     setRemoving(true)
     try {
-      const res = await fetch(
-        `/api/quickstore/stores/${storeId}/members/${member.id}`,
-        { method: "DELETE" }
-      )
-      if (!res.ok) throw new Error((await res.json()).error)
+      const res = await removeStoreMember(storeId, member.id)
+      if (!res.ok) throw new Error(res.error)
       setMembers((prev) => prev.filter((m) => m.id !== member.id))
       setRemoveTarget(null)
       toast.success(t("Member removed"))
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Remove failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setRemoving(false)
     }
@@ -383,16 +386,12 @@ function RoleDialog({ member, onOpenChange, storeId, onUpdated }: RoleProps) {
     setSubmitting(true)
 
     try {
-      const res = await fetch(`/api/quickstore/stores/${storeId}/members/${member.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: nextRole }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      onUpdated({ ...member, ...(await res.json()) } as Member)
+      const res = await updateStoreMemberRole(storeId, member.id, nextRole)
+      if (!res.ok) throw new Error(res.error)
+      onUpdated({ ...member, ...res.data } as unknown as Member)
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Update failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }
@@ -489,18 +488,14 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
     setSubmitting(true)
 
     try {
-      const res = await fetch(`/api/quickstore/stores/${storeId}/members`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail, memberRole }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      const member = (await res.json()) as Member
+      const res = await inviteStoreMember(storeId, trimmedEmail, memberRole)
+      if (!res.ok) throw new Error(res.error)
+      const member = res.data as unknown as Member
       onInvited(member)
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Invite failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }

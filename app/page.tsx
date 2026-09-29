@@ -1,6 +1,6 @@
 'use client'
 
-import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import {
   ArrowUpRight,
   Check,
@@ -54,6 +54,7 @@ const copy = {
     language: 'Language',
     emailCopied: 'Email Copied!',
     secondary: 'Explore the workflow',
+    demo: 'Demo Test (No Login)',
     proof: 'Free forever. No transaction fees.',
     pulse: 'Today at a glance',
     revenue: 'Today’s revenue',
@@ -112,10 +113,54 @@ const copy = {
         ]
       }
     ],
-    activity: [
-      ['10:42', 'Voice cart completed', '5 items', 'Rp 184.500'],
-      ['10:39', 'Table 07 sent to kitchen', '3 items', 'PREPARING'],
-      ['10:35', 'Stock updated', 'Iced Latte · 24 left', 'SYNCED']
+    /**
+     * Frames the hero mockup loops through. Numbers, the live feed and the chart
+     * are swapped together, so the "overview" screen reads as a running system
+     * instead of a screenshot. Times stay descending inside each frame.
+     */
+    pulseFrames: [
+      {
+        revenue: 'Rp 4.28m',
+        revenueNote: '+18.4% this week',
+        orders: '184',
+        ordersNote: '12 in progress',
+        stock: '07',
+        stockNote: 'Needs attention',
+        activity: [
+          ['10:42', 'Voice cart completed', '5 items', 'Rp 184.500'],
+          ['10:39', 'Table 07 sent to kitchen', '3 items', 'PREPARING'],
+          ['10:35', 'Stock updated', 'Iced Latte · 24 left', 'SYNCED']
+        ],
+        bars: [35, 52, 43, 68, 57, 82, 74, 94, 70, 88, 100, 86]
+      },
+      {
+        revenue: 'Rp 4.51m',
+        revenueNote: '+20.6% this week',
+        orders: '196',
+        ordersNote: '14 in progress',
+        stock: '05',
+        stockNote: 'Needs attention',
+        activity: [
+          ['10:58', 'New order · Table 12', '2 items', 'NEW'],
+          ['10:51', 'Voice cart completed', '6 items', 'Rp 212.000'],
+          ['10:47', 'Kitchen marked ready', 'Plate 3 of 5', 'READY']
+        ],
+        bars: [35, 52, 43, 70, 61, 82, 78, 94, 88, 96, 100, 92]
+      },
+      {
+        revenue: 'Rp 4.73m',
+        revenueNote: '+24.9% this week',
+        orders: '211',
+        ordersNote: '9 in progress',
+        stock: '12',
+        stockNote: 'Restocked',
+        activity: [
+          ['11:14', 'Stock updated', 'Butter Croissant · 8 left', 'SYNCED'],
+          ['11:09', 'New order · Table 04', '4 items', 'NEW'],
+          ['11:02', 'Payment confirmed', 'Cash · Rp 96.500', 'PAID']
+        ],
+        bars: [42, 48, 55, 64, 71, 66, 84, 79, 91, 86, 96, 100]
+      }
     ]
   },
   ID: {
@@ -134,6 +179,7 @@ const copy = {
     language: 'Bahasa',
     emailCopied: 'Email Tersalin!',
     secondary: 'Lihat alur kerja',
+    demo: 'Tes Demo (No Login)',
     proof: 'Gratis selamanya. Tanpa biaya transaksi.',
     pulse: 'Ringkasan hari ini',
     revenue: 'Pendapatan hari ini',
@@ -192,10 +238,53 @@ const copy = {
         ]
       }
     ],
-    activity: [
-      ['10:42', 'Keranjang suara selesai', '5 item', 'Rp 184.500'],
-      ['10:39', 'Meja 07 dikirim ke dapur', '3 item', 'DIPROSES'],
-      ['10:35', 'Stok diperbarui', 'Iced Latte · sisa 24', 'TERSINKRON']
+    /**
+     * Iterasi mockup hero: angka, feed aktivitas, dan grafiknya berubah bersama,
+     * jadi layar "ringkasan" terlihat seperti sistem yang sedang berjalan.
+     */
+    pulseFrames: [
+      {
+        revenue: 'Rp 4,28 jt',
+        revenueNote: '+18,4% minggu ini',
+        orders: '184',
+        ordersNote: '12 diproses',
+        stock: '07',
+        stockNote: 'Perlu perhatian',
+        activity: [
+          ['10:42', 'Keranjang suara selesai', '5 item', 'Rp 184.500'],
+          ['10:39', 'Meja 07 dikirim ke dapur', '3 item', 'DIPROSES'],
+          ['10:35', 'Stok diperbarui', 'Iced Latte · sisa 24', 'TERSINKRON']
+        ],
+        bars: [35, 52, 43, 68, 57, 82, 74, 94, 70, 88, 100, 86]
+      },
+      {
+        revenue: 'Rp 4,51 jt',
+        revenueNote: '+20,6% minggu ini',
+        orders: '196',
+        ordersNote: '14 diproses',
+        stock: '05',
+        stockNote: 'Perlu perhatian',
+        activity: [
+          ['10:58', 'Pesanan baru · Meja 12', '2 item', 'BARU'],
+          ['10:51', 'Keranjang suara selesai', '6 item', 'Rp 212.000'],
+          ['10:47', 'Dapur menandai siap', 'Piring 3 dari 5', 'SIAP']
+        ],
+        bars: [35, 52, 43, 70, 61, 82, 78, 94, 88, 96, 100, 92]
+      },
+      {
+        revenue: 'Rp 4,73 jt',
+        revenueNote: '+24,9% minggu ini',
+        orders: '211',
+        ordersNote: '9 diproses',
+        stock: '12',
+        stockNote: 'Sudah diisi',
+        activity: [
+          ['11:14', 'Stok diperbarui', 'Butter Croissant · sisa 8', 'TERSINKRON'],
+          ['11:09', 'Pesanan baru · Meja 04', '4 item', 'BARU'],
+          ['11:02', 'Pembayaran dikonfirmasi', 'Tunai · Rp 96.500', 'DIBAYAR']
+        ],
+        bars: [42, 48, 55, 64, 71, 66, 84, 79, 91, 86, 96, 100]
+      }
     ]
   }
 } as const
@@ -225,6 +314,61 @@ function Reveal({
   )
 }
 
+// ── Hero mockup: the looping sample data ─────────────────────────────────────
+/**
+ * How long one frame of the mockup stays on screen before the next one. The
+ * transitions below are deliberately slower than the frame gap needs: each change
+ * finishes with a couple of seconds of stillness, which is what makes the screen
+ * read as calm instead of twitchy.
+ */
+const PULSE_FRAME_MS = 2000
+/** The landing page's shared easing — a long, soft settle. */
+const PULSE_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
+
+/**
+ * One frame of the hero mockup. Spelled out by hand because `copy` is `as const`
+ * — every array in it is a readonly tuple, and this is the shape the component
+ * wants back out of it.
+ */
+type PulseFrame = {
+  revenue: string
+  revenueNote: string
+  orders: string
+  ordersNote: string
+  stock: string
+  stockNote: string
+  activity: readonly (readonly [string, string, string, string])[]
+  bars: readonly number[]
+}
+
+/**
+ * A single figure inside the mockup. Re-keying it on the value itself makes React
+ * mount a brand new node whenever the frame flips, so the next number drifts up
+ * into place instead of blinking. The duration is long on purpose: at this speed
+ * the eye follows the change instead of being startled by it.
+ */
+function PulseValue({
+  value,
+  className,
+  delay = 0
+}: {
+  value: string
+  className?: string
+  delay?: number
+}) {
+  return (
+    <motion.p
+      key={value}
+      initial={{ y: 10, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.9, delay, ease: PULSE_EASE }}
+      className={className}
+    >
+      {value}
+    </motion.p>
+  )
+}
+
 export default function Home() {
   // Theme + language live in localStorage and are read as an external store, so
   // the server render uses the defaults and hydration stays clean.
@@ -236,6 +380,9 @@ export default function Home() {
   )
   const [open, setOpen] = useState(false)
   const [emailCopied, setEmailCopied] = useState(false)
+  /** Which sample frame the hero mockup is showing (see `pulseFrames`). */
+  const [pulseIndex, setPulseIndex] = useState(0)
+  const reduceMotion = useReducedMotion()
   const { scrollYProgress } = useScroll()
   const y = useTransform(scrollYProgress, [0, 1], [0, -70])
   const { data: session } = useSession()
@@ -262,6 +409,20 @@ export default function Home() {
   useEffect(() => {
     document.documentElement.lang = lang === 'EN' ? 'en' : 'id'
   }, [lang])
+
+  // The hero mockup keeps itself alive: one frame every few seconds, looping.
+  // It is pure decoration, so a visitor who asked for less motion keeps frame
+  // one — the screen still reads, it just stops moving.
+  useEffect(() => {
+    if (reduceMotion === true) return
+    const tick = () => setPulseIndex((current) => (current + 1) % t.pulseFrames.length)
+    const timer = window.setInterval(tick, PULSE_FRAME_MS)
+    return () => window.clearInterval(timer)
+  }, [reduceMotion, t.pulseFrames.length])
+
+  const pulse: PulseFrame = t.pulseFrames[pulseIndex % t.pulseFrames.length]
+  /** The tallest bar of this frame is the one drawn in the primary colour. */
+  const peakBar = Math.max(...pulse.bars)
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -357,7 +518,7 @@ export default function Home() {
           ) : (
             <button
               onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-              className="border-b border-primary pb-1 text-xs font-medium text-primary"
+              className="border-b border-primary pb-1 text-xs font-medium text-primary cursor-pointer"
             >
               {t.primary}
             </button>
@@ -448,7 +609,7 @@ export default function Home() {
                 setOpen(false)
                 signIn('google', { callbackUrl: '/dashboard' })
               }}
-              className="border-t border-border pt-4 text-left text-primary"
+              className="border-t border-border pt-4 text-left text-primary cursor-pointer"
             >
               {t.primary}
             </button>
@@ -486,12 +647,51 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                  className="inline-flex items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+                  className="inline-flex cursor-pointer items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
                 >
                   {t.primary}
                   <ArrowUpRight className="size-4" />
                 </button>
               )}
+              {/*
+               * The /demo call-to-action is the one button dressed to be found:
+               * a breathing aura, a sonar ring, a periodic light sweep and a live
+               * dot (CSS only — see the `demo-*` animations in app/globals.css).
+               * Every loop runs through `motion-safe:`, so a visitor who prefers
+               * reduced motion gets the same button, perfectly still, and the
+               * hover state still lifts it.
+               */}
+              <Link
+                href="/demo"
+                className="group relative inline-flex items-center gap-3 border border-primary/60 bg-primary/10 px-4 py-3 text-xs font-semibold text-primary transition-[transform,background-color,border-color,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] hover:border-primary hover:bg-primary/15 hover:shadow-[0_16px_38px_-16px_var(--primary)] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+              >
+                {/* Warm aura that slowly breathes behind the label. */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-1 bg-primary/25 blur-lg motion-safe:animate-demo-breathe"
+                />
+
+                {/* Sonar ring: expands and fades, then starts over. */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 border border-primary/70 motion-safe:animate-demo-halo"
+                />
+
+                {/* Light sweep, clipped to the button. */}
+                <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+                  <span className="absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-primary/40 to-transparent motion-safe:animate-demo-shimmer" />
+                </span>
+
+                {/* "Live" dot — the recording indicator read. */}
+                <span aria-hidden className="relative flex size-2 shrink-0 items-center justify-center">
+                  <span className="absolute inset-0 rounded-full bg-primary/70 motion-safe:animate-ping" />
+                  <span className="relative size-2 rounded-full bg-primary" />
+                </span>
+
+                <span className="relative">{t.demo}</span>
+
+                <ArrowUpRight className="relative size-4 transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1" />
+              </Link>
               <a
                 href="#workflow"
                 className="text-xs text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground"
@@ -520,7 +720,11 @@ export default function Home() {
                   </p>
                 </div>
                 <span className="flex items-center gap-2 text-3xs text-muted-foreground">
-                  <span className="size-1.5 rounded-full bg-emerald-400" /> LIVE
+                  <span className="relative flex size-1.5 items-center justify-center">
+                    <span className="absolute inset-0 rounded-full bg-emerald-400 motion-safe:animate-ping" />
+                    <span className="relative size-1.5 rounded-full bg-emerald-400" />
+                  </span>
+                  LIVE
                 </span>
               </div>
 
@@ -529,34 +733,45 @@ export default function Home() {
                   <p className="text-3xs text-muted-foreground">
                     {t.revenue}
                   </p>
-                  <p className="mt-3 text-xl font-medium tracking-[-.05em]">
-                    Rp 4.28m
-                  </p>
-                  <p className="mt-2 text-3xs text-emerald-500">
-                    +18.4% this week
-                  </p>
+                  <PulseValue
+                    value={pulse.revenue}
+                    className="mt-3 text-xl font-medium tracking-[-.05em]"
+                  />
+                  <PulseValue
+                    value={pulse.revenueNote}
+                    delay={0.12}
+                    className="mt-2 text-3xs text-emerald-500"
+                  />
                 </div>
                 <div className="border border-border p-4">
                   <p className="text-3xs text-muted-foreground">
                     {t.orders}
                   </p>
-                  <p className="mt-3 text-xl font-medium tracking-[-.05em]">
-                    184
-                  </p>
-                  <p className="mt-2 text-3xs text-muted-foreground">
-                    12 in progress
-                  </p>
+                  <PulseValue
+                    value={pulse.orders}
+                    delay={0.06}
+                    className="mt-3 text-xl font-medium tracking-[-.05em]"
+                  />
+                  <PulseValue
+                    value={pulse.ordersNote}
+                    delay={0.18}
+                    className="mt-2 text-3xs text-muted-foreground"
+                  />
                 </div>
                 <div className="border border-border p-4">
                   <p className="text-3xs text-muted-foreground">
                     {t.stock}
                   </p>
-                  <p className="mt-3 text-xl font-medium tracking-[-.05em]">
-                    07
-                  </p>
-                  <p className="mt-2 text-3xs text-primary">
-                    Needs attention
-                  </p>
+                  <PulseValue
+                    value={pulse.stock}
+                    delay={0.12}
+                    className="mt-3 text-xl font-medium tracking-[-.05em]"
+                  />
+                  <PulseValue
+                    value={pulse.stockNote}
+                    delay={0.24}
+                    className="mt-2 text-3xs text-primary"
+                  />
                 </div>
               </div>
 
@@ -571,22 +786,43 @@ export default function Home() {
                     </span>
                   </div>
                   <div className="space-y-4">
-                    {t.activity.map(([time, label, detail, amount]) => (
-                      <div key={time} className="flex gap-3 border-t border-border pt-3">
-                        <span className="font-mono text-3xs text-muted-foreground">
-                          {time}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-2xs">{label}</p>
-                          <p className="mt-1 truncate text-3xs text-muted-foreground">
-                            {detail}
-                          </p>
-                        </div>
-                        <span className="text-3xs text-primary">
-                          {amount}
-                        </span>
-                      </div>
-                    ))}
+                    {/* The feed refreshes itself: rows leave, the rest slide up. */}
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {pulse.activity.map(([time, label, detail, amount], i) => (
+                        <motion.div
+                          key={time}
+                          layout
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{
+                            opacity: 0,
+                            y: 8,
+                            // Leaves faster than it arrives and in no particular
+                            // order, so the slot is never held by a ghost row.
+                            transition: { duration: 0.45, ease: PULSE_EASE }
+                          }}
+                          transition={{
+                            duration: 0.6,
+                            delay: i * 0.08,
+                            ease: PULSE_EASE
+                          }}
+                          className="flex gap-3 border-t border-border pt-3"
+                        >
+                          <span className="font-mono text-3xs text-muted-foreground">
+                            {time}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-2xs">{label}</p>
+                            <p className="mt-1 truncate text-3xs text-muted-foreground">
+                              {detail}
+                            </p>
+                          </div>
+                          <span className="text-3xs text-primary">
+                            {amount}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </div>
                 </div>
 
@@ -596,16 +832,20 @@ export default function Home() {
                     <span>7 days</span>
                   </div>
                   <div className="absolute inset-x-4 bottom-5 flex h-24 items-end gap-2">
-                    {[35, 52, 43, 68, 57, 82, 74, 94, 70, 88, 100, 86].map(
-                      (height, i) => (
-                        <div
-                          key={i}
-                          className={`flex-1 ${i === 10 ? 'bg-primary' : 'bg-primary/20'
-                            }`}
-                          style={{ height: `${height}%` }}
-                        />
-                      )
-                    )}
+                    {/* Bars glide between frames; the tallest one is the highlight. */}
+                    {pulse.bars.map((height, i) => (
+                      <motion.div
+                        key={i}
+                        initial={false}
+                        animate={{ height: `${height}%` }}
+                        transition={{
+                          duration: 1.6,
+                          delay: i * 0.05,
+                          ease: PULSE_EASE
+                        }}
+                        className={`flex-1 ${height === peakBar ? 'bg-primary' : 'bg-primary/20'}`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { checkoutErrorText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, checkoutErrorText, useTranslation } from "@/lib/i18n"
 import {
   checkoutReducer,
   formatCents,
@@ -136,10 +136,18 @@ export function ReceiptPanel({
         if (cancelled) return
         const issues = (error as { issues?: CheckoutIssue[] }).issues
         if (issues?.length) handlersRef.current.onIssues?.(issues)
+        /*
+         * A machine-readable `code` means the failure came out of our own
+         * checkout domain (`CheckoutError`), so its message is ours to show.
+         * Without one the text belongs to somebody else — a dropped connection,
+         * the framework's body limit — and is replaced by the generic wording.
+         */
+        const code = (error as { code?: CheckoutErrorCode }).code
         dispatch({
           type: "SUBMIT_ERROR",
-          message: error instanceof Error ? error.message : t("Checkout failed"),
-          code: (error as { code?: CheckoutErrorCode }).code,
+          message:
+            error instanceof Error && code ? error.message : t(UNKNOWN_ERROR_PHRASE),
+          code,
         })
       }
     })()

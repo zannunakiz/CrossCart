@@ -17,8 +17,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { createStore } from "@/lib/actions/store-actions"
+import { uploadStoreQr } from "@/lib/actions/upload-actions"
 import type { Store } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
+import { QR_FILE_PROBLEM_MESSAGE, qrFileProblem } from "@/lib/quickstore/upload"
 
 interface Props {
   open: boolean
@@ -61,9 +64,24 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
     setQrPreview(null)
   }
 
+  /**
+   * Single gate for the picked file. A too-large or non-image QR is refused
+   * here, while it is still local: the Server Action would only repeat the same
+   * rule, and Next.js caps the action body BEFORE any of our code runs — its
+   * own 413 message must never be what the user reads.
+   */
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const problem = qrFileProblem(file)
+    if (problem) {
+      toast.error(serverText(lang, QR_FILE_PROBLEM_MESSAGE[problem]))
+      // Clear the input so the same file can be picked again after a fix.
+      e.target.value = ""
+      return
+    }
+
     setQrFile(file)
     setQrPreview(URL.createObjectURL(file))
   }
@@ -80,36 +98,24 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
       if (qrFile) {
         const fd = new FormData()
         fd.append("file", qrFile)
-        const upRes = await fetch("/api/quickstore/upload", { method: "POST", body: fd })
-        if (!upRes.ok) {
-          const err = await upRes.json()
-          throw new Error(err.error ?? t("Upload failed"))
-        }
-        const { url } = await upRes.json()
-        paymentQr = url
+        const upRes = await uploadStoreQr(fd)
+        if (!upRes.ok) throw new Error(upRes.error)
+        paymentQr = upRes.data.url
       }
 
       // 2. Create store
-      const res = await fetch("/api/quickstore/stores", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || undefined,
-          open: isOpen,
-          paymentQr,
-        }),
+      const res = await createStore({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        open: isOpen,
+        paymentQr,
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error ?? t("Failed to create store"))
-      }
-      const created = await res.json()
-      onCreated(created)
+      if (!res.ok) throw new Error(res.error)
+      onCreated(res.data)
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Something went wrong"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }

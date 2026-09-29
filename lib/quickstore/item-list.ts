@@ -2,7 +2,7 @@
  * The Items table's list state: search, availability filter, sort and paging.
  *
  * Shared by the Items tab (which mirrors it in the URL so a view is shareable
- * and survives the back button) and by `GET /api/quickstore/stores/[id]/items`
+ * and survives the back button) and by the `listStoreItemsPage` Server Action
  * (which parses the very same query), so the client and the server can never
  * drift apart. Pure module — no server imports, safe in a Client Component.
  */

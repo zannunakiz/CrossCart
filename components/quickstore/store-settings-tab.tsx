@@ -18,8 +18,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { deleteStore, updateStore } from "@/lib/actions/store-actions"
+import { uploadStoreQr } from "@/lib/actions/upload-actions"
 import type { Store, StoreRole } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
+import { QR_FILE_PROBLEM_MESSAGE, qrFileProblem } from "@/lib/quickstore/upload"
 import {
   canEditStoreCredential,
   canEditStoreDetails,
@@ -77,9 +80,23 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
   const isNameValid = !allowDetails || name.trim().length > 0
   const canSave = canEditAnything && isDirty && isNameValid && !submitting
 
+  /**
+   * Single gate for the picked file — the same one the create dialog runs. The
+   * file is refused while it is still local, so an oversized QR never becomes a
+   * Server Action body (Next.js caps that first and answers with its own 413).
+   */
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const problem = qrFileProblem(file)
+    if (problem) {
+      toast.error(serverText(lang, QR_FILE_PROBLEM_MESSAGE[problem]))
+      // Clear the input so the same file can be picked again after a fix.
+      e.target.value = ""
+      return
+    }
+
     setQrFile(file)
     setQrPreview(URL.createObjectURL(file))
   }
@@ -100,32 +117,32 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
       if (allowCredential && qrFile) {
         const fd = new FormData()
         fd.append("file", qrFile)
-        const upRes = await fetch("/api/quickstore/upload", { method: "POST", body: fd })
-        if (!upRes.ok) throw new Error((await upRes.json()).error ?? t("Upload failed"))
-        const { url } = await upRes.json()
-        paymentQr = url
+        const upRes = await uploadStoreQr(fd)
+        if (!upRes.ok) throw new Error(upRes.error)
+        paymentQr = upRes.data.url
       }
 
-      const payload: Record<string, unknown> = {}
+      // Only the fields this role may change travel — the action re-checks all.
+      const patch: {
+        name?: string
+        description?: string | null
+        open?: boolean
+        paymentQr?: string | null
+      } = {}
       if (allowDetails) {
-        payload.name = name.trim()
-        payload.description = description.trim() || null
+        patch.name = name.trim()
+        patch.description = description.trim() || null
       }
-      if (allowStatus) payload.open = open
-      if (allowCredential && paymentQr !== store.paymentQr) payload.paymentQr = paymentQr
+      if (allowStatus) patch.open = open
+      if (allowCredential && paymentQr !== store.paymentQr) patch.paymentQr = paymentQr
 
-      const res = await fetch(`/api/quickstore/stores/${store.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error((await res.json()).error ?? t("Update failed"))
-      const updated = await res.json()
-      onUpdated(updated)
+      const res = await updateStore(store.id, patch)
+      if (!res.ok) throw new Error(res.error)
+      onUpdated(res.data)
       setQrFile(null)
       toast.success(t("Store settings saved"))
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Save failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }
@@ -135,12 +152,12 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
     if (deleting) return
     setDeleting(true)
     try {
-      const res = await fetch(`/api/quickstore/stores/${store.id}`, { method: "DELETE" })
-      if (!res.ok) throw new Error((await res.json()).error ?? t("Delete failed"))
+      const res = await deleteStore(store.id)
+      if (!res.ok) throw new Error(res.error)
       toast.success(t("Store deleted"))
       router.replace("/quickstore")
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
       setDeleting(false)
       setConfirmDelete(false)
     }

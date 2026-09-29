@@ -37,7 +37,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { getHistorySummary, listStoreHistory } from "@/lib/actions/history-actions"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import { formatCents, toCents, type Receipt } from "@/lib/quickstore/cashier"
 import { downloadCsv } from "@/lib/quickstore/csv"
 import { downloadReceiptImage, renderReceiptImage } from "@/lib/quickstore/receipt-image"
@@ -183,48 +184,30 @@ export function HistoryTab({ storeId }: Props) {
   // Two requests per view: the SQL summary that feeds the charts and one page of
   // receipts. Neither ever pulls the whole history into the browser.
   useEffect(() => {
-    const controller = new AbortController()
     let active = true
     const tzOffset = tzOffsetMinutes()
+    const params = `${apiQuery}&tzOffset=${tzOffset}`
 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- request lifecycle
     setRefreshing(true)
 
-    const request = async () => {
-      const [summaryRes, listRes] = await Promise.all([
-        fetch(`/api/quickstore/stores/${storeId}/history/summary?${apiQuery}&tzOffset=${tzOffset}`, {
-          signal: controller.signal,
-        }),
-        fetch(`/api/quickstore/stores/${storeId}/history?${apiQuery}&tzOffset=${tzOffset}`, {
-          signal: controller.signal,
-        }),
-      ])
-
-      if (!summaryRes.ok || !listRes.ok) {
-        const failed = summaryRes.ok ? listRes : summaryRes
-        const payload = (await failed.json().catch(() => ({}))) as { error?: string }
-        throw new Error(payload.error ?? t("Failed to load history"))
-      }
-
-      return (await Promise.all([summaryRes.json(), listRes.json()])) as [
-        HistorySummary,
-        HistoryPage,
-      ]
-    }
-
-    request()
-      .then(([summaryData, pageData]) => {
+    // The SQL summary that feeds the charts and one page of receipts; neither
+    // ever pulls the whole history into the browser.
+    Promise.all([getHistorySummary(storeId, params), listStoreHistory(storeId, params)])
+      .then(([summaryRes, listRes]) => {
         if (!active) return
-        setSummary(summaryData)
-        setPage(pageData)
+        if (!summaryRes.ok) throw new Error(summaryRes.error)
+        if (!listRes.ok) throw new Error(listRes.error)
+        setSummary(summaryRes.data)
+        setPage(listRes.data)
         // These receipts answer the request this URL asked for.
         markLoaded(apiQuery)
         setError(null)
       })
       .catch((err: unknown) => {
-        if (!active || (err instanceof DOMException && err.name === "AbortError")) return
+        if (!active) return
         const message =
-          err instanceof Error ? serverText(lang, err.message) : t("Failed to load history")
+          err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE)
         setError(message)
         toast.error(message)
       })
@@ -234,9 +217,9 @@ export function HistoryTab({ storeId }: Props) {
         setRefreshing(false)
       })
 
+    // The next query supersedes this one: whatever lands late is dropped.
     return () => {
       active = false
-      controller.abort()
     }
   }, [storeId, apiQuery, reloadToken, lang, t, markLoaded])
 
@@ -270,14 +253,10 @@ export function HistoryTab({ storeId }: Props) {
     const sales: Receipt[] = []
     for (let pageNumber = 1; ; pageNumber += 1) {
       params.set("page", String(pageNumber))
-      const res = await fetch(`/api/quickstore/stores/${storeId}/history?${params}`)
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(payload.error ?? "Failed to load history")
-      }
-      const data = (await res.json()) as HistoryPage
-      sales.push(...data.sales)
-      if (data.sales.length === 0 || pageNumber >= data.totalPages) break
+      const res = await listStoreHistory(storeId, params.toString())
+      if (!res.ok) throw new Error(res.error || "Failed to load history")
+      sales.push(...res.data.sales)
+      if (res.data.sales.length === 0 || pageNumber >= res.data.totalPages) break
     }
     return sales
   }, [queryString, storeId])
@@ -317,7 +296,7 @@ export function HistoryTab({ storeId }: Props) {
       toast.success(t("Receipts exported"))
     } catch (err) {
       toast.error(
-        err instanceof Error ? serverText(lang, err.message) : t("Failed to export receipts")
+        err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE)
       )
     } finally {
       setExportingRange(false)
@@ -351,7 +330,7 @@ export function HistoryTab({ storeId }: Props) {
         toast.success(t("Receipt exported"))
       } catch (err) {
         toast.error(
-          err instanceof Error ? serverText(lang, err.message) : t("Failed to export receipts")
+          err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE)
         )
       } finally {
         setExportingReceipt(null)
@@ -359,6 +338,12 @@ export function HistoryTab({ storeId }: Props) {
     },
     [lang, t]
   )
+
+  /**
+   * Store name for the PNG header, read once: `useCallback` then lists an exact
+   * dependency (`header?.name` made the React Compiler skip this component).
+   */
+  const headerStoreName = header?.name
 
   /** The same receipt as a PNG sheet, with the store name on top. */
   const exportReceiptImage = useCallback(
@@ -368,7 +353,7 @@ export function HistoryTab({ storeId }: Props) {
         const blob = await renderReceiptImage(sale, {
           // The context is populated by the store page; `Receipt` is only a
           // fallback so the sheet never starts with an empty line.
-          storeName: header?.name || t("Receipt"),
+          storeName: headerStoreName || t("Receipt"),
           locale: lang === "ID" ? "id-ID" : undefined,
           labels: {
             subtotal: t("Subtotal"),
@@ -384,13 +369,13 @@ export function HistoryTab({ storeId }: Props) {
         toast.error(
           err instanceof Error
             ? serverText(lang, err.message)
-            : t("Failed to export the receipt image")
+            : t(UNKNOWN_ERROR_PHRASE)
         )
       } finally {
         setExportingImage(null)
       }
     },
-    [header?.name, lang, t]
+    [headerStoreName, lang, t]
   )
 
   if (loading) {

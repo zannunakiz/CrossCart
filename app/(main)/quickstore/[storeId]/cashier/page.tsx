@@ -14,8 +14,16 @@ import { VoiceOrder } from "@/components/quickstore/cashier/voice-order"
 import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
 import { StoreStatusLine } from "@/components/quickstore/store-status-line"
 import { Button } from "@/components/ui/button"
+import { listStoreItems } from "@/lib/actions/item-actions"
+import { checkoutSale } from "@/lib/actions/sale-actions"
+import { getStore } from "@/lib/actions/store-actions"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
-import { checkoutErrorText, serverText, useTranslation } from "@/lib/i18n"
+import {
+  UNKNOWN_ERROR_PHRASE,
+  checkoutErrorText,
+  serverText,
+  useTranslation,
+} from "@/lib/i18n"
 import {
   addLine,
   checkAvailability,
@@ -71,32 +79,29 @@ export default function CashierPage() {
 
   // ── Loading ────────────────────────────────────────────────────────────────
   const loadCatalog = useCallback(async () => {
-    const res = await fetch(`/api/quickstore/stores/${storeId}/items`)
+    const res = await listStoreItems(storeId)
     if (!res.ok) throw new Error(res.status === 403 ? "Forbidden" : "Failed to load products")
-    return (await res.json()) as StoreItem[]
+    return res.data
   }, [storeId])
 
   const fetchAll = useCallback(async () => {
     try {
       // The store is fetched first: its status decides whether this route even
       // exists for the caller, and a failing catalog request must not mask it.
-      const storeRes = await fetch(`/api/quickstore/stores/${storeId}`)
+      const storeRes = await getStore(storeId)
 
       // No access → store list. Unknown store id → the shared 404 screen.
-      if (storeRes.status === 401 || storeRes.status === 403) {
+      if (!storeRes.ok && (storeRes.status === 401 || storeRes.status === 403)) {
         router.replace("/quickstore")
         return
       }
-      if (storeRes.status === 404) {
+      if (!storeRes.ok && storeRes.status === 404) {
         router.replace("/not-found")
         return
       }
-      if (!storeRes.ok) throw new Error("Failed to load store")
+      if (!storeRes.ok) throw new Error(storeRes.error)
 
-      const [storeData, catalog] = await Promise.all([
-        storeRes.json() as Promise<StoreWithRole>,
-        loadCatalog(),
-      ])
+      const [storeData, catalog] = await Promise.all([storeRes.data, loadCatalog()])
 
       setStore(storeData)
       setItems(catalog)
@@ -104,9 +109,7 @@ export default function CashierPage() {
       setLoadError(null)
     } catch (error) {
       setLoadError(
-        error instanceof Error
-          ? serverText(lang, error.message)
-          : t("Failed to load the cashier")
+        error instanceof Error ? serverText(lang, error.message) : t(UNKNOWN_ERROR_PHRASE)
       )
     } finally {
       setLoading(false)
@@ -207,36 +210,25 @@ export default function CashierPage() {
   )
 
   // ── Checkout ───────────────────────────────────────────────────────────────
-  /** POST the sale; the server re-validates stock and records history. */
+  /** Records the sale; the server re-validates stock and writes history. */
   const submitSale = useCallback(async (): Promise<Receipt> => {
-    const res = await fetch(`/api/quickstore/stores/${storeId}/checkout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientRequestId: requestIdRef.current,
-        lines: lines.map((line) => ({ itemId: line.itemId, quantity: line.quantity })),
-      }),
+    const res = await checkoutSale(storeId, {
+      clientRequestId: requestIdRef.current,
+      lines: lines.map((line) => ({ itemId: line.itemId, quantity: line.quantity })),
     })
 
-    const payload = (await res.json().catch(() => ({}))) as {
-      sale?: Receipt
-      error?: string
-      code?: string
-      issues?: CheckoutIssue[]
-    }
-
-    if (!res.ok || !payload.sale) {
-      const error = new Error(payload.error ?? t("Checkout failed")) as Error & {
+    if (!res.ok) {
+      const error = new Error(res.error) as Error & {
         code?: string
         issues?: CheckoutIssue[]
       }
-      error.code = payload.code
-      error.issues = payload.issues
+      error.code = res.code
+      error.issues = res.issues
       throw error
     }
 
-    return payload.sale
-  }, [lines, storeId, t])
+    return res.data.sale
+  }, [lines, storeId])
 
   const handleCompleted = useCallback(
     (receipt: Receipt) => {

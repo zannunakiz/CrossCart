@@ -15,6 +15,7 @@ import { StoreStatusLine } from "@/components/quickstore/store-status-line"
 import { STORE_TAB_UI } from "@/components/quickstore/store-tab-ui"
 import { Button } from "@/components/ui/button"
 import { TabNav, type TabNavItem } from "@/components/ui/tab-nav"
+import { getStore } from "@/lib/actions/store-actions"
 import type { StoreRole, Store as StoreType } from "@/lib/db/schema"
 import { useTranslation } from "@/lib/i18n"
 import { hasPermission } from "@/lib/quickstore/permissions"
@@ -102,19 +103,18 @@ function StoreDetailView() {
 
   const fetchStore = useCallback(async () => {
     try {
-      const res = await fetch(`/api/quickstore/stores/${storeId}`)
+      const res = await getStore(storeId)
       // No access → store list. Unknown store id → the shared 404 screen.
-      if (res.status === 403 || res.status === 401) {
+      if (!res.ok && (res.status === 403 || res.status === 401)) {
         router.replace("/quickstore")
         return
       }
-      if (res.status === 404) {
+      if (!res.ok && res.status === 404) {
         router.replace("/not-found")
         return
       }
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      setStore(data)
+      if (!res.ok) throw new Error(res.error)
+      setStore(res.data)
     } catch {
       toast.error(t("Failed to load store"))
     } finally {
