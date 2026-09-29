@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { createStoreItem, updateStoreItem } from "@/lib/actions/item-actions"
 import type { StoreItem } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import {
   DESCRIPTION_MAX_LENGTH,
   MAX_DISCOUNT_PERCENT,
@@ -189,7 +189,7 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
       setName("")
       setFocusToken((token) => token + 1)
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Something went wrong"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }

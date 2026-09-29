@@ -18,7 +18,12 @@ import { listStoreItems } from "@/lib/actions/item-actions"
 import { checkoutSale } from "@/lib/actions/sale-actions"
 import { getStore } from "@/lib/actions/store-actions"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
-import { checkoutErrorText, serverText, useTranslation } from "@/lib/i18n"
+import {
+  UNKNOWN_ERROR_PHRASE,
+  checkoutErrorText,
+  serverText,
+  useTranslation,
+} from "@/lib/i18n"
 import {
   addLine,
   checkAvailability,
@@ -104,9 +109,7 @@ export default function CashierPage() {
       setLoadError(null)
     } catch (error) {
       setLoadError(
-        error instanceof Error
-          ? serverText(lang, error.message)
-          : t("Failed to load the cashier")
+        error instanceof Error ? serverText(lang, error.message) : t(UNKNOWN_ERROR_PHRASE)
       )
     } finally {
       setLoading(false)

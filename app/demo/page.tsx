@@ -54,7 +54,7 @@ import {
   waitForDemo,
   type DemoItem,
 } from "@/lib/demo/demo"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import {
   getServerThemeSnapshot,
   getThemeSnapshot,
@@ -267,7 +267,7 @@ export default function DemoPage() {
       toast.success(t("Receipt exported"))
     } catch (error) {
       toast.error(
-        error instanceof Error ? serverText(lang, error.message) : t("Failed to export receipts")
+        error instanceof Error ? serverText(lang, error.message) : t(UNKNOWN_ERROR_PHRASE)
       )
     }
   }, [lang, lastReceipt, t])
@@ -294,7 +294,7 @@ export default function DemoPage() {
       toast.error(
         error instanceof Error
           ? serverText(lang, error.message)
-          : t("Failed to export the receipt image")
+          : t(UNKNOWN_ERROR_PHRASE)
       )
     } finally {
       setExportingImage(false)

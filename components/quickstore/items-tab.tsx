@@ -32,7 +32,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { deleteStoreItem, listStoreItemsPage } from "@/lib/actions/item-actions"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import { discountedUnitCents, formatCents, toCents } from "@/lib/quickstore/cashier"
 import {
   ITEM_AVAILABILITIES,
@@ -155,14 +155,14 @@ export function ItemsTab({ storeId, role }: Props) {
     listStoreItemsPage(storeId, apiQuery)
       .then((res) => {
         if (!active) return
-        if (!res.ok) throw new Error(res.error || t("Failed to load items"))
+        if (!res.ok) throw new Error(res.error || UNKNOWN_ERROR_PHRASE)
         setData(res.data)
         // Tells `usePageSync` these rows answer the request this URL asked for.
         markLoaded(apiQuery)
       })
       .catch((err: unknown) => {
         if (!active) return
-        toast.error(err instanceof Error ? serverText(lang, err.message) : t("Failed to load items"))
+        toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
       })
       .finally(() => {
         if (!active) return
@@ -253,7 +253,7 @@ export function ItemsTab({ storeId, role }: Props) {
     setDeleting(true)
     try {
       const res = await deleteStoreItem(storeId, item.id)
-      if (!res.ok) throw new Error(res.error || t("Delete failed"))
+      if (!res.ok) throw new Error(res.error || UNKNOWN_ERROR_PHRASE)
       toast.success(t('"{name}" deleted', { name: item.name }))
       setDeleteTarget(null)
 
@@ -264,7 +264,7 @@ export function ItemsTab({ storeId, role }: Props) {
         setReloadToken((token) => token + 1)
       }
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setDeleting(false)
     }

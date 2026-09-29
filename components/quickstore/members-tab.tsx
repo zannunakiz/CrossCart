@@ -33,7 +33,7 @@ import {
   updateStoreMemberRole,
 } from "@/lib/actions/member-actions"
 import type { StoreRole } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import { hasPermission } from "@/lib/quickstore/permissions"
 
 interface MemberUser {
@@ -147,7 +147,7 @@ export function MembersTab({ storeId, role }: Props) {
       setRemoveTarget(null)
       toast.success(t("Member removed"))
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Remove failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setRemoving(false)
     }
@@ -391,7 +391,7 @@ function RoleDialog({ member, onOpenChange, storeId, onUpdated }: RoleProps) {
       onUpdated({ ...member, ...res.data } as unknown as Member)
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Update failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }
@@ -495,7 +495,7 @@ function InviteDialog({ open, onOpenChange, storeId, onInvited }: InviteProps) {
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Invite failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }

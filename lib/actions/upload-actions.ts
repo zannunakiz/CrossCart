@@ -11,11 +11,9 @@
  * Cloudinary (`next.config.mjs` caps the body at 3 MB for that reason).
  */
 import { cloudinary } from "@/lib/cloudinary"
+import { MAX_UPLOAD_BYTES, QR_FILE_PROBLEM_MESSAGE } from "@/lib/quickstore/upload"
 import { currentSession } from "./context"
 import { fail, ok, type ActionResult } from "./result"
-
-/** Same ceiling the upload widget advertises ("max 2 MB"). */
-const MAX_UPLOAD_BYTES = 2_000_000
 
 export async function uploadStoreQr(
   formData: FormData
@@ -28,10 +26,10 @@ export async function uploadStoreQr(
     return fail("No file provided", { status: 400 })
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    return fail("Image must be 2 MB or smaller", { status: 400 })
+    return fail(QR_FILE_PROBLEM_MESSAGE.too_large, { status: 400 })
   }
   if (file.type && !file.type.startsWith("image/")) {
-    return fail("Only image files are allowed", { status: 400 })
+    return fail(QR_FILE_PROBLEM_MESSAGE.not_image, { status: 400 })
   }
 
   const arrayBuffer = await file.arrayBuffer()

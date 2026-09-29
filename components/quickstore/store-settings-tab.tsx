@@ -21,7 +21,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { deleteStore, updateStore } from "@/lib/actions/store-actions"
 import { uploadStoreQr } from "@/lib/actions/upload-actions"
 import type { Store, StoreRole } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
+import { QR_FILE_PROBLEM_MESSAGE, qrFileProblem } from "@/lib/quickstore/upload"
 import {
   canEditStoreCredential,
   canEditStoreDetails,
@@ -79,9 +80,23 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
   const isNameValid = !allowDetails || name.trim().length > 0
   const canSave = canEditAnything && isDirty && isNameValid && !submitting
 
+  /**
+   * Single gate for the picked file — the same one the create dialog runs. The
+   * file is refused while it is still local, so an oversized QR never becomes a
+   * Server Action body (Next.js caps that first and answers with its own 413).
+   */
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const problem = qrFileProblem(file)
+    if (problem) {
+      toast.error(serverText(lang, QR_FILE_PROBLEM_MESSAGE[problem]))
+      // Clear the input so the same file can be picked again after a fix.
+      e.target.value = ""
+      return
+    }
+
     setQrFile(file)
     setQrPreview(URL.createObjectURL(file))
   }
@@ -127,7 +142,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
       setQrFile(null)
       toast.success(t("Store settings saved"))
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Save failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }
@@ -142,7 +157,7 @@ export function StoreSettingsTab({ store, role, isOwner = false, onUpdated, canD
       toast.success(t("Store deleted"))
       router.replace("/quickstore")
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Delete failed"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
       setDeleting(false)
       setConfirmDelete(false)
     }

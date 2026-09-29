@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { getHistorySummary, listStoreHistory } from "@/lib/actions/history-actions"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
 import { formatCents, toCents, type Receipt } from "@/lib/quickstore/cashier"
 import { downloadCsv } from "@/lib/quickstore/csv"
 import { downloadReceiptImage, renderReceiptImage } from "@/lib/quickstore/receipt-image"
@@ -207,7 +207,7 @@ export function HistoryTab({ storeId }: Props) {
       .catch((err: unknown) => {
         if (!active) return
         const message =
-          err instanceof Error ? serverText(lang, err.message) : t("Failed to load history")
+          err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE)
         setError(message)
         toast.error(message)
       })
@@ -296,7 +296,7 @@ export function HistoryTab({ storeId }: Props) {
       toast.success(t("Receipts exported"))
     } catch (err) {
       toast.error(
-        err instanceof Error ? serverText(lang, err.message) : t("Failed to export receipts")
+        err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE)
       )
     } finally {
       setExportingRange(false)
@@ -330,7 +330,7 @@ export function HistoryTab({ storeId }: Props) {
         toast.success(t("Receipt exported"))
       } catch (err) {
         toast.error(
-          err instanceof Error ? serverText(lang, err.message) : t("Failed to export receipts")
+          err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE)
         )
       } finally {
         setExportingReceipt(null)
@@ -369,7 +369,7 @@ export function HistoryTab({ storeId }: Props) {
         toast.error(
           err instanceof Error
             ? serverText(lang, err.message)
-            : t("Failed to export the receipt image")
+            : t(UNKNOWN_ERROR_PHRASE)
         )
       } finally {
         setExportingImage(null)

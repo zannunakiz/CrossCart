@@ -20,7 +20,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { createStore } from "@/lib/actions/store-actions"
 import { uploadStoreQr } from "@/lib/actions/upload-actions"
 import type { Store } from "@/lib/db/schema"
-import { serverText, useTranslation } from "@/lib/i18n"
+import { UNKNOWN_ERROR_PHRASE, serverText, useTranslation } from "@/lib/i18n"
+import { QR_FILE_PROBLEM_MESSAGE, qrFileProblem } from "@/lib/quickstore/upload"
 
 interface Props {
   open: boolean
@@ -63,9 +64,24 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
     setQrPreview(null)
   }
 
+  /**
+   * Single gate for the picked file. A too-large or non-image QR is refused
+   * here, while it is still local: the Server Action would only repeat the same
+   * rule, and Next.js caps the action body BEFORE any of our code runs — its
+   * own 413 message must never be what the user reads.
+   */
   const handleQrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    const problem = qrFileProblem(file)
+    if (problem) {
+      toast.error(serverText(lang, QR_FILE_PROBLEM_MESSAGE[problem]))
+      // Clear the input so the same file can be picked again after a fix.
+      e.target.value = ""
+      return
+    }
+
     setQrFile(file)
     setQrPreview(URL.createObjectURL(file))
   }
@@ -99,7 +115,7 @@ export function CreateStoreDialog({ open, onOpenChange, onCreated }: Props) {
       onOpenChange(false)
       reset()
     } catch (err) {
-      toast.error(err instanceof Error ? serverText(lang, err.message) : t("Something went wrong"))
+      toast.error(err instanceof Error ? serverText(lang, err.message) : t(UNKNOWN_ERROR_PHRASE))
     } finally {
       setSubmitting(false)
     }

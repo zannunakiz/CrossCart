@@ -145,6 +145,9 @@ const phraseId = {
   'Delete?': 'Hapus?',
   Edit: 'Ubah',
   'Try again': 'Coba lagi',
+  // The single wording for a failure we cannot name (see `UNKNOWN_ERROR_PHRASE`
+  // in this file): a thrown error, a framework limit or a provider hiccup.
+  'Something went wrong. Please try again.': 'Terjadi kesalahan. Silakan coba lagi.',
   Yes: 'Ya',
   No: 'Tidak',
   Total: 'Total',
@@ -576,11 +579,16 @@ const checkoutErrorId: Record<CheckoutErrorCode | 'CHECKOUT_FAILED', string> = {
 }
 
 /**
- * Messages the QuickStore API answers with (validation / permission errors).
- * They are shown straight from `err.message`, so they are mapped here by their
- * exact English text.
+ * English messages OUR OWN Server Actions answer with (validation, permission
+ * and domain failures) — and nothing else.
+ *
+ * This is an allow-list, not a lookup table: `serverText` refuses to echo a
+ * message it cannot find here, because an unrecognised string is by definition
+ * text we did not write — Next.js's `Body exceeded 3mb limit…`, a failed
+ * `fetch`, a Cloudinary / OpenRouter error. Those name internals, so they are
+ * replaced by `UNKNOWN_ERROR_PHRASE` (see `serverText`).
  */
-const serverMessageId: Record<string, string> = {
+const serverMessageId = {
   Unauthorized: 'Tidak memiliki akses',
   Forbidden: 'Akses ditolak',
   'Invalid JSON body': 'Format data tidak valid',
@@ -607,7 +615,13 @@ const serverMessageId: Record<string, string> = {
   'You cannot change your own membership': 'Anda tidak dapat mengubah keanggotaan Anda sendiri',
   'Invalid role': 'Peran tidak valid',
   'No file provided': 'Tidak ada file yang dipilih',
+  'Image must be 2 MB or smaller': 'Gambar maksimal 2 MB',
+  'Only image files are allowed': 'Hanya berkas gambar yang diizinkan',
   'Upload failed': 'Gagal mengunggah',
+  // Raised by the browser-side receipt renderer (`lib/quickstore/receipt-image.ts`)
+  // and shown by the export toasts — our own sentences, translated like the rest.
+  'Canvas is not supported in this browser': 'Peramban ini tidak mendukung kanvas',
+  'Could not render the receipt image': 'Gagal membuat gambar struk',
   'Failed to load history': 'Gagal memuat riwayat',
   'Failed to load store': 'Gagal memuat toko',
   'Failed to load products': 'Gagal memuat produk',
@@ -624,12 +638,38 @@ const serverMessageId: Record<string, string> = {
   'transcript is required': 'Transkrip suara wajib diisi',
   'open must be a boolean': 'Status buka harus berupa boolean',
   'paymentQr must be a URL string or null': 'QR pembayaran harus berupa URL atau null',
+  'clientRequestId is required': 'clientRequestId wajib diisi',
+  'lines must be an array of { itemId, quantity }':
+    'lines harus berupa daftar { itemId, quantity }',
+  'note must be a string': 'Catatan harus berupa teks',
+} as const
+
+/** Every English message a Server Action of ours is allowed to surface. */
+export type ServerMessage = keyof typeof serverMessageId
+
+/** The same table, widened so untrusted text (`err.message`) can be looked up. */
+const serverMessages: Record<string, string> = serverMessageId
+
+/**
+ * The one wording for a failure we cannot name — a thrown error, a framework
+ * limit, a dropped connection, a provider hiccup. Deliberately vague: it tells
+ * the user what happened to them, never how we are built inside.
+ */
+export const UNKNOWN_ERROR_PHRASE = 'Something went wrong. Please try again.' as const
+
+/** Is `text` one of the messages our own Server Actions answer with? */
+export function isServerMessage(text: string): text is ServerMessage {
+  return Object.hasOwn(serverMessages, text)
 }
 
-/** Translate a message that came from the API (already English). */
+/**
+ * Translate a message that came from one of our Server Actions (already
+ * English) — or fall back to `UNKNOWN_ERROR_PHRASE` when the text is not one of
+ * ours, so a raw framework / provider message can never reach the UI.
+ */
 export function serverText(lang: Language, english: string) {
-  if (lang !== 'ID') return english
-  return serverMessageId[english] ?? english
+  if (!isServerMessage(english)) return translate(lang, UNKNOWN_ERROR_PHRASE)
+  return lang === 'ID' ? serverMessages[english] : english
 }
 
 function withVars(text: string, vars?: Record<string, string | number>) {
@@ -661,13 +701,19 @@ export function availabilityMessage(
   return withVars(availabilityMessageId[code] ?? english, vars)
 }
 
-/** Checkout error text — the API/domain message is already English. */
+/**
+ * Checkout error text — the domain message is already English, so only the
+ * Indonesian side is mapped, by the machine-readable `code` (never by the
+ * text). Without a code nothing names this failure: the raw message is not
+ * echoed, the generic wording is used instead.
+ */
 export function checkoutErrorText(
   lang: Language,
   code: string | undefined,
   english: string
 ) {
-  if (lang !== 'ID' || !code) return english
+  if (!code) return translate(lang, UNKNOWN_ERROR_PHRASE)
+  if (lang !== 'ID') return english
   return (checkoutErrorId as Record<string, string>)[code] ?? english
 }
 

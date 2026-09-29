@@ -9,8 +9,7 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:clear": "node scripts/db-clear.mjs",
-    "seed:scene1": "node scripts/seed-scene1.mjs"
+    "db:clear": "node scripts/db-clear.mjs"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
