@@ -5,6 +5,7 @@ import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucid
 import { useCallback, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { interpretVoiceOrder } from "@/lib/actions/voice-actions"
 import {
   Select,
   SelectContent,
@@ -24,9 +25,7 @@ import { useSpeechRecognition, type SpeechErrorCode } from "@/lib/quickstore/spe
 import {
   VOICE_LANGUAGE_LABEL,
   VOICE_SPEECH_LOCALE,
-  isVoiceOrderFailure,
   type VoiceLanguage,
-  type VoiceOrderApiResponse,
   type VoiceOrderResult,
 } from "@/lib/quickstore/voice-order"
 
@@ -105,24 +104,17 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
 
       setPhase("parsing")
       try {
-        const res = await fetch(`/api/quickstore/stores/${storeId}/voice`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: spoken, language }),
-        })
-        const payload = (await res.json().catch(() => null)) as VoiceOrderApiResponse | null
+        const res = await interpretVoiceOrder(storeId, spoken, language)
 
-        if (!payload || isVoiceOrderFailure(payload)) {
+        if (!res.ok) {
           setResult(null)
           setPhase("idle")
-          setErrorText(
-            serverText(lang, payload?.error ?? "Voice interpretation failed, please try again")
-          )
+          setErrorText(serverText(lang, res.error))
           return
         }
 
-        setResult(payload)
-        if (payload.status === "ok") {
+        setResult(res.data)
+        if (res.data.status === "ok") {
           setPhase("review")
           return
         }

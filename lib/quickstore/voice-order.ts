@@ -10,8 +10,8 @@
  *   - `extractJsonObject`           — defensive JSON extraction from model text
  *   - `mapVoiceOrderResult`         — validation + catalog resolution (ids only)
  *
- * The HTTP call to OpenRouter lives in the API route
- * (`app/api/quickstore/stores/[storeId]/voice/route.ts`).
+ * The HTTP call to OpenRouter lives in the `interpretVoiceOrder` Server Action
+ * (see `lib/actions/voice-actions.ts`).
  *
  * IMPORTANT: the model may never invent products. Every line it returns must
  * reference an id that exists in the store catalog; anything else is dropped

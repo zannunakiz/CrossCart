@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { createStoreItem, updateStoreItem } from "@/lib/actions/item-actions"
 import type { StoreItem } from "@/lib/db/schema"
 import { serverText, useTranslation } from "@/lib/i18n"
 import {
@@ -168,17 +169,11 @@ export function ItemDialog({ open, onOpenChange, storeId, item, onSaved }: Props
     }
 
     try {
-      const url = isEdit
-        ? `/api/quickstore/stores/${storeId}/items/${item!.id}`
-        : `/api/quickstore/stores/${storeId}/items`
-      const res = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error((await res.json()).error ?? t("Save failed"))
-      const saved = await res.json()
-      onSaved(saved)
+      const res = isEdit
+        ? await updateStoreItem(storeId, item!.id, payload)
+        : await createStoreItem(storeId, payload)
+      if (!res.ok) throw new Error(res.error)
+      onSaved(res.data)
       if (isEdit) {
         // Editing is a one-off: the form is closed after a successful save.
         onOpenChange(false)

@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { deleteStoreItem, listStoreItemsPage } from "@/lib/actions/item-actions"
 import type { StoreItem, StoreRole } from "@/lib/db/schema"
 import { serverText, useTranslation } from "@/lib/i18n"
 import { discountedUnitCents, formatCents, toCents } from "@/lib/quickstore/cashier"
@@ -146,28 +147,21 @@ export function ItemsTab({ storeId, role }: Props) {
   // One request per page: the server searches, filters, sorts and counts, so a
   // store with thousands of items never ships its whole catalog to the browser.
   useEffect(() => {
-    const controller = new AbortController()
     let active = true
 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- request lifecycle
     setRefreshing(true)
 
-    fetch(`/api/quickstore/stores/${storeId}/items?${apiQuery}`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) {
-          const payload = (await res.json().catch(() => ({}))) as { error?: string }
-          throw new Error(payload.error ?? t("Failed to load items"))
-        }
-        return (await res.json()) as ItemsPage
-      })
-      .then((page) => {
+    listStoreItemsPage(storeId, apiQuery)
+      .then((res) => {
         if (!active) return
-        setData(page)
+        if (!res.ok) throw new Error(res.error || t("Failed to load items"))
+        setData(res.data)
         // Tells `usePageSync` these rows answer the request this URL asked for.
         markLoaded(apiQuery)
       })
       .catch((err: unknown) => {
-        if (!active || (err instanceof DOMException && err.name === "AbortError")) return
+        if (!active) return
         toast.error(err instanceof Error ? serverText(lang, err.message) : t("Failed to load items"))
       })
       .finally(() => {
@@ -176,10 +170,9 @@ export function ItemsTab({ storeId, role }: Props) {
         setRefreshing(false)
       })
 
-    // Cancels the in-flight request when the query changes again (fast typing).
+    // The next query supersedes this one: whatever lands late is dropped.
     return () => {
       active = false
-      controller.abort()
     }
   }, [storeId, apiQuery, reloadToken, lang, t, markLoaded])
 
@@ -259,13 +252,8 @@ export function ItemsTab({ storeId, role }: Props) {
 
     setDeleting(true)
     try {
-      const res = await fetch(`/api/quickstore/stores/${storeId}/items/${item.id}`, {
-        method: "DELETE",
-      })
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(payload.error ?? t("Delete failed"))
-      }
+      const res = await deleteStoreItem(storeId, item.id)
+      if (!res.ok) throw new Error(res.error || t("Delete failed"))
       toast.success(t('"{name}" deleted', { name: item.name }))
       setDeleteTarget(null)
 
