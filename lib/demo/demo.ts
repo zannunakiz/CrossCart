@@ -242,6 +242,13 @@ export function parseDemoSpokenOrder(transcript: string): SpokenFragment[] {
     })
 }
 
+/*
+ * The assumption pass that turns "mi jawa" into "Mie Goreng Jawa" lives in
+ * `assumeCatalogItem` (lib/quickstore/voice-order.ts) and runs inside the shared
+ * `resolveCatalogItem`, so the real OpenRouter path gets it too — and both paths
+ * are exercised by the same code.
+ */
+
 /**
  * The demo's `interpretVoiceOrder`: no OpenRouter and no store — a `waitForDemo()`
  * delay, the local parser above, and then the **real** `mapVoiceOrderResult`, so

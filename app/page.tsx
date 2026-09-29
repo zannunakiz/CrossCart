@@ -54,7 +54,7 @@ const copy = {
     language: 'Language',
     emailCopied: 'Email Copied!',
     secondary: 'Explore the workflow',
-    demo: 'Demo Test (For anyone)',
+    demo: 'Demo Test (No Login)',
     proof: 'Free forever. No transaction fees.',
     pulse: 'Today at a glance',
     revenue: 'Today’s revenue',
@@ -179,7 +179,7 @@ const copy = {
     language: 'Bahasa',
     emailCopied: 'Email Tersalin!',
     secondary: 'Lihat alur kerja',
-    demo: 'Tes Demo (Untuk siapa saja)',
+    demo: 'Tes Demo (No Login)',
     proof: 'Gratis selamanya. Tanpa biaya transaksi.',
     pulse: 'Ringkasan hari ini',
     revenue: 'Pendapatan hari ini',
@@ -321,7 +321,7 @@ function Reveal({
  * finishes with a couple of seconds of stillness, which is what makes the screen
  * read as calm instead of twitchy.
  */
-const PULSE_FRAME_MS = 6000
+const PULSE_FRAME_MS = 2000
 /** The landing page's shared easing — a long, soft settle. */
 const PULSE_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
@@ -518,7 +518,7 @@ export default function Home() {
           ) : (
             <button
               onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-              className="border-b border-primary pb-1 text-xs font-medium text-primary"
+              className="border-b border-primary pb-1 text-xs font-medium text-primary cursor-pointer"
             >
               {t.primary}
             </button>
@@ -609,7 +609,7 @@ export default function Home() {
                 setOpen(false)
                 signIn('google', { callbackUrl: '/dashboard' })
               }}
-              className="border-t border-border pt-4 text-left text-primary"
+              className="border-t border-border pt-4 text-left text-primary cursor-pointer"
             >
               {t.primary}
             </button>
@@ -647,7 +647,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                  className="inline-flex items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+                  className="inline-flex cursor-pointer items-center gap-3 bg-primary px-4 py-3 text-xs font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
                 >
                   {t.primary}
                   <ArrowUpRight className="size-4" />

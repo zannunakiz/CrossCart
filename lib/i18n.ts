@@ -500,11 +500,16 @@ const phraseId = {
 
   // ── Demo page (/demo) ─────────────────────────────────────────────────────
   'Demo Store': 'Toko Demo',
-  'Live demo': 'Demo langsung',
+  'Live demo': 'Live Demo',
   'Back to home': 'Kembali ke beranda',
   'Demo only — nothing is saved to a database.':
     'Hanya demo — tidak ada yang disimpan ke basis data.',
   'Export this sale': 'Ekspor transaksi ini',
+  'Demo Items': 'Item Demo',
+  'Demo Cashier': 'Kasir Demo',
+  'Demo sections': 'Bagian demo',
+  Category: 'Kategori',
+  'Read-only': 'Hanya baca',
 } as const
 
 export type PhraseKey = keyof typeof phraseId
