@@ -44,7 +44,7 @@ export async function uploadStoreQr(
     })
 
     return ok({ url: result.secure_url, publicId: result.public_id })
-  } catch (error) {
+  } catch {
     // console.error("[Cloudinary upload]", error)
     return fail("Upload failed", { status: 500 })
   }

@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:unit": "jest tests/unit",
+    "test:rbac": "jest tests/rbac",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:clear": "node scripts/db-clear.mjs"
@@ -40,6 +42,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24",
     "@types/pg": "^8.23.1",
     "@types/react": "19.2.14",
@@ -48,14 +51,17 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.6",
+    "jest": "^30.5.2",
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
+    "ts-jest": "^29.4.14",
     "typescript": "5.7.3"
   },
   "allowScripts": {
     "esbuild@0.18.20": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true,
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "@parcel/watcher@2.6.0": true
   }
 }

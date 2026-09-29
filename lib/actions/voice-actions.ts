@@ -93,7 +93,7 @@ export async function interpretVoiceOrder(
         //   content.slice(0, 200)
         // )
       }
-    } catch (error) {
+    } catch {
       // console.error(`[quickstore/voice] attempt ${attempt} failed`, error)
     }
   }
