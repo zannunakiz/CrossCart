@@ -97,7 +97,7 @@ const id: Record<keyof typeof en, string> = {
   'dash.title': 'Dasbor',
   'dash.subtitle': 'Semua yang toko mikro Anda butuhkan — item, penjualan, dan tim.',
   'dash.app.quickstore.title': 'Quick Store',
-  'dash.app.quickstore.subtitle': 'Kelola toko online mikro & stok Anda',
+  'dash.app.quickstore.subtitle': 'Kelola toko mikro & stok Anda',
   'dash.app.pos.title': 'Modern POS',
   'dash.app.pos.subtitle': 'Kasir & display dapur kelas restoran — segera hadir',
   'dash.badge.comingSoon': 'Segera hadir',

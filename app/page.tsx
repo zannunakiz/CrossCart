@@ -3,16 +3,19 @@
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 import {
   ArrowUpRight,
-  BarChart3,
   Check,
+  ChefHat,
   Globe2,
   LogOut,
   Mail,
   Menu,
-  Mic2,
+  Mic,
   Moon,
   QrCode,
+  Receipt,
+  ScanLine,
   Sun,
+  Wallet,
   X
 } from 'lucide-react'
 import { signIn, signOut, useSession } from 'next-auth/react'
@@ -37,9 +40,14 @@ import {
 const copy = {
   EN: {
     nav: ['Product', 'Workflow', 'Pricing'],
-    badge: 'POS / INVENTORY / KDS',
+    badge: 'POS / QUICKSTORE / KDS',
     headline: 'The quiet system behind busy businesses.',
-    body: 'CrossCart keeps checkout, stock, payments, and kitchen orders moving in one calm workspace.',
+    // Three parts so the middle one can be emphasised in the hero.
+    body: [
+      'CrossCart keeps transactions, stock, and kitchen orders moving in one calm ',
+      '100% money free',
+      ' workspace.'
+    ],
     primary: 'Log In',
     toDashboard: 'To Dashboard',
     signOut: 'Sign out',
@@ -52,28 +60,56 @@ const copy = {
     orders: 'Orders processed',
     stock: 'Low stock items',
     live: 'Live activity',
-    workflowLabel: 'One system. Three moments.',
+    workflowLabel: 'Two system. Six moments. 100% Free Forever',
     workflowTitle: 'Designed around the way work actually happens.',
     workflowBody: 'Less switching. Fewer mistakes. A faster day for every operator.',
     pricing: 'Everything you need. Nothing you need to unlock.',
-    pricingBody: 'No subscriptions, limits, or payment processing markups. Just a focused toolkit for people running the floor.',
+    pricingBody: 'No subscriptions, limits, or payment processing markups. Just a focused toolkit for people running businesses. Made with Passion.',
     cta: 'Open CrossCart',
     footer: 'Built for every counter, table, and shift.',
-    features: [
+    // Two products, three moments each.
+    systems: [
       {
-        icon: Mic2,
-        title: 'Speak a sale into existence',
-        body: 'Natural voice commands become accurate carts in seconds.'
+        name: 'QuickStore',
+        note: 'Instant cashier, driven by voice.',
+        steps: [
+          {
+            icon: Mic,
+            title: 'Customer shows their items',
+            body: 'Walk in, show what you need, and the sale starts without typing.'
+          },
+          {
+            icon: Receipt,
+            title: 'Speak the order out loud',
+            body: 'A short line — “five chocolates, four syrups, a book” — becomes a receipt.'
+          },
+          {
+            icon: Wallet,
+            title: 'Pay outside the app',
+            body: 'Cash, transfer, or QRIS. No money ever passes through CrossCart.'
+          }
+        ]
       },
       {
-        icon: QrCode,
-        title: 'Carry orders from table to kitchen',
-        body: 'A simple QR payload keeps guests, cashiers, and chefs aligned.'
-      },
-      {
-        icon: BarChart3,
-        title: 'See what needs attention',
-        body: 'Inventory, revenue, and exports that make decisions easier.'
+        name: 'Modern POS',
+        note: 'QR ordering, from table to kitchen.',
+        steps: [
+          {
+            icon: QrCode,
+            title: 'Customer scans and orders',
+            body: 'One QR code opens the menu and places the order from the guest’s phone.'
+          },
+          {
+            icon: ScanLine,
+            title: 'Cashier confirms the code',
+            body: 'The order code is verified at the counter and settled outside the app.'
+          },
+          {
+            icon: ChefHat,
+            title: 'Kitchen receives the ticket',
+            body: 'The guest stays seated while incoming orders reach the kitchen in real time.'
+          }
+        ]
       }
     ],
     activity: [
@@ -84,9 +120,14 @@ const copy = {
   },
   ID: {
     nav: ['Produk', 'Alur kerja', 'Harga'],
-    badge: 'POS / INVENTARIS / KDS',
+    badge: 'POS / QUICKSTORE / KDS',
     headline: 'Sistem tenang di balik bisnis yang sibuk.',
-    body: 'CrossCart menyatukan kasir, stok, pembayaran, dan pesanan dapur dalam satu ruang kerja.',
+    // Three parts so the middle one can be emphasised in the hero.
+    body: [
+      'CrossCart menyatukan transaksi, stok, dan pesanan dapur dalam satu ruang kerja yang tenang — ',
+      '100% tanpa uang',
+      '.'
+    ],
     primary: 'Masuk',
     toDashboard: 'Ke Dasbor',
     signOut: 'Keluar',
@@ -99,28 +140,56 @@ const copy = {
     orders: 'Pesanan diproses',
     stock: 'Stok menipis',
     live: 'Aktivitas langsung',
-    workflowLabel: 'Satu sistem. Tiga momen.',
+    workflowLabel: 'Dua sistem. Enam momen. Gratis 100% Selamanya.',
     workflowTitle: 'Dibuat mengikuti cara kerja nyata.',
     workflowBody: 'Lebih sedikit berpindah. Lebih sedikit salah. Hari yang lebih cepat.',
     pricing: 'Semua yang dibutuhkan. Tanpa fitur terkunci.',
-    pricingBody: 'Tanpa langganan, batasan, atau markup pemrosesan pembayaran. Hanya alat yang fokus untuk operasional Anda.',
+    pricingBody: 'Tanpa langganan, batasan, atau markup pemrosesan pembayaran. Hanya alat yang fokus untuk orang yang menjalankan bisnis. Dibuat dengan Passion.',
     cta: 'Buka CrossCart',
     footer: 'Dibuat untuk setiap kasir, meja, dan shift.',
-    features: [
+    // Dua produk, masing-masing tiga momen.
+    systems: [
       {
-        icon: Mic2,
-        title: 'Ucapkan transaksi Anda',
-        body: 'Perintah suara alami menjadi keranjang akurat dalam hitungan detik.'
+        name: 'QuickStore',
+        note: 'Kasir instan dengan suara.',
+        steps: [
+          {
+            icon: Mic,
+            title: 'Pelanggan tunjukkan barang',
+            body: 'Datang, tunjukkan barangnya, dan transaksi langsung dimulai tanpa mengetik.'
+          },
+          {
+            icon: Receipt,
+            title: 'Sebutkan pesanannya',
+            body: 'Satu kalimat — “lima cokelat, empat sirup, satu buku” — langsung jadi struk.'
+          },
+          {
+            icon: Wallet,
+            title: 'Bayar di luar aplikasi',
+            body: 'Tunai, transfer, atau QRIS. Tidak ada uang yang lewat CrossCart.'
+          }
+        ]
       },
       {
-        icon: QrCode,
-        title: 'Bawa pesanan dari meja ke dapur',
-        body: 'Payload QR sederhana menyatukan tamu, kasir, dan koki.'
-      },
-      {
-        icon: BarChart3,
-        title: 'Tahu apa yang perlu ditangani',
-        body: 'Inventaris, pendapatan, dan ekspor yang memudahkan keputusan.'
+        name: 'Modern POS',
+        note: 'Pesanan QR dari meja sampai dapur.',
+        steps: [
+          {
+            icon: QrCode,
+            title: 'Pelanggan pindai lalu pesan',
+            body: 'Satu kode QR membuka menu dan membuat pesanan dari ponsel pelanggan.'
+          },
+          {
+            icon: ScanLine,
+            title: 'Kasir verifikasi kode',
+            body: 'Kode pesanan diperiksa di kasir, pembayarannya tetap di luar aplikasi.'
+          },
+          {
+            icon: ChefHat,
+            title: 'Dapur langsung terima pesanan',
+            body: 'Pelanggan bisa duduk tenang, pesanan masuk ke dapur secara real time.'
+          }
+        ]
       }
     ],
     activity: [
@@ -251,8 +320,9 @@ export default function Home() {
           </div>
 
           <button
+            type="button"
             onClick={toggleTheme}
-            className="text-muted-foreground hover:text-foreground"
+            className="cursor-pointer text-muted-foreground hover:text-foreground"
             aria-label="Toggle color theme"
           >
             {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
@@ -315,7 +385,11 @@ export default function Home() {
             {t.nav[2]}
           </a>
           <div className="flex items-center justify-between text-muted-foreground">
-            <button type="button" onClick={toggleLanguage} className="flex items-center gap-2 text-left">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="flex cursor-pointer items-center gap-2 text-left"
+            >
               <Globe2 className="size-4" />
               <span>{t.language}</span>
             </button>
@@ -335,7 +409,8 @@ export default function Home() {
           </div>
 
           <button
-            className="flex items-center gap-2 text-left text-muted-foreground"
+            type="button"
+            className="flex cursor-pointer items-center gap-2 text-left text-muted-foreground"
             onClick={toggleTheme}
           >
             {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
@@ -355,7 +430,7 @@ export default function Home() {
                   setOpen(false)
                   signOut()
                 }}
-                className="shrink-0 text-destructive cursor-pointer"
+                className="shrink-0 text-destructive cursor-pointer font-bold"
               >
                 {t.signOut}
               </button>
@@ -394,7 +469,9 @@ export default function Home() {
               {t.headline}
             </h1>
             <p className="mt-7 max-w-sm text-sm leading-6 text-muted-foreground">
-              {t.body}
+              {t.body[0]}
+              <strong className="font-semibold text-foreground">{t.body[1]}</strong>
+              {t.body[2]}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
               {session ? (
@@ -571,27 +648,42 @@ export default function Home() {
           </div>
         </Reveal>
 
-        <div className="grid border-y border-border md:grid-cols-3">
-          {t.features.map((feature, i) => (
-            <Reveal key={feature.title} delay={i * 0.08}>
-              <article className="group border-b border-border p-6 md:border-b-0 md:border-r md:p-8 md:last:border-r-0">
-                <div className="mb-20 flex items-center justify-between">
-                  <span className="grid size-9 place-items-center border border-border text-primary">
-                    <feature.icon className="size-4" />
-                  </span>
-                  <span className="font-mono text-3xs text-muted-foreground">
-                    0{i + 1}
-                  </span>
-                </div>
-                <h3 className="max-w-[190px] text-lg font-medium leading-tight tracking-[-.04em]">
-                  {feature.title}
+        <div className="space-y-14">
+          {t.systems.map((system, s) => (
+            <div key={system.name}>
+              <div className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border pt-5">
+                <h3 className="text-lg font-medium tracking-[-.04em]">
+                  {system.name}
                 </h3>
-                <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                  {feature.body}
+                <p className="text-xs text-muted-foreground">
+                  {system.note}
                 </p>
-                <ArrowUpRight className="mt-8 size-4 text-primary transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-              </article>
-            </Reveal>
+              </div>
+
+              <div className="grid border-y border-border md:grid-cols-3">
+                {system.steps.map((step, i) => (
+                  <Reveal key={step.title} delay={i * 0.08}>
+                    <article className="group h-full border-b border-border p-6 md:border-b-0 md:border-r md:p-8 md:last:border-r-0">
+                      <div className="mb-20 flex items-center justify-between">
+                        <span className="grid size-9 place-items-center border border-border text-primary">
+                          <step.icon className="size-4" />
+                        </span>
+                        <span className="font-mono text-3xs text-muted-foreground">
+                          0{s * 3 + i + 1}
+                        </span>
+                      </div>
+                      <h4 className="max-w-[190px] text-lg font-medium leading-tight tracking-[-.04em]">
+                        {step.title}
+                      </h4>
+                      <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                        {step.body}
+                      </p>
+                      <ArrowUpRight className="mt-8 size-4 text-primary transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+                    </article>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </section>
@@ -624,7 +716,8 @@ export default function Home() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-7 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <span className="font-semibold text-foreground">
-            crosscart<span className="text-primary">.</span>
+            <span className="text-primary">4SRG</span> crosscart
+            <span className="text-primary">.</span>
           </span>
           <span>{t.footer}</span>
           <div className="flex items-center gap-4">
@@ -683,7 +776,9 @@ export default function Home() {
             </div>
 
             <button
+              type="button"
               onClick={toggleTheme}
+              className="cursor-pointer"
               aria-label="Toggle color theme"
             >
               {dark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
