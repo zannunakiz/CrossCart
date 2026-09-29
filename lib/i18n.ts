@@ -497,6 +497,14 @@ const phraseId = {
     'Layanan suara tidak dapat dijangkau. Periksa koneksi Anda.',
   'Listening was stopped.': 'Perekaman dihentikan.',
   'Voice input failed. Please try again.': 'Input suara gagal. Coba lagi.',
+
+  // ── Demo page (/demo) ─────────────────────────────────────────────────────
+  'Demo Store': 'Toko Demo',
+  'Live demo': 'Demo langsung',
+  'Back to home': 'Kembali ke beranda',
+  'Demo only — nothing is saved to a database.':
+    'Hanya demo — tidak ada yang disimpan ke basis data.',
+  'Export this sale': 'Ekspor transaksi ini',
 } as const
 
 export type PhraseKey = keyof typeof phraseId

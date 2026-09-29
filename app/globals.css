@@ -188,6 +188,66 @@
   --text-5xl: 2.75rem;    /* 44px */
 }
 
+/* ── Landing: the /demo call-to-action ──────────────────────────────────────
+ * Three decorative loops that make the demo button the first thing the eye
+ * lands on. Every one of them is applied through Tailwind's `motion-safe:`
+ * variant, so a visitor who asked for less motion gets a perfectly still
+ * button, and they only ever animate `opacity` / `transform` — nothing here
+ * triggers layout or a React re-render. */
+@theme {
+  --animate-demo-breathe: demo-breathe 2.6s ease-in-out infinite;
+  --animate-demo-halo: demo-halo 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  --animate-demo-shimmer: demo-shimmer 3.6s ease-in-out infinite;
+
+  /* Warm aura behind the label: grows and fades like a slow breath. */
+  @keyframes demo-breathe {
+    0%,
+    100% {
+      opacity: 0.15;
+      transform: scale(0.99);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.03);
+    }
+  }
+
+  /* Sonar ring: one outward sweep, then it holds invisible before repeating. */
+  @keyframes demo-halo {
+    0% {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+    60% {
+      opacity: 0;
+      transform: scale(1.07);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.07);
+    }
+  }
+
+  /* Light sweep across the button — the "there is more here" cue. */
+  @keyframes demo-shimmer {
+    0% {
+      opacity: 0;
+      transform: translateX(-150%);
+    }
+    10% {
+      opacity: 1;
+    }
+    55% {
+      opacity: 0;
+      transform: translateX(400%);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(400%);
+    }
+  }
+}
+
 /* ── Tablet / mobile type scale ─────────────────────────────────────────────
  * Desktop (lg and up, >= 1024px) keeps the scale above untouched. Below that
  * every step sits ~5% lower (~0.5–2px per step) so the dense POS / Quick Store

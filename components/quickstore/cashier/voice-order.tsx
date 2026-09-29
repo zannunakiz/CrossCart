@@ -5,6 +5,7 @@ import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucid
 import { useCallback, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import type { ActionResult } from "@/lib/actions/result"
 import { interpretVoiceOrder } from "@/lib/actions/voice-actions"
 import {
   Select,
@@ -35,7 +36,21 @@ interface Props {
   /** Called with the reviewed lines once the cashier confirms. */
   onAdd: (lines: readonly { item: CashierItem; quantity: number }[]) => void
   disabled?: boolean
+  /**
+   * How a transcript becomes order lines. Left out, the panel uses the
+   * OpenRouter Server Action exactly as the cashier does; the demo page passes a
+   * local mock so the same UI works with no account, no database and no network.
+   */
+  interpretOrder?: VoiceInterpreter
 }
+
+/** Transcript → validated order lines (the seam the demo page swaps in). */
+export type VoiceInterpreter = (
+  storeId: string,
+  transcript: string,
+  language: VoiceLanguage
+) => Promise<ActionResult<VoiceOrderResult>>
+
 
 type Phase = "idle" | "listening" | "stopping" | "parsing" | "review"
 
@@ -60,7 +75,13 @@ const SPEECH_ERROR_PHRASE: Record<SpeechErrorCode, TranslationKey> = {
  * over the picked product. Controls are disabled while the microphone or a
  * request is in flight, so a line can never be added twice.
  */
-export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
+export function VoiceOrder({
+  storeId,
+  items,
+  onAdd,
+  disabled = false,
+  interpretOrder = interpretVoiceOrder,
+}: Props) {
   const { lang, t } = useTranslation()
 
   // Independent from the UI language: the cashier explicitly picks the spoken
@@ -104,7 +125,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
 
       setPhase("parsing")
       try {
-        const res = await interpretVoiceOrder(storeId, spoken, language)
+        const res = await interpretOrder(storeId, spoken, language)
 
         if (!res.ok) {
           setResult(null)
@@ -129,7 +150,7 @@ export function VoiceOrder({ storeId, items, onAdd, disabled = false }: Props) {
         setErrorText(serverText(lang, "Voice interpretation failed, please try again"))
       }
     },
-    [lang, language, storeId, t]
+    [interpretOrder, lang, language, storeId, t]
   )
 
   // ── Microphone ─────────────────────────────────────────────────────────────
