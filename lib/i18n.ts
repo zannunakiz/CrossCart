@@ -97,7 +97,7 @@ const id: Record<keyof typeof en, string> = {
   'dash.title': 'Dasbor',
   'dash.subtitle': 'Semua yang toko mikro Anda butuhkan — item, penjualan, dan tim.',
   'dash.app.quickstore.title': 'Quick Store',
-  'dash.app.quickstore.subtitle': 'Kelola toko online mikro & stok Anda',
+  'dash.app.quickstore.subtitle': 'Kelola toko mikro & stok Anda',
   'dash.app.pos.title': 'Modern POS',
   'dash.app.pos.subtitle': 'Kasir & display dapur kelas restoran — segera hadir',
   'dash.badge.comingSoon': 'Segera hadir',
@@ -376,6 +376,22 @@ const phraseId = {
   'Adjust the search, status or date range.':
     'Sesuaikan pencarian, status, atau rentang tanggalnya.',
   Status: 'Status',
+
+  // ── History: CSV export ───────────────────────────────────────────────────
+  'Export CSV': 'Ekspor CSV',
+  'Exporting…': 'Mengekspor…',
+  Date: 'Tanggal',
+  Item: 'Item',
+  Quantity: 'Jumlah',
+  'Unit price': 'Harga satuan',
+  'Line total': 'Total baris',
+  'Receipts exported': 'Struk berhasil diekspor',
+  'Receipt exported': 'Struk berhasil diekspor',
+  'No receipts to export': 'Tidak ada struk untuk diekspor',
+  'Failed to export receipts': 'Gagal mengekspor struk',
+  'Export PNG': 'Ekspor PNG',
+  'Receipt image exported': 'Gambar struk berhasil diunduh',
+  'Failed to export the receipt image': 'Gagal membuat gambar struk',
 
   // ── Cashier: product search ───────────────────────────────────────────────
   'Search products': 'Cari produk',

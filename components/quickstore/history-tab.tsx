@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Download,
+  ImageDown,
   Loader2,
   Receipt as ReceiptIcon,
   Search,
@@ -24,6 +26,7 @@ import {
   type ChartSlice,
 } from "@/components/quickstore/history-charts"
 import { usePageSync } from "@/components/quickstore/use-page-sync"
+import { useQuickStoreHeader } from "@/components/quickstore/store-header-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,9 +39,13 @@ import {
 } from "@/components/ui/select"
 import { serverText, useTranslation } from "@/lib/i18n"
 import { formatCents, toCents, type Receipt } from "@/lib/quickstore/cashier"
+import { downloadCsv } from "@/lib/quickstore/csv"
+import { downloadReceiptImage, renderReceiptImage } from "@/lib/quickstore/receipt-image"
 import {
+  HISTORY_MAX_PAGE_SIZE,
   HISTORY_PAGE_SIZES,
   HISTORY_PRESETS,
+  dayKey,
   dayLabel,
   historyApiParams,
   withHistoryUrlParams,
@@ -99,6 +106,8 @@ export function HistoryTab({ storeId }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  // The store page publishes the name, which the exported receipt sheet prints.
+  const { header } = useQuickStoreHeader()
 
   // The URL owns the dashboard state (range, filters, page), so a view is
   // shareable and the back button walks through it — same contract as Items.
@@ -114,6 +123,11 @@ export function HistoryTab({ storeId }: Props) {
   const [reloadToken, setReloadToken] = useState(0)
   const [searchInput, setSearchInput] = useState(query.q)
   const [expanded, setExpanded] = useState<string | null>(null)
+  // Export runs are tracked separately: one is the duration window, the other the
+  // single receipt whose detail is open, so each button only dims itself.
+  const [exportingRange, setExportingRange] = useState(false)
+  const [exportingReceipt, setExportingReceipt] = useState<string | null>(null)
+  const [exportingImage, setExportingImage] = useState<string | null>(null)
 
   const shouldReduceMotion = useReducedMotion()
 
@@ -239,6 +253,146 @@ export function HistoryTab({ storeId }: Props) {
     return () => clearTimeout(id)
   }, [searchInput, query.q, updateQuery])
 
+  // ── CSV export ─────────────────────────────────────────────────────────────
+  /*
+   * A duration option exports its WHOLE window — not the page on screen — so the
+   * list endpoint is walked page by page (it caps `limit`, hence the loop). The
+   * active filters travel with it, so the sheet always matches the receipts the
+   * operator is looking at.
+   */
+  const fetchRangeReceipts = useCallback(async (): Promise<Receipt[]> => {
+    const params = new URLSearchParams(
+      historyApiParams(parseHistoryQuery(new URLSearchParams(queryString)))
+    )
+    params.set("limit", String(HISTORY_MAX_PAGE_SIZE))
+    params.set("tzOffset", String(tzOffsetMinutes()))
+
+    const sales: Receipt[] = []
+    for (let pageNumber = 1; ; pageNumber += 1) {
+      params.set("page", String(pageNumber))
+      const res = await fetch(`/api/quickstore/stores/${storeId}/history?${params}`)
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(payload.error ?? "Failed to load history")
+      }
+      const data = (await res.json()) as HistoryPage
+      sales.push(...data.sales)
+      if (data.sales.length === 0 || pageNumber >= data.totalPages) break
+    }
+    return sales
+  }, [queryString, storeId])
+
+  /** One row per receipt; money columns stay raw numbers so Excel can sum them. */
+  const exportRange = useCallback(async () => {
+    setExportingRange(true)
+    try {
+      const salesToExport = await fetchRangeReceipts()
+      if (salesToExport.length === 0) {
+        toast.error(t("No receipts to export"))
+        return
+      }
+
+      downloadCsv(`quickstore-receipts-${query.from || "all"}-to-${query.to}.csv`, [
+        [
+          t("Receipt"),
+          t("Date"),
+          t("Cashier"),
+          t("Status"),
+          t("Items"),
+          t("Subtotal"),
+          t("Discounts"),
+          t("Total"),
+        ],
+        ...salesToExport.map((sale) => [
+          sale.receiptNumber,
+          csvStamp(sale.paidAt),
+          sale.cashierName ?? "",
+          sale.status,
+          sale.itemCount,
+          sale.subtotal,
+          sale.discountTotal,
+          sale.total,
+        ]),
+      ])
+      toast.success(t("Receipts exported"))
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? serverText(lang, err.message) : t("Failed to export receipts")
+      )
+    } finally {
+      setExportingRange(false)
+    }
+  }, [fetchRangeReceipts, lang, query.from, query.to, t])
+
+  /** The open receipt only: header, its lines, then the footer totals. */
+  const exportReceipt = useCallback(
+    async (sale: Receipt) => {
+      setExportingReceipt(sale.id)
+      try {
+        downloadCsv(`receipt-${receiptFileName(sale.receiptNumber)}.csv`, [
+          [t("Receipt"), sale.receiptNumber],
+          [t("Date"), csvStamp(sale.paidAt)],
+          [t("Cashier"), sale.cashierName ?? ""],
+          [t("Status"), sale.status],
+          [],
+          [t("Item"), t("Quantity"), t("Unit price"), t("Discount %"), t("Line total")],
+          ...sale.lines.map((line) => [
+            line.name,
+            line.quantity,
+            line.unitPricePaid,
+            line.discountPercent,
+            line.lineTotal,
+          ]),
+          [],
+          [t("Subtotal"), sale.subtotal],
+          [t("Discounts"), sale.discountTotal],
+          [t("Total"), sale.total],
+        ])
+        toast.success(t("Receipt exported"))
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? serverText(lang, err.message) : t("Failed to export receipts")
+        )
+      } finally {
+        setExportingReceipt(null)
+      }
+    },
+    [lang, t]
+  )
+
+  /** The same receipt as a PNG sheet, with the store name on top. */
+  const exportReceiptImage = useCallback(
+    async (sale: Receipt) => {
+      setExportingImage(sale.id)
+      try {
+        const blob = await renderReceiptImage(sale, {
+          // The context is populated by the store page; `Receipt` is only a
+          // fallback so the sheet never starts with an empty line.
+          storeName: header?.name || t("Receipt"),
+          locale: lang === "ID" ? "id-ID" : undefined,
+          labels: {
+            subtotal: t("Subtotal"),
+            discounts: t("Discounts"),
+            total: t("Total"),
+            itemsSold: t("Items sold"),
+            voided: t("Voided"),
+          },
+        })
+        downloadReceiptImage(`${receiptFileName(sale.receiptNumber)}.png`, blob)
+        toast.success(t("Receipt image exported"))
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? serverText(lang, err.message)
+            : t("Failed to export the receipt image")
+        )
+      } finally {
+        setExportingImage(null)
+      }
+    },
+    [header?.name, lang, t]
+  )
+
   if (loading) {
     return (
       <motion.div
@@ -310,7 +464,9 @@ export function HistoryTab({ storeId }: Props) {
       {/*
        * Range picker — mobile first: the presets scroll sideways on a phone
        * (instead of wrapping into three rows) and the custom dates sit right
-       * below them, full width, which is what a thumb needs.
+       * below them, full width, which is what a thumb needs. The CSV export sits
+       * opposite the presets (justified between) from `sm` up, and drops below
+       * them at full width on a phone.
        */}
       <motion.div
         variants={rise(reveal(0))}
@@ -318,26 +474,46 @@ export function HistoryTab({ storeId }: Props) {
         animate="show"
         className="space-y-3"
       >
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-wrap sm:px-0">
-          {HISTORY_PRESETS.map((preset) => {
-            const active = query.preset === preset
-            return (
-              <button
-                key={preset}
-                type="button"
-                id={`history-range-${preset}`}
-                aria-pressed={active}
-                onClick={() => updateQuery({ preset, page: 1 })}
-                className={`shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  active
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {t(PRESET_LABELS[preset])}
-              </button>
-            )
-          })}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="-mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 scrollbar-none sm:mx-0 sm:flex-1 sm:flex-wrap sm:px-0">
+            {HISTORY_PRESETS.map((preset) => {
+              const active = query.preset === preset
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  id={`history-range-${preset}`}
+                  aria-pressed={active}
+                  onClick={() => updateQuery({ preset, page: 1 })}
+                  className={`shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {t(PRESET_LABELS[preset])}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Exports the whole selected duration — and the active filters. */}
+          <Button
+            id="history-export-range"
+            type="button"
+            size="sm"
+            className="w-full shrink-0 gap-1.5 sm:w-auto"
+            aria-busy={exportingRange}
+            disabled={exportingRange}
+            onClick={exportRange}
+          >
+            {exportingRange ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Download className="size-3.5" />
+            )}
+            {exportingRange ? t("Exporting…") : t("Export CSV")}
+          </Button>
         </div>
 
         {query.preset === "custom" ? (
@@ -647,6 +823,44 @@ export function HistoryTab({ storeId }: Props) {
                             {t("Total")} {formatCents(toCents(sale.total))}
                           </span>
                         </div>
+
+                        {/* This receipt on its own — the sheet and the picture, side by side. */}
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <Button
+                            id={`history-export-${sale.receiptNumber}`}
+                            type="button"
+                            size="sm"
+                            className="w-full gap-1.5"
+                            aria-busy={exportingReceipt === sale.id}
+                            disabled={exportingReceipt !== null || exportingImage !== null}
+                            onClick={() => exportReceipt(sale)}
+                          >
+                            {exportingReceipt === sale.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <Download className="size-3.5" />
+                            )}
+                            {exportingReceipt === sale.id ? t("Exporting…") : t("Export CSV")}
+                          </Button>
+
+                          <Button
+                            id={`history-export-image-${sale.receiptNumber}`}
+                            type="button"
+                            size="sm"
+                            /* Green marks the picture: the CSV keeps the primary colour. */
+                            className="w-full gap-1.5 bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:text-white dark:hover:bg-green-700"
+                            aria-busy={exportingImage === sale.id}
+                            disabled={exportingReceipt !== null || exportingImage !== null}
+                            onClick={() => exportReceiptImage(sale)}
+                          >
+                            {exportingImage === sale.id ? (
+                              <Loader2 className="size-3.5 animate-spin" />
+                            ) : (
+                              <ImageDown className="size-3.5" />
+                            )}
+                            {exportingImage === sale.id ? t("Exporting…") : t("Export PNG")}
+                          </Button>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -738,6 +952,25 @@ function dateTime(value: string, lang: string) {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+/**
+ * `YYYY-MM-DD HH:mm` in the operator's calendar for the CSV.
+ *
+ * Unlike `dateTime` it is not localised on purpose: the exported sheet sorts and
+ * filters by this column in Excel, which needs one unambiguous format.
+ */
+function csvStamp(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const pad = (part: number) => String(part).padStart(2, "0")
+  return `${dayKey(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/** Filename-safe receipt number — "/" or a space would break the download name. */
+function receiptFileName(receiptNumber: string): string {
+  const cleaned = receiptNumber.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "")
+  return cleaned || "receipt"
 }
 
 /**
