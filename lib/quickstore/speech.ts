@@ -10,6 +10,11 @@
  * the FINAL transcript once the engine has flushed its last results, which is
  * then sent to our OpenRouter endpoint for interpretation.
  *
+ * The transcript is rebuilt from the whole `results` snapshot on every event
+ * (never appended) and passed through `collapseRepeats`, because several engines
+ * — Chrome on Android above all — re-deliver a result they already sent, which
+ * used to arrive as "satu tahu satu tahu" for one spoken "satu tahu".
+ *
  * CLIENT ONLY — import from client components (it touches `window`).
  */
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -120,6 +125,59 @@ function mapSpeechError(error: string): SpeechErrorCode {
 }
 
 /**
+ * Collapses an immediately repeated word sequence, because several engines
+ * (notably Chrome on Android) deliver one utterance twice — once as an interim
+ * result and once as a final one, or as two identical final results:
+ *
+ *   "satu tahu satu tahu"             → "satu tahu"
+ *   "dua tahu dua tahu dua tahu"      → "dua tahu"
+ *   "one potato one potato"           → "one potato"
+ *
+ * Pure and exported so it can be unit-tested without a browser.
+ */
+export function collapseRepeats(text: string, maxWords = 8): string {
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length < 2) return words.join(" ")
+
+  let changed = true
+  while (changed && words.length > 1) {
+    changed = false
+
+    for (let size = Math.min(maxWords, Math.floor(words.length / 2)); size >= 1; size -= 1) {
+      for (let start = 0; start + size * 2 <= words.length; start += 1) {
+        const first = words.slice(start, start + size).join(" ").toLowerCase()
+        const second = words.slice(start + size, start + size * 2).join(" ").toLowerCase()
+        if (first !== second) continue
+
+        words.splice(start + size, size)
+        changed = true
+        break
+      }
+      if (changed) break
+    }
+  }
+
+  return words.join(" ")
+}
+
+/**
+ * The part of an interim transcript that is genuinely new. On some devices the
+ * engine repeats the finalized words inside the interim result, which made the
+ * panel read "satu tahu satu tahu" (and sent the duplicate to the interpreter).
+ */
+export function interimTail(interim: string, final: string): string {
+  if (interim === "") return ""
+  if (final === "") return interim
+
+  const heard = interim.toLowerCase()
+  const settled = final.toLowerCase()
+  if (heard === settled) return ""
+  if (heard.startsWith(settled)) return interim.slice(final.length).trim()
+
+  return interim
+}
+
+/**
  * @param locale BCP-47 locale of the recognition engine, e.g. "id-ID".
  */
 export function useSpeechRecognition(locale: string): SpeechRecognitionState {
@@ -139,6 +197,10 @@ export function useSpeechRecognition(locale: string): SpeechRecognitionState {
   // Feature detection runs after mount so the server and the first client
   // render stay identical (no hydration mismatch on `supported`).
   useEffect(() => {
+    // A remount (React Strict Mode in dev, Fast Refresh) runs the cleanup of the
+    // previous mount first, which sets the flag below — reset it here, or the
+    // guard would silence every later state update for the rest of the session.
+    unmountedRef.current = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSupported(getRecognitionCtor() !== null)
     return () => {
@@ -178,19 +240,35 @@ export function useSpeechRecognition(locale: string): SpeechRecognitionState {
     recognition.maxAlternatives = 1
 
     recognition.onresult = (event) => {
+      // Rebuild from the WHOLE results snapshot instead of appending to the last
+      // one. Mobile Chrome re-delivers finalized results (resultIndex back to 0,
+      // or the same final twice), so appending turned a single "satu tahu" into
+      // "satu tahu satu tahu". A rebuild is idempotent: replaying an event can
+      // never duplicate text.
+      let final = ""
       let pending = ""
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+
+      for (let index = 0; index < event.results.length; index += 1) {
         const result = event.results[index]
         const alternative = result?.[0]
         if (!alternative) continue
-        if (result.isFinal) {
-          finalRef.current = `${finalRef.current} ${alternative.transcript}`.trim()
-        } else {
-          pending = `${pending} ${alternative.transcript}`.trim()
-        }
+
+        const text = alternative.transcript.trim()
+        if (text === "") continue
+
+        if (result.isFinal) final = `${final} ${text}`.trim()
+        else pending = `${pending} ${text}`.trim()
       }
-      setTranscript(finalRef.current)
-      setInterim(pending)
+
+      const spoken = collapseRepeats(final)
+      finalRef.current = spoken
+
+      // Always push what was heard to the UI: the cashier must see their own
+      // words, and a state update after unmount is a harmless no-op in React.
+      setTranscript(spoken)
+      // The engine repeats the settled words inside the interim result on some
+      // devices — never show (or interpret) them twice.
+      setInterim(interimTail(pending, spoken))
     }
 
     recognition.onerror = (event) => {
