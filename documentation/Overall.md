@@ -754,6 +754,7 @@ for removal in a cleanup pass.
 | `Cloudinary.png` | Cloudinary asset pipeline | README — Integrations → Assets |
 | `Jest.png` | Test suite | README — Integrations → Confidence |
 | `Sentry.png` | Sentry monitoring | README — Integrations → Observability |
+| `LiveOverview.png` | The deployed application | README — Live |
 
 <p align="center">
   <sub>Back to <a href="../README.md">README</a> · deep dive in <a href="./Engineering.md">Engineering.md</a></sub>
