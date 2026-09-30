@@ -522,6 +522,10 @@ Released under the **MIT License** — see [`LICENSE`](./LICENSE).
 
 ## 🌐 Live
 
+<p align="center">
+  <img src="./documentation/LiveOverview.png" alt="CrossCart — live overview" width="900" />
+</p>
+
 CrossCart is **deployed and running** on Vercel — no local setup required:
 
 <p align="center">
