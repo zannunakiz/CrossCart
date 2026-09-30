@@ -5,8 +5,6 @@ import { ChevronDown, Loader2, Mic, Plus, Square, TriangleAlert, X } from "lucid
 import { useCallback, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import type { ActionResult } from "@/lib/actions/result"
-import { interpretVoiceOrder } from "@/lib/actions/voice-actions"
 import {
   Select,
   SelectContent,
@@ -14,6 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { ActionResult } from "@/lib/actions/result"
+import { interpretVoiceOrder } from "@/lib/actions/voice-actions"
 import { availabilityMessage, serverText, useTranslation, type TranslationKey } from "@/lib/i18n"
 import {
   MAX_QTY_PER_LINE,
@@ -239,8 +239,8 @@ export function VoiceOrder({
           </span>
           <span className="mt-0.5 block truncate text-2xs text-muted-foreground">
             {listening
-              ? speech.transcript || t("Listening…")
-              : t('Say e.g. "three pencils, four pens".')}
+              ? speech.transcript || speech.interim || t("Listening…")
+              : t('Say e.g. "one potato, three books".')}
           </span>
         </span>
 
@@ -314,7 +314,7 @@ export function VoiceOrder({
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {t('Say e.g. "three pencils, four pens".')}
+                {t('Say e.g. "one potato, three books".')}
               </p>
             )}
           </div>

@@ -28,6 +28,8 @@ import {
 } from "@/lib/quickstore/cashier"
 import {
   mapVoiceOrderResult,
+  readSpokenQuantity,
+  stripSpokenQuantity,
   type VoiceCatalogItem,
   type VoiceLanguage,
   type VoiceOrderResult,
@@ -163,34 +165,12 @@ export const DEMO_ITEMS: readonly DemoItem[] = [
 // Voice order — a local, deterministic interpreter
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Spoken quantities the demo understands, in both languages. */
-const QUANTITY_WORDS: Record<string, number> = {
-  a: 1,
-  an: 1,
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-  satu: 1,
-  dua: 2,
-  tiga: 3,
-  empat: 4,
-  lima: 5,
-  enam: 6,
-  tujuh: 7,
-  delapan: 8,
-  sembilan: 9,
-  sepuluh: 10,
-}
-
-/** What separates two products inside one spoken sentence. */
-const ORDER_SEPARATOR = /,|;|\+|(?:\bdan\b)|(?:\band\b)|\n/i
+/**
+ * What can separate two products inside one spoken sentence. The demo keeps this
+ * list (the real interpreter reads the whole sentence instead), so a typical
+ * "beli 2 sate dan satu soto" still splits the way a cashier would expect.
+ */
+const ORDER_SEPARATOR = /,|;|\+|(?:\bdan\b)|(?:\band\b)|(?:\bsama\b)|(?:\bdengan\b)|\n/i
 
 interface SpokenFragment {
   /** The words that produced this fragment (shown back to the cashier). */
@@ -201,10 +181,11 @@ interface SpokenFragment {
 }
 
 /**
- * Reads one spoken sentence: `"tiga pensil, empat pena"` becomes two fragments.
- * The quantity may be a digit (`3`), a word in either language (`tiga`,
- * `three`) or a trailing `x3`; everything else is the product name. Whether that
- * name exists is *not* decided here — `mapVoiceOrderResult` owns the lookup.
+ * Reads one spoken sentence: `"beli 2 sate dan satu soto"` becomes two fragments,
+ * each with its own quantity — the number may sit anywhere around the name (digit,
+ * `tiga`, `three` or a trailing `x3`), and command words (`beli`, `saya`, …) never
+ * become part of the name. Whether that name exists is *not* decided here —
+ * `mapVoiceOrderResult` owns the lookup (and its last-chance matching).
  */
 export function parseDemoSpokenOrder(transcript: string): SpokenFragment[] {
   return transcript
@@ -212,32 +193,12 @@ export function parseDemoSpokenOrder(transcript: string): SpokenFragment[] {
     .map((part) => part.trim())
     .filter((part) => part !== "")
     .map((part) => {
-      const tokens = part.split(/\s+/)
-      let quantity = 1
-      let nameTokens = tokens
-
-      const first = tokens[0]?.toLowerCase() ?? ""
-      const leadingDigits = Number.parseInt(first, 10)
-      const wordQuantity = QUANTITY_WORDS[first]
-      if (Number.isInteger(leadingDigits) && leadingDigits > 0) {
-        quantity = leadingDigits
-        nameTokens = tokens.slice(1)
-      } else if (Number.isInteger(wordQuantity)) {
-        quantity = wordQuantity
-        nameTokens = tokens.slice(1)
-      }
-
-      // "Pensil x3" — the multiplier may also trail the name.
-      const trailing = nameTokens[nameTokens.length - 1]?.toLowerCase().match(/^x(\d+)$/)
-      if (trailing) {
-        quantity = Number.parseInt(trailing[1], 10)
-        nameTokens = nameTokens.slice(0, -1)
-      }
+      const name = stripSpokenQuantity(part)
 
       return {
         heard: part,
-        name: nameTokens.join(" ").trim() || part,
-        quantity: Math.min(Math.max(quantity, 1), MAX_QTY_PER_LINE),
+        name: name || part,
+        quantity: Math.min(Math.max(readSpokenQuantity(part, 1), 1), MAX_QTY_PER_LINE),
       }
     })
 }

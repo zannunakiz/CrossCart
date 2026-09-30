@@ -477,8 +477,8 @@ const phraseId = {
   'Stop and interpret': 'Hentikan & proses',
   'Listening…': 'Mendengarkan…',
   'Interpreting the order…': 'Memproses pesanan…',
-  'Say e.g. "three pencils, four pens".':
-    'Sebutkan mis. "tiga pensil, empat pena".',
+  'Say e.g. "one potato, three books".':
+    'Sebutkan mis. "satu kentang, tiga buku".',
   'Tap to speak': 'tekan untuk bicara',
   Discard: 'Buang',
   'Press the mic to interpret it.': 'Tekan mikrofon untuk memprosesnya.',
