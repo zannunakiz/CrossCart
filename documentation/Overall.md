@@ -743,15 +743,17 @@ for removal in a cleanup pass.
 | [`Overall.md`](./Overall.md) | This document: full stack, architecture, feature catalogue, data model, RBAC, tests, CI/CD, conventions |
 | [`Engineering.md`](./Engineering.md) | Deep dive: flow system, permission matrix, checkout engine, voice pipeline, analytics, demo, trade-offs |
 
-### Architecture images
+### Diagrams and screenshots
 
-| Image | Subject |
-|---|---|
-| `NeonDbArchitecture.png` | Neon Postgres architecture |
-| `NextAuth.png` | Authentication setup |
-| `Openrouter.png` | OpenRouter model routing |
-| `Cloudinary.png` | Cloudinary asset pipeline |
-| `Sentry.png` | Sentry monitoring |
+| Image | Subject | Shown in |
+|---|---|---|
+| `SystemDesign.png` | End-to-end system design | README — System Design |
+| `NeonDbArchitecture.png` | Neon Postgres architecture | README — Integrations → Data |
+| `NextAuth.png` | Authentication setup | README — Integrations → Identity |
+| `Openrouter.png` | OpenRouter model routing | README — Integrations → Intelligence |
+| `Cloudinary.png` | Cloudinary asset pipeline | README — Integrations → Assets |
+| `Jest.png` | Test suite | README — Integrations → Confidence |
+| `Sentry.png` | Sentry monitoring | README — Integrations → Observability |
 
 <p align="center">
   <sub>Back to <a href="../README.md">README</a> · deep dive in <a href="./Engineering.md">Engineering.md</a></sub>
