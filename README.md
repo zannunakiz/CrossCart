@@ -71,6 +71,7 @@
 | 🧪 | [Tests &amp; CI](#-tests--ci) |
 | 🤝 | [Contributing](#-contributing) |
 | 📄 | [License](#-license) |
+| 🌐 | [Live](#-live) |
 
 ---
 
@@ -92,10 +93,6 @@ Three surfaces ship today:
 | **QuickStore** | `/quickstore` → `/quickstore/[storeId]` | The product — stores, catalog, cashier, analytics, membership |
 | **Demo Cashier** | `/demo` | The real cashier UI against a mocked catalog: no account, no DB, full flow |
 | **Modern POS** | `/pos` | Parked roadmap surface (restaurant-grade register + KDS) — a deliberate placeholder |
-
-<p align="center">
-  <img src="./public/CrossCart.png" alt="CrossCart console" width="860" />
-</p>
 
 ---
 
@@ -520,6 +517,34 @@ Issues and pull requests are welcome. The house rules are simple and visible in 
 ## 📄 License
 
 Released under the **MIT License** — see [`LICENSE`](./LICENSE).
+
+---
+
+## 🌐 Live
+
+CrossCart is **deployed and running** on Vercel — no local setup required:
+
+<p align="center">
+  <br/>
+  <a href="https://cross-cart-roan.vercel.app">
+    <img alt="Live" src="https://img.shields.io/badge/Live-cross--cart--roan.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
+  </a>
+  <br/><br/>
+  <a href="https://cross-cart-roan.vercel.app"><b>cross-cart-roan.vercel.app</b></a>
+</p>
+
+| Entry point | Link | What it opens |
+|---|---|---|
+| 🌐 **App** | [cross-cart-roan.vercel.app](https://cross-cart-roan.vercel.app) | Landing page → Google sign-in → stores, catalog, cashier and analytics |
+| 🎬 **Demo** | [cross-cart-roan.vercel.app/demo](https://cross-cart-roan.vercel.app/demo) | The full cashier — **no login, no database** — mocked catalog, product search, voice ordering, receipt and CSV/PNG export |
+
+<p align="center">
+  <br/>
+  <a href="https://cross-cart-roan.vercel.app/demo"><b>▶ Try the demo — no account needed</b></a>
+</p>
+
+> The demo runs the **real** cashier components (`ProductSearch`, `VoiceOrder`, `SaleCart`, `ReceiptPanel`) against an
+> in-memory catalog, so the flows, the voice pipeline and the receipt you see are the production ones.
 
 <p align="center">
   <br/>
