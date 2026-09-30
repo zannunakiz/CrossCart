@@ -61,12 +61,12 @@
 |---|---|
 | 🏗️ | [System Design](#-system-design) |
 | 🧭 | [About](#-about) |
+| 🚀 | [Get Started](#-get-started) |
 | 🔌 | [Integrations](#-integrations) |
 | ✨ | [Features](#-features) |
 | 🧱 | [Tech Stack](#-tech-stack) |
 | 🛠️ | [Engineering Highlights](#-engineering-highlights) |
 | 🗂️ | [Project Structure](#-project-structure) |
-| 🚀 | [Getting Started](#-getting-started) |
 | 📜 | [Scripts](#-scripts) |
 | 🧪 | [Tests &amp; CI](#-tests--ci) |
 | 🤝 | [Contributing](#-contributing) |
@@ -93,6 +93,104 @@ Three surfaces ship today:
 | **QuickStore** | `/quickstore` → `/quickstore/[storeId]` | The product — stores, catalog, cashier, analytics, membership |
 | **Demo Cashier** | `/demo` | The real cashier UI against a mocked catalog: no account, no DB, full flow |
 | **Modern POS** | `/pos` | Parked roadmap surface (restaurant-grade register + KDS) — a deliberate placeholder |
+
+---
+
+## 🚀 Get Started
+
+**Requirements:** Node.js **22+** (the version CI pins), npm, a Postgres database (**Neon** recommended),
+and accounts for **Google OAuth**, **Cloudinary** and **OpenRouter** — plus **Sentry** if you want error
+reporting locally. Nothing else is required: there is no exotic runtime, no Docker and no code generation step.
+
+### 1 — Clone the repository
+
+```bash
+git clone https://github.com/zannunakiz/CrossCart.git
+cd CrossCart
+```
+
+### 2 — Install dependencies
+
+```bash
+npm install            # installs everything, including drizzle-kit and Jest
+```
+
+### 3 — Configure the environment
+
+Everything the app reads lives in `.env.local` (used by `next dev`, `drizzle-kit` and `scripts/db-clear.mjs`):
+
+```bash
+cp .env.example .env.local     # macOS / Linux
+copy .env.example .env.local   # Windows (cmd / PowerShell)
+```
+
+Every key is documented inline in the example file. The ones you cannot start without:
+
+| Variable | Why it is needed |
+|---|---|
+| `DATABASE_URI` | Neon connection string — Drizzle, `db:migrate` and the runtime `pg.Pool` all read it |
+| `NEXTAUTH_SECRET` · `NEXTAUTH_URL` | NextAuth session signing and the callback base URL (`http://localhost:3000`) |
+| `GOOGLE_CLIENT_ID` · `GOOGLE_CLIENT_SECRET` | Google sign-in from the landing page |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` · `CLOUDINARY_API_KEY` · `CLOUDINARY_API_SECRET` | Store payment-QR uploads (signed, server-side only) |
+| `OPEN_ROUTER_KEY` | Voice ordering — `OPEN_ROUTER_MODEL` is optional and defaults to `openrouter/free` |
+| `SENTRY_AUTH_TOKEN` | Source maps + release upload (optional; only used at build time) |
+
+> Want to see the product without any of it? `/demo` runs the full cashier with a mocked catalog,
+> **no login and no database** — no environment needed.
+
+### 4 — Apply the schema
+
+```bash
+npm run db:migrate     # applies the 14 migrations in drizzle/ to DATABASE_URI
+```
+
+Changed `lib/db/schema.ts`? Generate the next migration first, then apply it:
+
+```bash
+npm run db:generate    # drizzle-kit generate → a new SQL file in drizzle/
+npm run db:migrate     # apply pending migrations
+```
+
+Starting over locally? `npm run db:clear` truncates every table in `public`, then re-run `npm run db:migrate`.
+
+### 5 — Run it locally
+
+```bash
+npm run dev            # → http://localhost:3000
+```
+
+Then walk the three surfaces:
+
+- `/` — the landing page: sign in with Google, switch theme and language.
+- `/quickstore` — create a store, add items, invite a teammate, ring up a sale.
+- `/demo` — the whole cashier experience for guests, with a mocked catalog and zero backend traffic.
+- `/pos` — the parked roadmap surface (a deliberate placeholder).
+
+### 6 — Developer command palette
+
+```bash
+# ── Production ──────────────────────────────────────────────────────────────
+npm run build            # Next.js production build
+npm run start            # serve the build (run after `npm run build`)
+
+# ── Quality gates — the same four jobs CI runs ──────────────────────────────
+npm run lint             # ESLint 9 (flat config, eslint-config-next)
+npm run test:unit        # Jest → tests/unit  (money, cart, stock, checkout, voice, list)
+npm run test:rbac        # Jest → tests/rbac  (permission matrix + guarded Server Actions)
+
+# ── Database — Drizzle Kit, reads .env.local ────────────────────────────────
+npm run db:generate      # generate a migration from schema changes
+npm run db:migrate       # apply pending migrations
+npm run db:clear         # truncate local QuickStore data (scripts/db-clear.mjs)
+```
+
+Run exactly what CI runs, before you push — four parallel jobs, so a red check names what broke:
+
+```bash
+npm run lint && npm run test:unit && npm run test:rbac && npm run build
+```
+
+> The full one-line-per-script reference lives in [📜 Scripts](#-scripts).
 
 ---
 
@@ -438,36 +536,6 @@ CrossCart/
 > The split is deliberate: **`lib/quickstore/*` never imports Next.js or the database**, so the rules of the
 > business (money, stock, permissions, parsing) are unit-testable in isolation, while `lib/actions/*` owns the
 > framework boundary and `lib/db/*` owns SQL.
-
----
-
-## 🚀 Getting Started
-
-**Requirements:** Node.js 22+, a Postgres database (Neon recommended), and accounts for Google OAuth,
-Cloudinary, OpenRouter and (optionally) Sentry.
-
-```bash
-# 1 — Clone
-git clone https://github.com/zannunakiz/CrossCart.git && cd CrossCart
-
-# 2 — Install
-npm install
-
-# 3 — Configure (every variable is documented inline in the example file)
-cp .env.example .env.local
-
-# 4 — Apply the schema (14 migrations → your Neon database)
-npm run db:migrate
-
-# 5 — Run
-npm run dev            # → http://localhost:3000
-```
-
-Then:
-
-- `/` — the landing page: sign in with Google, switch theme and language.
-- `/quickstore` — create a store, add items, invite a teammate, ring up a sale.
-- `/demo` — the whole cashier experience for guests, with a mocked catalog and zero backend traffic.
 
 ---
 
